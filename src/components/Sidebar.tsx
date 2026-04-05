@@ -3,6 +3,7 @@ import {
   LayoutDashboard, 
   Smartphone, 
   BarChart3, 
+  Zap,
   Settings, 
   ShieldCheck, 
   LogOut,

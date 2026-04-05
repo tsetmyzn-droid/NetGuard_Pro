@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DashboardCard } from '../components/DashboardCard';
 import { routerService } from '../services/routerService';
+import { cn } from '../lib/utils';
 import { NetworkStats } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
