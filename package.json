@@ -1,10 +1,16 @@
 {
-  "name": "react-example",
+  "name": "netguard-pro",
   "private": true,
-  "version": "0.0.0",
-  "description": "NetGuard Pro - Advanced Network Management and Security",
+  "version": "1.0.0",
+  "description": "NetGuard Pro - Advanced Network Management and Security Dashboard",
   "author": "NetGuard Team",
-  "main": "electron/main.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Router-Master-Control-V1/Router-Master-Control-V1"
+  },
+  "homepage": "https://github.com/Router-Master-Control-V1/Router-Master-Control-V1",
+  "main": "electron/main.cjs",
   "type": "module",
   "build": {
     "appId": "com.netguardpro.app",
