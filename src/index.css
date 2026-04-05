@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Noto Sans Arabic", "Poppins", sans-serif;
   --color-soft-blue: #2196F3;
   --color-light-grey: #F8FAFC;
   --color-slate-dark: #1E293B;
@@ -11,6 +12,10 @@
 @layer base {
   body {
     @apply bg-light-grey text-slate-dark font-sans antialiased;
+  }
+  
+  html[dir="rtl"] body {
+    font-family: var(--font-arabic);
   }
 }
 

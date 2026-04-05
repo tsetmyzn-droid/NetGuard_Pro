@@ -8,6 +8,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface BottomNavProps {
   activeTab: string;
@@ -16,12 +17,14 @@ interface BottomNavProps {
 }
 
 const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onHelpClick }) => {
+  const { t } = useTranslation();
+
   const menuItems = [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'devices', label: 'Devices', icon: Smartphone },
-    { id: 'analytics', label: 'Stats', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'help', label: 'Help', icon: HelpCircle, action: onHelpClick },
+    { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { id: 'devices', label: t('devices'), icon: Smartphone },
+    { id: 'analytics', label: t('analytics'), icon: BarChart3 },
+    { id: 'settings', label: t('settings'), icon: Settings },
+    { id: 'help', label: t('help'), icon: HelpCircle, action: onHelpClick },
   ];
 
   return (

@@ -9,9 +9,11 @@ import {
   LogOut,
   Menu,
   X,
-  HelpCircle
+  HelpCircle,
+  Globe
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -21,13 +23,15 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, onHelpClick }) => {
+  const { t, language, setLanguage } = useTranslation();
+
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'devices', label: 'Devices', icon: Smartphone },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'optimizer', label: 'Optimizer', icon: Zap },
-    { id: 'profiles', label: 'Profiles', icon: ShieldCheck },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { id: 'devices', label: t('devices'), icon: Smartphone },
+    { id: 'analytics', label: t('analytics'), icon: BarChart3 },
+    { id: 'optimizer', label: t('optimizer'), icon: Zap },
+    { id: 'profiles', label: t('profiles'), icon: ShieldCheck },
+    { id: 'settings', label: t('settings'), icon: Settings },
   ];
 
   return (
@@ -62,18 +66,25 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, on
 
       <div className="p-6 border-t border-slate-800 space-y-2">
         <button 
+          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
+        >
+          <Globe className="w-5 h-5" />
+          <span className="font-medium">{language === 'en' ? 'العربية' : 'English'}</span>
+        </button>
+        <button 
           onClick={onHelpClick}
           className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
         >
           <HelpCircle className="w-5 h-5" />
-          <span className="font-medium">Help Center</span>
+          <span className="font-medium">{t('help_center')}</span>
         </button>
         <button 
           onClick={onLogout}
           className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
         >
           <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
+          <span className="font-medium">{t('logout')}</span>
         </button>
       </div>
     </aside>

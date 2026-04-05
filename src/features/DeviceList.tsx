@@ -24,8 +24,10 @@ import { routerService } from '../services/routerService';
 import { Device } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from '../contexts/LanguageContext';
 
 const DeviceList: React.FC = () => {
+  const { t } = useTranslation();
   const [devices, setDevices] = useState<Device[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'blocked'>('all');
@@ -101,8 +103,8 @@ const DeviceList: React.FC = () => {
     <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8">
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Device Management</h2>
-          <p className="text-slate-500">Manage and secure {devices.length} devices on your network</p>
+          <h2 className="text-2xl font-bold text-slate-900">{t('device_management')}</h2>
+          <p className="text-slate-500">{t('manage_secure_devices').replace('{count}', devices.length.toString())}</p>
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -110,7 +112,7 @@ const DeviceList: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search by name or IP..."
+              placeholder={t('search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
@@ -121,7 +123,7 @@ const DeviceList: React.FC = () => {
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-medium text-sm"
           >
             <Download className="w-4 h-4" />
-            Export
+            {t('export')}
           </button>
         </div>
       </header>
@@ -129,10 +131,10 @@ const DeviceList: React.FC = () => {
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total', value: devices.length, icon: Wifi, color: 'blue' },
-          { label: 'Online', value: devices.filter(d => d.status === 'online').length, icon: ShieldCheck, color: 'green' },
-          { label: 'Blocked', value: blockedCount, icon: Ban, color: 'red' },
-          { label: 'Offline', value: devices.filter(d => d.status === 'offline').length, icon: Smartphone, color: 'slate' },
+          { label: t('total'), value: devices.length, icon: Wifi, color: 'blue' },
+          { label: t('online'), value: devices.filter(d => d.status === 'online').length, icon: ShieldCheck, color: 'green' },
+          { label: t('blocked'), value: blockedCount, icon: Ban, color: 'red' },
+          { label: t('offline'), value: devices.filter(d => d.status === 'offline').length, icon: Smartphone, color: 'slate' },
         ].map((stat) => (
           <DashboardCard key={stat.label} className="p-4 flex items-center gap-4">
             <div className={`w-10 h-10 rounded-xl bg-${stat.color}-50 text-${stat.color}-500 flex items-center justify-center`}>
@@ -155,7 +157,7 @@ const DeviceList: React.FC = () => {
               activeTab === 'all' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
             )}
           >
-            All Devices
+            {t('all_devices')}
           </button>
           <button 
             onClick={() => setActiveTab('blocked')}
@@ -164,7 +166,7 @@ const DeviceList: React.FC = () => {
               activeTab === 'blocked' ? "bg-white text-red-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
             )}
           >
-            Blocked
+            {t('blocked')}
             {blockedCount > 0 && (
               <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[10px] flex items-center justify-center">
                 {blockedCount}
@@ -179,7 +181,7 @@ const DeviceList: React.FC = () => {
             className="flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all font-bold text-sm"
           >
             <Unlock className="w-4 h-4" />
-            Unblock All
+            {t('unblock_all')}
           </button>
         )}
       </div>
@@ -189,12 +191,12 @@ const DeviceList: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Device</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Signal</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">IP / MAC Address</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Speed</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">{t('device')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">{t('status')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">{t('signal')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">{t('ip_mac')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">{t('speed')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -253,7 +255,7 @@ const DeviceList: React.FC = () => {
                         )}>
                           {device.status === 'online' && <ShieldCheck className="w-3 h-3" />}
                           {device.status === 'blocked' && <ShieldAlert className="w-3 h-3" />}
-                          {device.status}
+                          {t(device.status)}
                         </div>
                       </td>
                       <td className="px-6 py-5">
@@ -297,7 +299,7 @@ const DeviceList: React.FC = () => {
                                 : "bg-red-50 text-red-600 hover:bg-red-100"
                             )}
                           >
-                            {device.status === 'blocked' ? 'Unblock' : 'Block'}
+                            {device.status === 'blocked' ? t('unblock') : t('block')}
                           </button>
                           <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                             <MoreVertical className="w-4 h-4" />
@@ -313,11 +315,11 @@ const DeviceList: React.FC = () => {
                         <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center">
                           <Search className="w-8 h-8 text-slate-300" />
                         </div>
-                        <div className="text-slate-900 font-bold">No devices found</div>
+                        <div className="text-slate-900 font-bold">{t('no_devices_found')}</div>
                         <p className="text-slate-500 text-sm max-w-[240px]">
                           {activeTab === 'blocked' 
-                            ? "Great! You haven't blocked any devices yet." 
-                            : "Try searching for a different name or IP address."}
+                            ? t('no_blocked_devices') 
+                            : t('try_searching_different')}
                         </p>
                       </div>
                     </td>

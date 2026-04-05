@@ -15,8 +15,10 @@ import { cn } from '../lib/utils';
 import { NetworkStats } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from '../contexts/LanguageContext';
 
 const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [speedData, setSpeedData] = useState<any[]>([]);
   const [isRebooting, setIsRebooting] = useState(false);
@@ -79,8 +81,8 @@ const Dashboard: React.FC = () => {
     <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Network Overview</h2>
-          <p className="text-slate-500">Real-time status of your NetGuard Pro router</p>
+          <h2 className="text-2xl font-bold text-slate-900">{t('network_overview')}</h2>
+          <p className="text-slate-500">{t('real_time_status')}</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -89,19 +91,19 @@ const Dashboard: React.FC = () => {
             className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={isRebooting ? "animate-spin w-4 h-4" : "w-4 h-4"} />
-            {isRebooting ? "Rebooting..." : "Reboot Router"}
+            {isRebooting ? "Rebooting..." : t('reboot_router')}
           </button>
           <div className="px-4 py-2 bg-green-50 text-green-600 rounded-2xl font-medium flex items-center gap-2 border border-green-100">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            System Online
+            {t('system_online')}
           </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <DashboardCard 
-          title="Download" 
-          subtitle="Current speed" 
+          title={t('download')} 
+          subtitle={t('current_speed')} 
           icon={<ArrowDownCircle className="text-blue-500" />}
         >
           <div className="mt-2">
@@ -111,8 +113,8 @@ const Dashboard: React.FC = () => {
         </DashboardCard>
 
         <DashboardCard 
-          title="Upload" 
-          subtitle="Current speed" 
+          title={t('upload')} 
+          subtitle={t('current_speed')} 
           icon={<ArrowUpCircle className="text-purple-500" />}
         >
           <div className="mt-2">
@@ -122,19 +124,19 @@ const Dashboard: React.FC = () => {
         </DashboardCard>
 
         <DashboardCard 
-          title="Devices" 
-          subtitle="Connected now" 
+          title={t('devices')} 
+          subtitle={t('connected_now')} 
           icon={<Smartphone className="text-orange-500" />}
         >
           <div className="mt-2">
             <span className="text-3xl font-bold text-slate-900">{stats.activeDevices}</span>
-            <span className="text-slate-400 ml-1 font-medium">Active</span>
+            <span className="text-slate-400 ml-1 font-medium">{t('active')}</span>
           </div>
         </DashboardCard>
 
         <DashboardCard 
-          title="Uptime" 
-          subtitle="System stability" 
+          title={t('uptime')} 
+          subtitle={t('system_stability')} 
           icon={<Wifi className="text-green-500" />}
         >
           <div className="mt-2">
@@ -144,7 +146,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DashboardCard title="Real-time Traffic" className="lg:col-span-2">
+        <DashboardCard title={t('real_time_traffic')} className="lg:col-span-2">
           <div className="h-[300px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={speedData}>
@@ -188,12 +190,12 @@ const Dashboard: React.FC = () => {
         </DashboardCard>
 
         <div className="space-y-6">
-          <DashboardCard title="System Performance">
+          <DashboardCard title={t('system_performance')}>
             <div className="space-y-6 mt-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm font-medium">
                   <span className="text-slate-600 flex items-center gap-2">
-                    <Cpu className="w-4 h-4" /> CPU Load
+                    <Cpu className="w-4 h-4" /> {t('cpu_load')}
                   </span>
                   <span className="text-slate-900">{stats.cpuUsage}%</span>
                 </div>
@@ -208,7 +210,7 @@ const Dashboard: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm font-medium">
                   <span className="text-slate-600 flex items-center gap-2">
-                    <HardDrive className="w-4 h-4" /> RAM Usage
+                    <HardDrive className="w-4 h-4" /> {t('ram_usage')}
                   </span>
                   <span className="text-slate-900">{stats.ramUsage}%</span>
                 </div>
@@ -223,11 +225,11 @@ const Dashboard: React.FC = () => {
             </div>
           </DashboardCard>
 
-          <DashboardCard title="Quick Actions">
+          <DashboardCard title={t('quick_actions')}>
             <div className="grid grid-cols-2 gap-3 mt-4">
               <button className="p-4 bg-slate-50 rounded-2xl text-center hover:bg-blue-50 hover:text-blue-600 transition-all group">
                 <Wifi className="w-6 h-6 mx-auto mb-2 text-slate-400 group-hover:text-blue-500" />
-                <span className="text-xs font-semibold">Guest Wi-Fi</span>
+                <span className="text-xs font-semibold">{t('guest_wifi')}</span>
               </button>
               <button 
                 onClick={handleSecurityScan}
@@ -235,7 +237,7 @@ const Dashboard: React.FC = () => {
                 className="p-4 bg-slate-50 rounded-2xl text-center hover:bg-blue-50 hover:text-blue-600 transition-all group disabled:opacity-50"
               >
                 <ShieldCheck className={cn("w-6 h-6 mx-auto mb-2 text-slate-400 group-hover:text-blue-500", isScanning && "animate-pulse text-blue-500")} />
-                <span className="text-xs font-semibold">{isScanning ? "Scanning..." : "Security Scan"}</span>
+                <span className="text-xs font-semibold">{isScanning ? "Scanning..." : t('security_scan')}</span>
               </button>
             </div>
           </DashboardCard>
@@ -291,8 +293,8 @@ const Dashboard: React.FC = () => {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <div className="font-bold">Scan Complete</div>
-                <div className="text-xs text-green-100">No threats detected. Your network is secure.</div>
+                <div className="font-bold">{t('scan_complete')}</div>
+                <div className="text-xs text-green-100">{t('no_threats')}</div>
               </div>
               <button 
                 onClick={() => setShowScanSuccess(false)}
