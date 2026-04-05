@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) 
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'devices', label: 'Devices', icon: Smartphone },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'security', label: 'Security', icon: ShieldCheck },
+    { id: 'profiles', label: 'Profiles', icon: ShieldCheck },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
