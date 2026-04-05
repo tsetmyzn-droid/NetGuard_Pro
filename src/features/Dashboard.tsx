@@ -13,12 +13,15 @@ import { DashboardCard } from '../components/DashboardCard';
 import { routerService } from '../services/routerService';
 import { NetworkStats } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [speedData, setSpeedData] = useState<any[]>([]);
   const [isRebooting, setIsRebooting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanStep, setScanStep] = useState('');
+  const [showScanSuccess, setShowScanSuccess] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -44,6 +47,29 @@ const Dashboard: React.FC = () => {
     setIsRebooting(true);
     await routerService.rebootRouter();
     setIsRebooting(false);
+  };
+
+  const handleSecurityScan = async () => {
+    setIsScanning(true);
+    setShowScanSuccess(false);
+    
+    const steps = [
+      'Initializing Deep Scan...',
+      'Checking Firewall Rules...',
+      'Scanning Open Ports...',
+      'Verifying WPA3 Encryption...',
+      'Analyzing Device Behavior...',
+      'Finalizing Report...'
+    ];
+
+    for (const step of steps) {
+      setScanStep(step);
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    setIsScanning(false);
+    setShowScanSuccess(true);
+    setTimeout(() => setShowScanSuccess(false), 5000);
   };
 
   if (!stats) return <div className="p-8">Loading dashboard...</div>;
@@ -202,14 +228,81 @@ const Dashboard: React.FC = () => {
                 <Wifi className="w-6 h-6 mx-auto mb-2 text-slate-400 group-hover:text-blue-500" />
                 <span className="text-xs font-semibold">Guest Wi-Fi</span>
               </button>
-              <button className="p-4 bg-slate-50 rounded-2xl text-center hover:bg-blue-50 hover:text-blue-600 transition-all group">
-                <ShieldCheck className="w-6 h-6 mx-auto mb-2 text-slate-400 group-hover:text-blue-500" />
-                <span className="text-xs font-semibold">Security Scan</span>
+              <button 
+                onClick={handleSecurityScan}
+                disabled={isScanning}
+                className="p-4 bg-slate-50 rounded-2xl text-center hover:bg-blue-50 hover:text-blue-600 transition-all group disabled:opacity-50"
+              >
+                <ShieldCheck className={cn("w-6 h-6 mx-auto mb-2 text-slate-400 group-hover:text-blue-500", isScanning && "animate-pulse text-blue-500")} />
+                <span className="text-xs font-semibold">{isScanning ? "Scanning..." : "Security Scan"}</span>
               </button>
             </div>
           </DashboardCard>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isScanning && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-[32px] p-10 max-w-sm w-full text-center shadow-2xl"
+            >
+              <div className="relative w-24 h-24 mx-auto mb-8">
+                <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <ShieldCheck className="w-10 h-10 text-blue-500" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Security Scan in Progress</h3>
+              <p className="text-slate-500 text-sm mb-6 h-5">{scanStep}</p>
+              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <motion.div 
+                  animate={{ x: ["-100%", "100%"] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-1/2 bg-blue-500 h-full rounded-full"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showScanSuccess && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-6"
+          >
+            <div className="bg-green-600 text-white p-4 rounded-2xl shadow-xl flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold">Scan Complete</div>
+                <div className="text-xs text-green-100">No threats detected. Your network is secure.</div>
+              </div>
+              <button 
+                onClick={() => setShowScanSuccess(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
