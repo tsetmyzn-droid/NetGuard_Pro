@@ -36,7 +36,8 @@
     "electron:dev": "electron .",
     "electron:build": "npm run build && electron-builder",
     "cap:sync": "npm run build && npx cap sync",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "ai:fix": "node scripts/auto-fix.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
