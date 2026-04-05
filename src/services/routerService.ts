@@ -60,6 +60,31 @@ class MockRouterService {
     return false;
   }
 
+  async unblockDevice(id: string): Promise<boolean> {
+    const device = this.devices.find(d => d.id === id);
+    if (device) {
+      device.status = 'online';
+      return true;
+    }
+    return false;
+  }
+
+  async unblockAllDevices(): Promise<boolean> {
+    this.devices.forEach(d => {
+      if (d.status === 'blocked') d.status = 'online';
+    });
+    return true;
+  }
+
+  async renameDevice(id: string, newName: string): Promise<boolean> {
+    const device = this.devices.find(d => d.id === id);
+    if (device) {
+      device.name = newName;
+      return true;
+    }
+    return false;
+  }
+
   async updateSettings(newSettings: Partial<RouterSettings>): Promise<RouterSettings> {
     this.settings = { ...this.settings, ...newSettings };
     return this.settings;
