@@ -105,5 +105,6 @@ class RouterServiceV2 {
       return false;
     }
   }
+}
 
 export const routerServiceV2 = new RouterServiceV2();
