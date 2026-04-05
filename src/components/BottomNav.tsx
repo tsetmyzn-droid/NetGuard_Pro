@@ -4,21 +4,24 @@ import {
   Smartphone, 
   BarChart3, 
   Settings, 
-  ShieldCheck 
+  ShieldCheck,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface BottomNavProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onHelpClick: () => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onHelpClick }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     { id: 'devices', label: 'Devices', icon: Smartphone },
     { id: 'analytics', label: 'Stats', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'help', label: 'Help', icon: HelpCircle, action: onHelpClick },
   ];
 
   return (
@@ -26,7 +29,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
       {menuItems.map((item) => (
         <button
           key={item.id}
-          onClick={() => setActiveTab(item.id)}
+          onClick={() => item.action ? item.action() : setActiveTab(item.id)}
           className="flex flex-col items-center gap-1 group"
         >
           <div className={cn(

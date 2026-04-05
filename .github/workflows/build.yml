@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
 
       - name: Install Dependencies
@@ -44,7 +44,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
 
       - name: Install Dependencies
@@ -58,7 +58,10 @@ jobs:
 
       - name: Add Android Platform
         run: |
-          npx cap add android
+          if [ ! -d "android" ]; then
+            npx cap init "NetGuard Pro" "com.netguardpro.app" --web-dir dist
+            npx cap add android
+          fi
           npx cap sync android
 
       - name: Build Android APK

@@ -13,11 +13,13 @@ import RouterProfiles from './features/RouterProfiles';
 import WifiOptimizer from './features/WifiOptimizer';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
+import HelpCenter from './components/HelpCenter';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         onLogout={handleLogout} 
+        onHelpClick={() => setIsHelpOpen(true)}
       />
       
       <main className="flex-1 overflow-y-auto">
@@ -82,7 +85,9 @@ export default function App() {
       <BottomNav 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
+        onHelpClick={() => setIsHelpOpen(true)}
       />
+      <HelpCenter isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }
