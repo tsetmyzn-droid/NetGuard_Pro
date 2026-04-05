@@ -10,10 +10,13 @@ import {
   Menu,
   X,
   HelpCircle,
-  Globe
+  Globe,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -24,6 +27,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, onHelpClick }) => {
   const { t, language, setLanguage } = useTranslation();
+  const { theme, toggleTheme } = useTheme();
 
   const menuItems = [
     { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -35,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, on
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 h-screen sticky top-0 border-r border-slate-800">
+    <aside className="hidden md:flex flex-col w-64 bg-slate-900 dark:bg-slate-950 text-slate-300 h-screen sticky top-0 border-r border-slate-800 transition-colors duration-300">
       <div className="p-8 flex items-center gap-3">
         <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
           <ShieldCheck className="text-white w-6 h-6" />
@@ -52,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, on
               "w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 group",
               activeTab === item.id 
                 ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
-                : "hover:bg-slate-800 hover:text-white"
+                : "hover:bg-slate-800 dark:hover:bg-slate-900 hover:text-white"
             )}
           >
             <item.icon className={cn(
@@ -65,6 +69,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, on
       </nav>
 
       <div className="p-6 border-t border-slate-800 space-y-2">
+        <button 
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
+        >
+          {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          <span className="font-medium">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+        </button>
         <button 
           onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
           className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 transition-colors"

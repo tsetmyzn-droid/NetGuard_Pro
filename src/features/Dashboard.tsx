@@ -78,22 +78,22 @@ const Dashboard: React.FC = () => {
   if (!stats) return <div className="p-8">Loading dashboard...</div>;
 
   return (
-    <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8">
+    <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8 transition-colors duration-300">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">{t('network_overview')}</h2>
-          <p className="text-slate-500">{t('real_time_status')}</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('network_overview')}</h2>
+          <p className="text-slate-500 dark:text-slate-400">{t('real_time_status')}</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={handleReboot}
             disabled={isRebooting}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={isRebooting ? "animate-spin w-4 h-4" : "w-4 h-4"} />
             {isRebooting ? "Rebooting..." : t('reboot_router')}
           </button>
-          <div className="px-4 py-2 bg-green-50 text-green-600 rounded-2xl font-medium flex items-center gap-2 border border-green-100">
+          <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-2xl font-medium flex items-center gap-2 border border-green-100 dark:border-green-900/30">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             {t('system_online')}
           </div>
@@ -107,8 +107,8 @@ const Dashboard: React.FC = () => {
           icon={<ArrowDownCircle className="text-blue-500" />}
         >
           <div className="mt-2">
-            <span className="text-3xl font-bold text-slate-900">{stats.currentDownload.toFixed(1)}</span>
-            <span className="text-slate-400 ml-1 font-medium">Mbps</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white">{stats.currentDownload.toFixed(1)}</span>
+            <span className="text-slate-400 dark:text-slate-500 ml-1 font-medium">Mbps</span>
           </div>
         </DashboardCard>
 
@@ -118,8 +118,8 @@ const Dashboard: React.FC = () => {
           icon={<ArrowUpCircle className="text-purple-500" />}
         >
           <div className="mt-2">
-            <span className="text-3xl font-bold text-slate-900">{stats.currentUpload.toFixed(1)}</span>
-            <span className="text-slate-400 ml-1 font-medium">Mbps</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white">{stats.currentUpload.toFixed(1)}</span>
+            <span className="text-slate-400 dark:text-slate-500 ml-1 font-medium">Mbps</span>
           </div>
         </DashboardCard>
 
@@ -129,8 +129,8 @@ const Dashboard: React.FC = () => {
           icon={<Smartphone className="text-orange-500" />}
         >
           <div className="mt-2">
-            <span className="text-3xl font-bold text-slate-900">{stats.activeDevices}</span>
-            <span className="text-slate-400 ml-1 font-medium">{t('active')}</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white">{stats.activeDevices}</span>
+            <span className="text-slate-400 dark:text-slate-500 ml-1 font-medium">{t('active')}</span>
           </div>
         </DashboardCard>
 
@@ -140,7 +140,7 @@ const Dashboard: React.FC = () => {
           icon={<Wifi className="text-green-500" />}
         >
           <div className="mt-2">
-            <span className="text-2xl font-bold text-slate-900">{stats.uptime}</span>
+            <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.uptime}</span>
           </div>
         </DashboardCard>
       </div>
@@ -160,11 +160,17 @@ const Dashboard: React.FC = () => {
                     <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
                 <XAxis dataKey="time" hide />
                 <YAxis hide />
                 <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                    backgroundColor: 'var(--color-dark-card, #1E293B)',
+                    color: '#fff'
+                  }}
                 />
                 <Area 
                   type="monotone" 
@@ -194,12 +200,12 @@ const Dashboard: React.FC = () => {
             <div className="space-y-6 mt-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm font-medium">
-                  <span className="text-slate-600 flex items-center gap-2">
+                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
                     <Cpu className="w-4 h-4" /> {t('cpu_load')}
                   </span>
-                  <span className="text-slate-900">{stats.cpuUsage}%</span>
+                  <span className="text-slate-900 dark:text-white">{stats.cpuUsage}%</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2">
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${stats.cpuUsage}%` }}
@@ -209,12 +215,12 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm font-medium">
-                  <span className="text-slate-600 flex items-center gap-2">
+                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
                     <HardDrive className="w-4 h-4" /> {t('ram_usage')}
                   </span>
-                  <span className="text-slate-900">{stats.ramUsage}%</span>
+                  <span className="text-slate-900 dark:text-white">{stats.ramUsage}%</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2">
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${stats.ramUsage}%` }}
@@ -227,17 +233,17 @@ const Dashboard: React.FC = () => {
 
           <DashboardCard title={t('quick_actions')}>
             <div className="grid grid-cols-2 gap-3 mt-4">
-              <button className="p-4 bg-slate-50 rounded-2xl text-center hover:bg-blue-50 hover:text-blue-600 transition-all group">
-                <Wifi className="w-6 h-6 mx-auto mb-2 text-slate-400 group-hover:text-blue-500" />
-                <span className="text-xs font-semibold">{t('guest_wifi')}</span>
+              <button className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-center hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all group">
+                <Wifi className="w-6 h-6 mx-auto mb-2 text-slate-400 dark:text-slate-500 group-hover:text-blue-500" />
+                <span className="text-xs font-semibold dark:text-slate-300">{t('guest_wifi')}</span>
               </button>
               <button 
                 onClick={handleSecurityScan}
                 disabled={isScanning}
-                className="p-4 bg-slate-50 rounded-2xl text-center hover:bg-blue-50 hover:text-blue-600 transition-all group disabled:opacity-50"
+                className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-center hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all group disabled:opacity-50"
               >
-                <ShieldCheck className={cn("w-6 h-6 mx-auto mb-2 text-slate-400 group-hover:text-blue-500", isScanning && "animate-pulse text-blue-500")} />
-                <span className="text-xs font-semibold">{isScanning ? "Scanning..." : t('security_scan')}</span>
+                <ShieldCheck className={cn("w-6 h-6 mx-auto mb-2 text-slate-400 dark:text-slate-500 group-hover:text-blue-500", isScanning && "animate-pulse text-blue-500")} />
+                <span className="text-xs font-semibold dark:text-slate-300">{isScanning ? "Scanning..." : t('security_scan')}</span>
               </button>
             </div>
           </DashboardCard>
@@ -255,10 +261,10 @@ const Dashboard: React.FC = () => {
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-[32px] p-10 max-w-sm w-full text-center shadow-2xl"
+              className="bg-white dark:bg-slate-900 rounded-[32px] p-10 max-w-sm w-full text-center shadow-2xl"
             >
               <div className="relative w-24 h-24 mx-auto mb-8">
-                <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+                <div className="absolute inset-0 border-4 border-blue-100 dark:border-slate-800 rounded-full" />
                 <motion.div 
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -268,9 +274,9 @@ const Dashboard: React.FC = () => {
                   <ShieldCheck className="w-10 h-10 text-blue-500" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Security Scan in Progress</h3>
-              <p className="text-slate-500 text-sm mb-6 h-5">{scanStep}</p>
-              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Security Scan in Progress</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 h-5">{scanStep}</p>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
                 <motion.div 
                   animate={{ x: ["-100%", "100%"] }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}

@@ -7,11 +7,18 @@
   --color-soft-blue: #2196F3;
   --color-light-grey: #F8FAFC;
   --color-slate-dark: #1E293B;
+  --color-dark-bg: #0F172A;
+  --color-dark-card: #1E293B;
+  --color-dark-border: #334155;
 }
 
 @layer base {
   body {
-    @apply bg-light-grey text-slate-dark font-sans antialiased;
+    @apply bg-light-grey text-slate-dark font-sans antialiased transition-colors duration-300;
+  }
+  
+  .dark body {
+    @apply bg-dark-bg text-slate-100;
   }
   
   html[dir="rtl"] body {

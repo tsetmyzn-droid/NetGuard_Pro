@@ -48,10 +48,10 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8">
+    <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8 transition-colors duration-300">
       <header>
-        <h2 className="text-2xl font-bold text-slate-900">{t('router_settings')}</h2>
-        <p className="text-slate-500">{t('configure_wifi')}</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('router_settings')}</h2>
+        <p className="text-slate-500 dark:text-slate-400">{t('configure_wifi')}</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -60,25 +60,25 @@ const Settings: React.FC = () => {
             <form onSubmit={handleSave} className="space-y-6 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">{t('ssid')}</label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('ssid')}</label>
                   <div className="relative">
                     <Wifi className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
                       type="text" 
                       value={settings.ssid}
                       onChange={(e) => setSettings({ ...settings, ssid: e.target.value })}
-                      className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">{t('security_mode')}</label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('security_mode')}</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <select 
                       value={settings.securityMode}
                       onChange={(e) => setSettings({ ...settings, securityMode: e.target.value })}
-                      className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                      className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none text-slate-900 dark:text-white"
                     >
                       <option>WPA3-SAE</option>
                       <option>WPA2-AES</option>
@@ -89,25 +89,25 @@ const Settings: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">{t('wifi_password')}</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('wifi_password')}</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 
                     type={showPassword ? "text" : "password"} 
                     defaultValue="••••••••••••"
-                    className="w-full pl-11 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full pl-11 pr-12 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex justify-end">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                 <button 
                   type="submit"
                   disabled={isSaving}
@@ -122,12 +122,12 @@ const Settings: React.FC = () => {
 
           <DashboardCard title={t('dns_settings')}>
             <div className="space-y-6 mt-4">
-              <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
+              <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <button 
                   onClick={() => setDnsSettings({ ...dnsSettings, mode: 'auto' })}
                   className={cn(
                     "flex-1 py-2 rounded-xl text-sm font-bold transition-all",
-                    dnsSettings.mode === 'auto' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
+                    dnsSettings.mode === 'auto' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400"
                   )}
                 >
                   Automatic
@@ -136,7 +136,7 @@ const Settings: React.FC = () => {
                   onClick={() => setDnsSettings({ ...dnsSettings, mode: 'manual' })}
                   className={cn(
                     "flex-1 py-2 rounded-xl text-sm font-bold transition-all",
-                    dnsSettings.mode === 'manual' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
+                    dnsSettings.mode === 'manual' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400"
                   )}
                 >
                   Manual
@@ -146,26 +146,26 @@ const Settings: React.FC = () => {
               {dnsSettings.mode === 'manual' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">{t('primary_dns')}</label>
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('primary_dns')}</label>
                     <div className="relative">
                       <Server className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input 
                         type="text" 
                         value={dnsSettings.primary}
                         onChange={(e) => setDnsSettings({ ...dnsSettings, primary: e.target.value })}
-                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">{t('secondary_dns')}</label>
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('secondary_dns')}</label>
                     <div className="relative">
                       <Server className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input 
                         type="text" 
                         value={dnsSettings.secondary}
                         onChange={(e) => setDnsSettings({ ...dnsSettings, secondary: e.target.value })}
-                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
                       />
                     </div>
                   </div>
@@ -182,10 +182,10 @@ const Settings: React.FC = () => {
                   <button
                     key={provider.name}
                     onClick={() => setDnsSettings({ primary: provider.p, secondary: provider.s, mode: 'manual' })}
-                    className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center hover:border-blue-200 hover:bg-blue-50 transition-all"
+                    className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-center hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
                   >
-                    <div className="text-xs font-bold text-slate-900">{provider.name}</div>
-                    <div className="text-[10px] text-slate-400 mt-1">{provider.p}</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">{provider.name}</div>
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">{provider.p}</div>
                   </button>
                 ))}
               </div>
@@ -196,12 +196,12 @@ const Settings: React.FC = () => {
         <div className="space-y-6">
           <DashboardCard title="Language & Region">
             <div className="space-y-4 mt-4">
-              <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
+              <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <button 
                   onClick={() => setLanguage('en')}
                   className={cn(
                     "flex-1 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                    language === 'en' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
+                    language === 'en' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400"
                   )}
                 >
                   <Globe className="w-4 h-4" /> English
@@ -210,13 +210,13 @@ const Settings: React.FC = () => {
                   onClick={() => setLanguage('ar')}
                   className={cn(
                     "flex-1 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                    language === 'ar' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
+                    language === 'ar' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400"
                   )}
                 >
                   <Globe className="w-4 h-4" /> العربية
                 </button>
               </div>
-              <p className="text-[10px] text-slate-500 text-center font-medium">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center font-medium">
                 Changing language will update the interface and AI analysis.
               </p>
             </div>
@@ -224,21 +224,21 @@ const Settings: React.FC = () => {
 
           <DashboardCard title={t('network_optimization')}>
             <div className="text-center py-4">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-3xl flex items-center justify-center mx-auto mb-4">
                 <Zap className={cn("w-8 h-8", isOptimizing && "animate-pulse")} />
               </div>
-              <h4 className="font-bold text-slate-900">{t('channel_optimizer')}</h4>
-              <p className="text-xs text-slate-500 mt-2 px-4">Automatically scan and switch to the least congested Wi-Fi channel.</p>
+              <h4 className="font-bold text-slate-900 dark:text-white">{t('channel_optimizer')}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 px-4">Automatically scan and switch to the least congested Wi-Fi channel.</p>
               
-              <div className="mt-6 p-4 bg-slate-50 rounded-2xl inline-block">
-                <span className="text-xs font-bold text-slate-400 uppercase block mb-1">{t('current_channel')}</span>
-                <span className="text-2xl font-bold text-blue-600">{settings.channel}</span>
+              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl inline-block">
+                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">{t('current_channel')}</span>
+                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{settings.channel}</span>
               </div>
 
               <button 
                 onClick={handleOptimize}
                 disabled={isOptimizing}
-                className="w-full mt-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full mt-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <RefreshCw className={cn("w-4 h-4", isOptimizing && "animate-spin")} />
                 {isOptimizing ? "Scanning..." : t('optimize_now')}
@@ -248,22 +248,22 @@ const Settings: React.FC = () => {
 
           <DashboardCard title={t('parental_controls')}>
             <div className="space-y-4 mt-4">
-              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
-                <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-lg flex items-center justify-center group-hover:bg-orange-100">
+              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer group">
+                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 text-orange-500 dark:text-orange-400 rounded-lg flex items-center justify-center group-hover:bg-orange-100 dark:group-hover:bg-orange-900/40">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-bold text-slate-900">{t('access_schedule')}</div>
-                  <div className="text-[10px] text-slate-400">Set time limits for devices</div>
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">{t('access_schedule')}</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500">Set time limits for devices</div>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
-                <div className="w-10 h-10 bg-purple-50 text-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-100">
+              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer group">
+                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 text-purple-500 dark:text-purple-400 rounded-lg flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/40">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-bold text-slate-900">{t('content_filter')}</div>
-                  <div className="text-[10px] text-slate-400">Block restricted websites</div>
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">{t('content_filter')}</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500">Block restricted websites</div>
                 </div>
               </div>
             </div>

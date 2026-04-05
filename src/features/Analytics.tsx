@@ -97,13 +97,13 @@ const Analytics: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8">
+    <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8 transition-colors duration-300">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">{t('analytics')}</h2>
-          <p className="text-slate-500">{t('recent_events')}</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('analytics')}</h2>
+          <p className="text-slate-500 dark:text-slate-400">{t('recent_events')}</p>
         </div>
-        <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex bg-white dark:bg-slate-900 p-1 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
           {(['day', 'week', 'month'] as const).map((range) => (
             <button
               key={range}
@@ -111,7 +111,7 @@ const Analytics: React.FC = () => {
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                 timeRange === range 
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
-                  : 'text-slate-500 hover:bg-slate-50'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               {t(range)}
@@ -125,7 +125,7 @@ const Analytics: React.FC = () => {
           <div className="h-[350px] w-full mt-6">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={consumptionData[timeRange]}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
                 <XAxis 
                   dataKey={timeRange === 'day' ? 'time' : 'name'} 
                   axisLine={false} 
@@ -140,7 +140,13 @@ const Analytics: React.FC = () => {
                 />
                 <Tooltip 
                   cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                    backgroundColor: 'var(--color-dark-card, #1E293B)',
+                    color: '#fff'
+                  }}
                 />
                 <Bar 
                   dataKey="usage" 
@@ -162,26 +168,26 @@ const Analytics: React.FC = () => {
         <div className="space-y-6">
           <DashboardCard title={t('quick_stats')}>
             <div className="space-y-4 mt-4">
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
                 <div className="flex items-center gap-3">
-                  <ArrowDownLeft className="text-blue-600 w-5 h-5" />
-                  <span className="text-sm font-medium text-blue-900">{t('total_download')}</span>
+                  <ArrowDownLeft className="text-blue-600 dark:text-blue-400 w-5 h-5" />
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-200">{t('total_download')}</span>
                 </div>
-                <span className="font-bold text-blue-900">456.2 GB</span>
+                <span className="font-bold text-blue-900 dark:text-blue-200">456.2 GB</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-purple-50 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl">
                 <div className="flex items-center gap-3">
-                  <ArrowUpRight className="text-purple-600 w-5 h-5" />
-                  <span className="text-sm font-medium text-purple-900">{t('total_upload')}</span>
+                  <ArrowUpRight className="text-purple-600 dark:text-purple-400 w-5 h-5" />
+                  <span className="text-sm font-medium text-purple-900 dark:text-purple-200">{t('total_upload')}</span>
                 </div>
-                <span className="font-bold text-purple-900">82.5 GB</span>
+                <span className="font-bold text-purple-900 dark:text-purple-200">82.5 GB</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl">
                 <div className="flex items-center gap-3">
-                  <Activity className="text-slate-600 w-5 h-5" />
-                  <span className="text-sm font-medium text-slate-900">{t('peak_usage')}</span>
+                  <Activity className="text-slate-600 dark:text-slate-400 w-5 h-5" />
+                  <span className="text-sm font-medium text-slate-900 dark:text-slate-200">{t('peak_usage')}</span>
                 </div>
-                <span className="font-bold text-slate-900">12.5 Mbps</span>
+                <span className="font-bold text-slate-900 dark:text-slate-200">12.5 Mbps</span>
               </div>
             </div>
           </DashboardCard>
@@ -203,7 +209,14 @@ const Analytics: React.FC = () => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{ 
+                      borderRadius: '16px', 
+                      border: 'none', 
+                      backgroundColor: 'var(--color-dark-card, #1E293B)',
+                      color: '#fff'
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -211,7 +224,7 @@ const Analytics: React.FC = () => {
               {contentUsageData.map((item) => (
                 <div key={item.name} className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-[10px] font-bold text-slate-600 truncate">{item.name}</span>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate">{item.name}</span>
                 </div>
               ))}
             </div>
@@ -226,14 +239,14 @@ const Analytics: React.FC = () => {
               <div key={app.name} className="space-y-2">
                 <div className="flex justify-between items-center text-sm font-bold">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-slate-50 text-slate-600">
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                       {app.icon}
                     </div>
-                    <span className="text-slate-900">{app.name}</span>
+                    <span className="text-slate-900 dark:text-white">{app.name}</span>
                   </div>
-                  <span className="text-slate-500">{app.value}%</span>
+                  <span className="text-slate-500 dark:text-slate-400">{app.value}%</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2">
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${app.value}%` }}
@@ -249,21 +262,21 @@ const Analytics: React.FC = () => {
         <DashboardCard title={t('device_consumption')}>
           <div className="mt-6 space-y-4">
             {deviceUsageData.map((device) => (
-              <div key={device.name} className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
+              <div key={device.name} className="flex items-center justify-between p-4 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center">
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900">{device.name}</div>
-                    <div className="text-[10px] text-slate-400 font-medium">
+                    <div className="font-bold text-slate-900 dark:text-white">{device.name}</div>
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                       {device.apps.join(' • ')}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-slate-900">{device.usage} GB</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Data</div>
+                  <div className="font-bold text-slate-900 dark:text-white">{device.usage} GB</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">Total Data</div>
                 </div>
               </div>
             ))}
@@ -274,23 +287,23 @@ const Analytics: React.FC = () => {
       <DashboardCard title={t('connection_logs')} subtitle={t('recent_events')}>
         <div className="mt-6 space-y-4">
           {logs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
+            <div key={log.id} className="flex items-center justify-between p-4 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-center">
                   {getEventIcon(log.event)}
                 </div>
                 <div>
-                  <div className="font-semibold text-slate-900">
-                    {log.device} <span className="text-slate-400 font-normal">has {log.event}</span>
+                  <div className="font-semibold text-slate-900 dark:text-white">
+                    {log.device} <span className="text-slate-400 dark:text-slate-500 font-normal">has {log.event}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                  <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                     <Clock className="w-3 h-3" /> {format(new Date(log.timestamp), 'HH:mm:ss')}
                     <Calendar className="w-3 h-3 ml-2" /> {format(new Date(log.timestamp), 'MMM dd, yyyy')}
                   </div>
                 </div>
               </div>
               <div className="hidden md:block">
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Event ID: {log.id}</span>
+                <span className="text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">Event ID: {log.id}</span>
               </div>
             </div>
           ))}

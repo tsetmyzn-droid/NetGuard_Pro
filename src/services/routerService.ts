@@ -10,7 +10,7 @@ class MockRouterService {
   ];
 
   private settings: RouterSettings = {
-    ssid: 'NetGuard_Pro_Home',
+    ssid: import.meta.env.PROD ? 'NetGuard_Pro_Secure' : 'NetGuard_Default_Router',
     guestSsid: 'NetGuard_Guest',
     guestEnabled: false,
     channel: 6,

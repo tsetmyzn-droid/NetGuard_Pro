@@ -12,17 +12,17 @@ interface CardProps {
 export const DashboardCard: React.FC<CardProps> = ({ children, className, title, subtitle, icon }) => {
   return (
     <div className={cn(
-      "bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 transition-all hover:shadow-md",
+      "bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-md dark:hover:shadow-none",
       className
     )}>
       {(title || icon) && (
         <div className="flex items-center justify-between mb-6">
           <div>
-            {title && <h3 className="text-lg font-semibold text-slate-900">{title}</h3>}
-            {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
+            {title && <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>}
+            {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{subtitle}</p>}
           </div>
           {icon && (
-            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-600">
+            <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-600 dark:text-slate-300">
               {icon}
             </div>
           )}
