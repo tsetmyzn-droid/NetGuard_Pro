@@ -59,7 +59,6 @@ jobs:
       - name: Add Android Platform
         run: |
           if [ ! -d "android" ]; then
-            npx cap init "NetGuard Pro" "com.netguardpro.app" --web-dir dist
             npx cap add android
           fi
           npx cap sync android
