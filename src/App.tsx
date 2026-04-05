@@ -10,6 +10,7 @@ import DeviceList from './features/DeviceList';
 import Analytics from './features/Analytics';
 import Settings from './features/Settings';
 import RouterProfiles from './features/RouterProfiles';
+import WifiOptimizer from './features/WifiOptimizer';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import { motion, AnimatePresence } from 'motion/react';
@@ -50,6 +51,7 @@ export default function App() {
       case 'devices': return <DeviceList />;
       case 'analytics': return <Analytics />;
       case 'profiles': return <RouterProfiles />;
+      case 'optimizer': return <WifiOptimizer />;
       case 'settings': return <Settings />;
       default: return <Dashboard />;
     }

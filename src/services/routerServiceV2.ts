@@ -73,10 +73,37 @@ class RouterServiceV2 {
     };
   }
 
-  resetUsage() {
-    this.totalUsageGB = 0;
-    localStorage.setItem('ng_total_usage', '0');
+  // محاكاة التحكم الكامل بالراوتر (Full Control Protocol)
+  async setBandwidthLimit(deviceId: string, limitMbps: number) {
+    console.log(`SSH: Setting bandwidth limit for ${deviceId} to ${limitMbps}Mbps`);
+    return true;
   }
-}
+
+  async setDeviceSchedule(deviceId: string, schedule: { start: string, end: string }) {
+    console.log(`SSH: Setting access schedule for ${deviceId}: ${schedule.start} - ${schedule.end}`);
+    return true;
+  }
+
+  async optimizeChannel(): Promise<number> {
+    // محاكاة تحليل القنوات (Channel Analysis)
+    const channels = Array.from({ length: 11 }, (_, i) => ({
+      channel: i + 1,
+      interference: Math.random() * 100
+    }));
+    const bestChannel = channels.sort((a, b) => a.interference - b.interference)[0].channel;
+    console.log(`Optimization: Best channel found is ${bestChannel}`);
+    return bestChannel;
+  }
+
+  // بروتوكول الاتصال المحلي (Local-First Connection)
+  // يحاول الاتصال بالـ IP المحلي مباشرة دون الاعتماد على DNS خارجي
+  async checkLocalConnectivity(ip: string): Promise<boolean> {
+    try {
+      // محاكاة Ping للراوتر
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
 export const routerServiceV2 = new RouterServiceV2();
