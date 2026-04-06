@@ -307,7 +307,7 @@ const Analytics: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-bold text-slate-900 dark:text-white">{device.currentUsage} GB</div>
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">Total Data</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">{t('total_traffic')}</div>
                 </div>
               </div>
             ))}
@@ -325,7 +325,7 @@ const Analytics: React.FC = () => {
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">
-                    {log.device} <span className="text-slate-400 dark:text-slate-500 font-normal">has {log.event}</span>
+                    {log.device} <span className="text-slate-400 dark:text-slate-500 font-normal">{t(log.event)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                     <Clock className="w-3 h-3" /> {format(new Date(log.timestamp), 'HH:mm:ss')}

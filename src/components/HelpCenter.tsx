@@ -39,10 +39,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('understand_stats'),
       icon: <LayoutDashboard className="w-5 h-5 text-blue-500" />,
       details: [
-        'Download/Upload: Shows current speed updated every 500ms.',
-        'Total Usage: Tracks data consumed since the app started.',
-        'Session Timer: Displays how long you have been monitoring.',
-        'Quota Alert: Turns red when you exceed your set data limit.'
+        t('help_dashboard_1'),
+        t('help_dashboard_2'),
+        t('help_dashboard_3'),
+        t('help_dashboard_4')
       ]
     },
     {
@@ -51,10 +51,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('improve_signal'),
       icon: <Zap className="w-5 h-5 text-yellow-500" />,
       details: [
-        'Spectrum Scan: Analyzes all 11 channels for interference.',
-        'Recommended Channel: Highlights the cleanest channel in green.',
-        'Apply to Router: Updates your router settings to the best channel.',
-        'Tip: Channels 1, 6, and 11 are best for 2.4GHz networks.'
+        t('help_optimizer_1'),
+        t('help_optimizer_2'),
+        t('help_optimizer_3'),
+        t('help_optimizer_4')
       ]
     },
     {
@@ -63,10 +63,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('learn_protection'),
       icon: <ShieldCheck className="w-5 h-5 text-green-500" />,
       details: [
-        'AES-256: All router passwords are encrypted locally.',
-        'Hydra Detection: Blocks repeated failed login attempts.',
-        'MITM Shield: Verifies router identity to prevent spoofing.',
-        'Privacy Mode: Disables screenshots and text copying.'
+        t('help_security_1'),
+        t('help_security_2'),
+        t('help_security_3'),
+        t('help_security_4')
       ]
     },
     {
@@ -75,10 +75,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('router_connectivity_help'),
       icon: <Globe className="w-5 h-5 text-blue-500" />,
       details: [
-        'Router Address: Enter the IP address of your gateway (e.g., 192.168.1.1).',
-        'SSH (Paramiko): Connect via command-line interface for deep control.',
-        'API (Requests): Connect via router REST API for fast data retrieval.',
-        'WEB (Selenium): Connect via web interface scraping for older routers.'
+        t('help_conn_1'),
+        t('help_conn_2'),
+        t('help_conn_3'),
+        t('help_conn_4')
       ]
     },
     {
@@ -87,10 +87,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('detailed_consumption_help'),
       icon: <BarChart3 className="w-5 h-5 text-orange-500" />,
       details: [
-        'Time Range: Switch between Daily, Weekly, and Monthly views.',
-        'App Usage: See which apps (YouTube, Netflix, etc.) consume most data.',
-        'Content Types: View distribution of Video, Social, Gaming, and Work.',
-        'History: Interactive charts showing usage patterns over time.'
+        t('help_analytics_1'),
+        t('help_analytics_2'),
+        t('help_analytics_3'),
+        t('help_analytics_4')
       ]
     },
     {
@@ -99,10 +99,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('control_access'),
       icon: <Smartphone className="w-5 h-5 text-purple-500" />,
       details: [
-        'Device Details: Click any device to see its specific app usage and history.',
-        'Block/Unblock: Instantly cut off internet for any device.',
-        'Rename: Give devices friendly names (e.g., "Dad\'s Phone").',
-        'Signal Strength: See how far a device is from the router.'
+        t('help_devices_1'),
+        t('help_devices_2'),
+        t('help_devices_3'),
+        t('help_devices_4')
       ]
     },
     {
@@ -111,10 +111,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('configure_dns_help'),
       icon: <Server className="w-5 h-5 text-indigo-500" />,
       details: [
-        'Primary DNS: The main server used for domain resolution.',
-        'Secondary DNS: A backup server if the primary fails.',
-        'Custom DNS: Use providers like Google (8.8.8.8) or Cloudflare (1.1.1.1).',
-        'Ad-Blocking DNS: Use AdGuard to block ads at the network level.'
+        t('help_dns_1'),
+        t('help_dns_2'),
+        t('help_dns_3'),
+        t('help_dns_4')
       ]
     },
     {
@@ -123,10 +123,10 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       description: t('ai_translation_help'),
       icon: <Globe className="w-5 h-5 text-cyan-500" />,
       details: [
-        'English/Arabic: Switch between languages instantly.',
-        'AI Powered: Uses Gemini AI for contextual translations.',
-        'RTL Support: Full support for Right-to-Left layouts in Arabic.',
-        'Auto-Save: Your language preference is saved locally.'
+        t('help_ai_1'),
+        t('help_ai_2'),
+        t('help_ai_3'),
+        t('help_ai_4')
       ]
     }
   ];

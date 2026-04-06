@@ -130,7 +130,7 @@ const Settings: React.FC = () => {
                     dnsSettings.mode === 'auto' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400"
                   )}
                 >
-                  Automatic
+                  {t('automatic')}
                 </button>
                 <button 
                   onClick={() => setDnsSettings({ ...dnsSettings, mode: 'manual' })}
@@ -139,7 +139,7 @@ const Settings: React.FC = () => {
                     dnsSettings.mode === 'manual' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400"
                   )}
                 >
-                  Manual
+                  {t('manual')}
                 </button>
               </div>
 
@@ -194,7 +194,7 @@ const Settings: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          <DashboardCard title="Language & Region">
+          <DashboardCard title={t('language_region')}>
             <div className="space-y-4 mt-4">
               <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <button 
@@ -217,7 +217,7 @@ const Settings: React.FC = () => {
                 </button>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center font-medium">
-                Changing language will update the interface and AI analysis.
+                {t('lang_change_desc')}
               </p>
             </div>
           </DashboardCard>
@@ -228,7 +228,7 @@ const Settings: React.FC = () => {
                 <Zap className={cn("w-8 h-8", isOptimizing && "animate-pulse")} />
               </div>
               <h4 className="font-bold text-slate-900 dark:text-white">{t('channel_optimizer')}</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 px-4">Automatically scan and switch to the least congested Wi-Fi channel.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 px-4">{t('optimizer_desc')}</p>
               
               <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl inline-block">
                 <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">{t('current_channel')}</span>
@@ -241,7 +241,7 @@ const Settings: React.FC = () => {
                 className="w-full mt-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <RefreshCw className={cn("w-4 h-4", isOptimizing && "animate-spin")} />
-                {isOptimizing ? "Scanning..." : t('optimize_now')}
+                {isOptimizing ? t('scanning') : t('optimize_now')}
               </button>
             </div>
           </DashboardCard>
@@ -288,7 +288,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-bold text-slate-900 dark:text-white">{t('access_schedule')}</div>
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500">Set time limits for devices</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500">{t('time_limit_desc')}</div>
                 </div>
               </div>
               <div className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer group">
@@ -297,7 +297,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-bold text-slate-900 dark:text-white">{t('content_filter')}</div>
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500">Block restricted websites</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500">{t('block_restricted_desc')}</div>
                 </div>
               </div>
             </div>

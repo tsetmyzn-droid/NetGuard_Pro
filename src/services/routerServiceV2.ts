@@ -7,6 +7,7 @@ export interface RouterProfile {
   routerIp: string;
   username: string;
   passwordEncrypted: string;
+  routerPass?: string; // For display after decryption
   routerType: string;
 }
 
@@ -47,7 +48,10 @@ class RouterServiceV2 {
   }
 
   getProfiles() {
-    return this.profiles;
+    return this.profiles.map(p => ({
+      ...p,
+      routerPass: securityService.decryptData(p.passwordEncrypted)
+    }));
   }
 
   // تحديث الاستهلاك وحفظه (كما في NetMonitor)

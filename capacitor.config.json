@@ -2,6 +2,11 @@
   "appId": "com.netguardpro.app",
   "appName": "NetGuard Pro",
   "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  },
   "server": {
     "androidScheme": "https"
   }

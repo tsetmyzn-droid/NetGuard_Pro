@@ -403,9 +403,9 @@ const DeviceList: React.FC = () => {
                     {/* Consumption History */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">Consumption History</h4>
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">{t('consumption_history')}</h4>
                         <div className="flex gap-2">
-                          <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold">Daily</span>
+                          <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold">{t('daily')}</span>
                         </div>
                       </div>
                       <div className="h-[240px] w-full bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4">
@@ -431,7 +431,7 @@ const DeviceList: React.FC = () => {
 
                     {/* App Usage */}
                     <div className="space-y-4">
-                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">Usage by Application</h4>
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">{t('usage_by_application')}</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {selectedDevice.apps.map((app) => (
                           <div key={app.name} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
@@ -451,7 +451,7 @@ const DeviceList: React.FC = () => {
                   <div className="space-y-8">
                     {/* Content Types */}
                     <div className="space-y-4">
-                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">Content Distribution</h4>
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">{t('content_distribution')}</h4>
                       <div className="h-[200px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
@@ -487,7 +487,7 @@ const DeviceList: React.FC = () => {
 
                     {/* Quick Actions */}
                     <div className="p-6 bg-slate-900 rounded-3xl text-white space-y-4">
-                      <h4 className="font-bold">Device Control</h4>
+                      <h4 className="font-bold">{t('device_control')}</h4>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleToggleBlock(selectedDevice.id, selectedDevice.status); setSelectedDevice(null); }}
                         className={cn(
@@ -495,10 +495,10 @@ const DeviceList: React.FC = () => {
                           selectedDevice.status === 'blocked' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
                         )}
                       >
-                        {selectedDevice.status === 'blocked' ? 'Unblock Device' : 'Block Device'}
+                        {selectedDevice.status === 'blocked' ? t('unblock_device') : t('block_device')}
                       </button>
                       <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all">
-                        Limit Usage
+                        {t('limit_usage')}
                       </button>
                     </div>
                   </div>

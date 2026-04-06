@@ -28,7 +28,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onHelpCl
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-3 flex justify-between items-center z-50 pb-safe">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-6 py-3 flex justify-between items-center z-50 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
       {menuItems.map((item) => (
         <button
           key={item.id}
@@ -36,14 +36,14 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onHelpCl
           className="flex flex-col items-center gap-1 group"
         >
           <div className={cn(
-            "px-5 py-1 rounded-full transition-all duration-300",
-            activeTab === item.id ? "bg-blue-100 text-blue-600" : "text-slate-400"
+            "px-4 py-1 rounded-full transition-all duration-300",
+            activeTab === item.id ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
           )}>
             <item.icon className="w-6 h-6" />
           </div>
           <span className={cn(
-            "text-[10px] font-medium transition-colors",
-            activeTab === item.id ? "text-blue-600" : "text-slate-400"
+            "text-[10px] font-bold transition-colors uppercase tracking-tighter",
+            activeTab === item.id ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
           )}>
             {item.label}
           </span>

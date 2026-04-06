@@ -14,7 +14,13 @@
 
 @layer base {
   body {
-    @apply bg-light-grey text-slate-dark font-sans antialiased transition-colors duration-300;
+    @apply bg-light-grey text-slate-dark font-sans antialiased transition-colors duration-300 overflow-x-hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  
+  input, textarea, [contenteditable="true"] {
+    user-select: text;
   }
   
   .dark body {
@@ -24,6 +30,16 @@
   html[dir="rtl"] body {
     font-family: var(--font-arabic);
   }
+}
+
+/* Hide scrollbars for a cleaner app look */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .pb-safe {

@@ -42,6 +42,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [connectionType, setConnectionType] = useState<ConnectionType>('wifi');
   const [showLogs, setShowLogs] = useState(false);
 
+  const [showRebootModal, setShowRebootModal] = useState(false);
+
   const brand = routerService.getBrand();
   const isConnected = routerService.isConnected();
   const isAdminMode = routerService.isAdminMode();
@@ -70,11 +72,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   }, [connectionType, isConnected]);
 
   const handleReboot = async () => {
-    if (window.confirm(t('confirm_reboot') || 'Are you sure you want to reboot?')) {
-      setIsRebooting(true);
-      await routerService.rebootRouter();
-      setIsRebooting(false);
-    }
+    setShowRebootModal(false);
+    setIsRebooting(true);
+    await routerService.rebootRouter();
+    setIsRebooting(false);
   };
 
   const runSpeedTest = async () => {
@@ -283,7 +284,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 {isTestingSpeed ? t('testing') : t('speed_test')}
               </button>
               <button 
-                onClick={handleReboot}
+                onClick={() => setShowRebootModal(true)}
                 disabled={isRebooting}
                 className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
               >
@@ -516,6 +517,39 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       )}
 
       <AnimatePresence>
+        {showRebootModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-sm p-8 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <RefreshCw className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('reboot_router')}</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-8">
+                {t('confirm_reboot')}
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowRebootModal(false)}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  onClick={handleReboot}
+                  className="flex-1 py-3 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-600/20"
+                >
+                  {t('reboot_router')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {showLogs && (
           <motion.div 
             initial={{ opacity: 0 }}

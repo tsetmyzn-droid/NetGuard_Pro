@@ -74,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, on
           className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
         >
           {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-          <span className="font-medium">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+          <span className="font-medium">{theme === 'light' ? t('dark_mode') : t('light_mode')}</span>
         </button>
         <button 
           onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}

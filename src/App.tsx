@@ -60,7 +60,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -68,7 +68,7 @@ export default function App() {
         onHelpClick={() => setIsHelpOpen(true)}
       />
       
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -76,6 +76,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
+            className="min-h-full"
           >
             {renderContent()}
           </motion.div>
