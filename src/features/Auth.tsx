@@ -5,10 +5,12 @@ import {
   User, 
   Fingerprint, 
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  Globe
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+import { routerService } from '../services/routerService';
 
 interface AuthProps {
   onLogin: () => void;
@@ -17,11 +19,13 @@ interface AuthProps {
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [routerAddress, setRouterAddress] = useState('192.168.1.1');
+  const [protocol, setProtocol] = useState<'SSH' | 'API' | 'WEB'>('API');
   const [isLoading, setIsLoading] = useState(false);
   const [use2FA, setUse2FA] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Default credentials for preview (only in dev mode)
@@ -29,14 +33,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     const DEFAULT_USER = 'admin';
     const DEFAULT_PASS = 'admin123';
 
-    if (!username || !password) {
-      setError('Please enter your credentials');
+    if (!username || !password || !routerAddress) {
+      setError('Please enter all credentials');
       return;
     }
 
-    // In production, we assume a real authentication logic would be here.
-    // For now, we'll just allow any login in production to simulate "real" behavior,
-    // or we can keep the admin/admin123 but without the hint.
     if (IS_PREVIEW && (username !== DEFAULT_USER || password !== DEFAULT_PASS)) {
       setError('Invalid username or password. Try admin / admin123');
       return;
@@ -45,11 +46,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     setIsLoading(true);
     setError('');
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Simulate protocol-specific connection
+      if (protocol === 'SSH') await routerService.connectViaSSH(routerAddress, username, password);
+      else if (protocol === 'API') await routerService.connectViaAPI(routerAddress, username, password);
+      else await routerService.connectViaWeb(routerAddress, username, password);
+
       onLogin();
-    }, 1500);
+    } catch (err) {
+      setError('Failed to connect to router. Check address and credentials.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -80,6 +88,46 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               {error}
             </div>
           )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Connection Protocol</label>
+            <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
+              {(['SSH', 'API', 'WEB'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setProtocol(p)}
+                  className={cn(
+                    "flex-1 py-2 rounded-xl text-xs font-bold transition-all",
+                    protocol === p 
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" 
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">
+              {protocol === 'SSH' && 'Paramiko (SSH) for CLI access'}
+              {protocol === 'API' && 'Requests (HTTP) for REST API'}
+              {protocol === 'WEB' && 'Selenium (Web) for scraping dashboard'}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Router Address</label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="192.168.1.1"
+                value={routerAddress}
+                onChange={(e) => setRouterAddress(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
+              />
+            </div>
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Username</label>

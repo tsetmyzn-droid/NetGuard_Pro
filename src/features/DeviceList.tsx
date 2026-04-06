@@ -17,8 +17,30 @@ import {
   Edit2,
   Signal,
   Wifi,
-  Filter
+  Filter,
+  X,
+  Activity,
+  Globe,
+  Youtube,
+  Gamepad2,
+  MessageSquare
 } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
+  LineChart,
+  Line,
+  AreaChart,
+  Area
+} from 'recharts';
 import { DashboardCard } from '../components/DashboardCard';
 import { routerService } from '../services/routerService';
 import { Device } from '../types';
@@ -32,6 +54,7 @@ const DeviceList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'blocked'>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [newName, setNewName] = useState('');
 
   const fetchDevices = async () => {
@@ -209,7 +232,8 @@ const DeviceList: React.FC = () => {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       key={device.id} 
-                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
+                      onClick={() => setSelectedDevice(device)}
+                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                     >
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-4">
@@ -330,6 +354,160 @@ const DeviceList: React.FC = () => {
           </table>
         </div>
       </DashboardCard>
+
+      {/* Device Details Modal */}
+      <AnimatePresence>
+        {selectedDevice && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-4xl shadow-2xl relative my-auto"
+            >
+              <button 
+                onClick={() => setSelectedDevice(null)}
+                className="absolute right-6 top-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-50 dark:bg-slate-800 rounded-full transition-all z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="p-8 md:p-10">
+                <div className="flex flex-col md:flex-row gap-8 items-start mb-10">
+                  <div className={cn(
+                    "w-20 h-20 rounded-[28px] flex items-center justify-center shadow-lg",
+                    selectedDevice.status === 'blocked' ? "bg-red-500 text-white shadow-red-500/20" : "bg-blue-600 text-white shadow-blue-600/20"
+                  )}>
+                    {React.cloneElement(getDeviceIcon(selectedDevice.type) as React.ReactElement, { className: "w-10 h-10" })}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{selectedDevice.name}</h3>
+                      <div className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                        selectedDevice.status === 'online' ? "bg-green-500/10 text-green-600 dark:text-green-400" : "bg-red-500/10 text-red-600 dark:text-red-400"
+                      )}>
+                        {selectedDevice.status}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-sm text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-1.5"><Globe className="w-4 h-4" /> {selectedDevice.ip}</div>
+                      <div className="flex items-center gap-1.5 font-mono"><Activity className="w-4 h-4" /> {selectedDevice.mac}</div>
+                      <div className="flex items-center gap-1.5 capitalize"><Smartphone className="w-4 h-4" /> {selectedDevice.type}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-8">
+                    {/* Consumption History */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">Consumption History</h4>
+                        <div className="flex gap-2">
+                          <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold">Daily</span>
+                        </div>
+                      </div>
+                      <div className="h-[240px] w-full bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={selectedDevice.history.daily}>
+                            <defs>
+                              <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:opacity-10" />
+                            <XAxis dataKey="date" hide />
+                            <YAxis hide />
+                            <Tooltip 
+                              contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#1e293b', color: '#fff' }}
+                            />
+                            <Area type="monotone" dataKey="usage" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorUsage)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* App Usage */}
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">Usage by Application</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {selectedDevice.apps.map((app) => (
+                          <div key={app.name} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm">
+                                <Activity className="w-4 h-4 text-blue-500" />
+                              </div>
+                              <span className="font-bold text-slate-700 dark:text-slate-200">{app.name}</span>
+                            </div>
+                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{app.usage} GB</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8">
+                    {/* Content Types */}
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">Content Distribution</h4>
+                      <div className="h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={selectedDevice.contentTypes}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={50}
+                              outerRadius={70}
+                              paddingAngle={5}
+                              dataKey="usage"
+                            >
+                              {selectedDevice.contentTypes.map((_, index) => (
+                                <Cell key={`cell-${index}`} fill={['#3b82f6', '#8b5cf6', '#ec4899', '#10b981'][index % 4]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2">
+                        {selectedDevice.contentTypes.map((type, index) => (
+                          <div key={type.type} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981'][index % 4] }} />
+                              <span className="font-bold text-slate-600 dark:text-slate-400">{type.type}</span>
+                            </div>
+                            <span className="font-bold text-slate-900 dark:text-white">{type.usage} GB</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="p-6 bg-slate-900 rounded-3xl text-white space-y-4">
+                      <h4 className="font-bold">Device Control</h4>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleToggleBlock(selectedDevice.id, selectedDevice.status); setSelectedDevice(null); }}
+                        className={cn(
+                          "w-full py-3 rounded-xl font-bold transition-all",
+                          selectedDevice.status === 'blocked' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                        )}
+                      >
+                        {selectedDevice.status === 'blocked' ? 'Unblock Device' : 'Block Device'}
+                      </button>
+                      <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all">
+                        Limit Usage
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

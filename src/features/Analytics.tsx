@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { DashboardCard } from '../components/DashboardCard';
 import { routerService } from '../services/routerService';
-import { ConnectionEvent } from '../types';
+import { ConnectionEvent, Device } from '../types';
 import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { 
   ArrowUpRight, 
@@ -41,12 +41,25 @@ import { motion } from 'motion/react';
 const Analytics: React.FC = () => {
   const { t, isRTL } = useTranslation();
   const [logs, setLogs] = useState<ConnectionEvent[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month'>('week');
   
+  useEffect(() => {
+    const fetchData = async () => {
+      const [logsData, devicesData] = await Promise.all([
+        routerService.getLogs(),
+        routerService.getDevices()
+      ]);
+      setLogs(logsData);
+      setDevices(devicesData);
+    };
+    fetchData();
+  }, []);
+
   const consumptionData = {
     day: [
-      { time: '00:00', usage: 2.1 }, { time: '04:00', usage: 1.5 }, { time: '08:00', usage: 5.8 },
-      { time: '12:00', usage: 8.2 }, { time: '16:00', usage: 12.5 }, { time: '20:00', usage: 15.4 }
+      { name: '00:00', usage: 2.1 }, { name: '04:00', usage: 1.5 }, { name: '08:00', usage: 5.8 },
+      { name: '12:00', usage: 8.2 }, { name: '16:00', usage: 12.5 }, { name: '20:00', usage: 15.4 }
     ],
     week: [
       { name: 'Mon', usage: 45.2 }, { name: 'Tue', usage: 52.8 }, { name: 'Wed', usage: 38.5 },
@@ -57,35 +70,53 @@ const Analytics: React.FC = () => {
     ]
   };
 
-  const appUsageData = [
-    { name: 'YouTube', value: 45, icon: <Youtube className="w-4 h-4" />, color: '#ef4444' },
-    { name: 'Netflix', value: 25, icon: <Globe className="w-4 h-4" />, color: '#e11d48' },
-    { name: 'Gaming', value: 15, icon: <Gamepad2 className="w-4 h-4" />, color: '#8b5cf6' },
-    { name: 'Social', value: 10, icon: <MessageSquare className="w-4 h-4" />, color: '#3b82f6' },
-    { name: 'Others', value: 5, icon: <Activity className="w-4 h-4" />, color: '#94a3b8' },
-  ];
+  // Process dynamic history from devices if available
+  const getAggregatedHistory = (range: 'day' | 'week' | 'month') => {
+    const historyMap: Record<string, number> = {};
+    devices.forEach(d => {
+      const data = range === 'day' ? d.history.daily : range === 'week' ? d.history.weekly : d.history.monthly;
+      data.forEach(h => {
+        historyMap[h.date] = (historyMap[h.date] || 0) + h.usage;
+      });
+    });
+    
+    if (Object.keys(historyMap).length === 0) return consumptionData[range];
+    
+    return Object.entries(historyMap).map(([name, usage]) => ({ name, usage }));
+  };
 
-  const deviceUsageData = [
-    { name: 'iPhone 15 Pro', usage: 125.4, apps: ['YouTube', 'Instagram'] },
-    { name: 'MacBook Pro', usage: 245.8, apps: ['Chrome', 'VS Code', 'Zoom'] },
-    { name: 'Smart TV', usage: 180.2, apps: ['Netflix', 'Prime Video'] },
-    { name: 'PlayStation 5', usage: 95.6, apps: ['Warzone', 'Fifa 24'] },
-  ];
+  const activeConsumptionData = getAggregatedHistory(timeRange);
 
-  const contentUsageData = [
-    { name: 'Video Streaming', value: 65, color: '#3b82f6' },
-    { name: 'Social Media', value: 15, color: '#ec4899' },
-    { name: 'Gaming', value: 12, color: '#8b5cf6' },
-    { name: 'System Updates', value: 8, color: '#10b981' },
-  ];
+  // Aggregate app usage from all devices
+  const allApps = devices.flatMap(d => d.apps);
+  const appUsageMap = allApps.reduce((acc, app) => {
+    acc[app.name] = (acc[app.name] || 0) + app.usage;
+    return acc;
+  }, {} as Record<string, number>);
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      const data = await routerService.getLogs();
-      setLogs(data);
-    };
-    fetchLogs();
-  }, []);
+  const appUsageData = Object.entries(appUsageMap)
+    .map(([name, usage]) => ({
+      name,
+      value: usage as number,
+      color: name === 'YouTube' ? '#ef4444' : name === 'Netflix' ? '#e11d48' : name === 'Chrome' ? '#3b82f6' : '#8b5cf6'
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  // Aggregate content types
+  const allContentTypes = devices.flatMap(d => d.contentTypes);
+  const contentUsageMap: Record<string, number> = allContentTypes.reduce((acc, ct) => {
+    acc[ct.type] = (acc[ct.type] || 0) + ct.usage;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const contentUsageData = Object.entries(contentUsageMap)
+    .map(([name, value]) => ({
+      name,
+      value: value as number,
+      color: name.includes('Video') ? '#3b82f6' : name.includes('Social') ? '#ec4899' : '#8b5cf6'
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const getEventIcon = (event: ConnectionEvent['event']) => {
     switch (event) {
@@ -124,10 +155,10 @@ const Analytics: React.FC = () => {
         <DashboardCard title={t('timeline')} subtitle={t('data_usage_gb')} className="lg:col-span-2">
           <div className="h-[350px] w-full mt-6">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={consumptionData[timeRange]}>
+              <BarChart data={activeConsumptionData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
                 <XAxis 
-                  dataKey={timeRange === 'day' ? 'time' : 'name'} 
+                  dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#94a3b8', fontSize: 12 }}
@@ -153,7 +184,7 @@ const Analytics: React.FC = () => {
                   radius={[8, 8, 0, 0]} 
                   barSize={timeRange === 'month' ? 60 : 40}
                 >
-                  {consumptionData[timeRange].map((entry: any, index: number) => (
+                  {activeConsumptionData.map((entry: any, index: number) => (
                     <Cell 
                       key={`cell-${index}`} 
                       fill={entry.usage > 100 ? '#ef4444' : '#3b82f6'} 
@@ -240,16 +271,16 @@ const Analytics: React.FC = () => {
                 <div className="flex justify-between items-center text-sm font-bold">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                      {app.icon}
+                      <Activity className="w-4 h-4" />
                     </div>
                     <span className="text-slate-900 dark:text-white">{app.name}</span>
                   </div>
-                  <span className="text-slate-500 dark:text-slate-400">{app.value}%</span>
+                  <span className="text-slate-500 dark:text-slate-400">{(app.value as number).toFixed(1)} GB</span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${app.value}%` }}
+                    animate={{ width: `${((app.value as number) / (Object.values(appUsageMap).reduce((a, b) => (a as number) + (b as number), 0) as number || 1)) * 100}%` }}
                     className="h-2 rounded-full"
                     style={{ backgroundColor: app.color }}
                   />
@@ -261,8 +292,8 @@ const Analytics: React.FC = () => {
 
         <DashboardCard title={t('device_consumption')}>
           <div className="mt-6 space-y-4">
-            {deviceUsageData.map((device) => (
-              <div key={device.name} className="flex items-center justify-between p-4 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            {devices.map((device) => (
+              <div key={device.id} className="flex items-center justify-between p-4 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center">
                     <Smartphone className="w-5 h-5" />
@@ -270,12 +301,12 @@ const Analytics: React.FC = () => {
                   <div>
                     <div className="font-bold text-slate-900 dark:text-white">{device.name}</div>
                     <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                      {device.apps.join(' • ')}
+                      {device.apps.map(a => a.name).join(' • ')}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-slate-900 dark:text-white">{device.usage} GB</div>
+                  <div className="font-bold text-slate-900 dark:text-white">{device.currentUsage} GB</div>
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">Total Data</div>
                 </div>
               </div>

@@ -1,3 +1,19 @@
+export interface AppUsage {
+  name: string;
+  usage: number; // in GB
+  icon?: string;
+}
+
+export interface ContentUsage {
+  type: string; // e.g., 'Video', 'Social', 'Gaming'
+  usage: number; // in GB
+}
+
+export interface UsageHistory {
+  date: string;
+  usage: number;
+}
+
 export interface Device {
   id: string;
   name: string;
@@ -9,6 +25,13 @@ export interface Device {
   downloadSpeed: number; // in Mbps
   usageLimit?: number; // in GB
   currentUsage: number; // in GB
+  apps: AppUsage[];
+  contentTypes: ContentUsage[];
+  history: {
+    daily: UsageHistory[];
+    weekly: UsageHistory[];
+    monthly: UsageHistory[];
+  };
 }
 
 export interface NetworkStats {
