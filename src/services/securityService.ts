@@ -6,7 +6,7 @@ import CryptoJS from 'crypto-js';
 // 3. منع هجمات القوة الغاشمة (Brute Force Prevention)
 
 class SecurityService {
-  private secretKey = 'NetGuard_Pro_Super_Secret_Key_2026'; // في الإنتاج، يتم استخلاص هذا من مفتاح فريد للجهاز
+  private secretKey = import.meta.env.VITE_ENCRYPTION_KEY || 'default_fallback_key_change_in_prod'; 
   private loginAttempts: Record<string, number> = {};
   private MAX_ATTEMPTS = 5;
   private LOCKOUT_TIME = 15 * 60 * 1000; // 15 دقيقة
@@ -53,28 +53,16 @@ class SecurityService {
   // عبر التحقق من بصمة شهادة الراوتر (SSL Pinning Simulation)
   verifyRouterIdentity(routerIp: string, expectedFingerprint: string): boolean {
     // في التطبيق الحقيقي، يتم فحص شهادة SSL الخاصة بالراوتر
-    console.log(`Verifying identity for ${routerIp}...`);
-    return true; 
+    // للمعاينة، نقوم بمحاكاة التحقق بناءً على وجود بصمة
+    return expectedFingerprint.length > 0; 
   }
 
   // تفعيل "درع الخصوصية" (Screen Shield)
-  // يمنع النسخ ويحاول حجب المحتوى عند تسجيل الشاشة
   enablePrivacyShield() {
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's' || e.key === 'p')) {
-        e.preventDefault();
-      }
-    });
-    // إضافة طبقة CSS لمنع لقطات الشاشة (تعمل في بعض المتصفحات والأنظمة)
+    // إزالة المستمعات الوهمية التي تعطي شعوراً زائفاً بالأمان
+    // والتركيز على حماية الطباعة فقط
     const style = document.createElement('style');
     style.innerHTML = `
-      @media screen {
-        .privacy-sensitive {
-          user-select: none;
-          -webkit-user-select: none;
-        }
-      }
       @media print {
         body { display: none !important; }
       }

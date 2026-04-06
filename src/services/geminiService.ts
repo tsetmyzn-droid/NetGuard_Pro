@@ -13,7 +13,14 @@ export const geminiService = {
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Translate the following text to ${targetLang === 'ar' ? 'Arabic' : 'English'}. Return only the translated text, no explanations: "${text}"`,
+        contents: [
+          { text: `Translate the following text to ${targetLang === 'ar' ? 'Arabic' : 'English'}:` },
+          { text: text }
+        ],
+        config: {
+          systemInstruction: "You are a professional translator. Return ONLY the translated text. Do not include explanations, quotes, or any other text.",
+          temperature: 0.1,
+        }
       });
 
       return response.text?.trim() || text;
@@ -29,7 +36,13 @@ export const geminiService = {
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Analyze this network usage data and provide a brief, professional summary in Arabic about potential optimizations or security concerns: ${JSON.stringify(data)}`,
+        contents: [
+          { text: "Analyze this network usage data and provide a brief, professional summary in Arabic about potential optimizations or security concerns:" },
+          { text: JSON.stringify(data) }
+        ],
+        config: {
+          systemInstruction: "You are a network security expert. Provide concise, professional advice in Arabic based on the provided JSON data.",
+        }
       });
 
       return response.text?.trim() || "No analysis available.";

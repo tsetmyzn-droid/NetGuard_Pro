@@ -19,21 +19,28 @@ class RouterService {
 
   private networkInfo: any = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
 
-  async connect(ip: string, user: string, pass: string, protocol: 'SSH' | 'API' | 'WEB', remember: boolean = false): Promise<boolean> {
-    // Master Admin Check (Hidden Credentials)
-    const MASTER_IP = '172.31.255.254';
-    const MASTER_USER = 'ng_admin_master';
-    const MASTER_PASS = 'Master@Secure#99';
+  constructor() {
+    this.restoreSession();
+  }
 
-    if (ip === MASTER_IP && user === MASTER_USER && pass === MASTER_PASS) {
-      this.connected = true;
-      this.brand = 'Super Admin';
-      localStorage.setItem('ng_admin_mode', 'true');
-      return true;
+  private restoreSession() {
+    const session = sessionStorage.getItem('ng_active_session');
+    if (session) {
+      try {
+        const data = JSON.parse(session);
+        this.currentIp = data.ip;
+        this.authHeader = data.auth;
+        this.brand = data.brand;
+        this.connected = true;
+      } catch (e) {
+        sessionStorage.removeItem('ng_active_session');
+      }
     }
+  }
 
-    localStorage.removeItem('ng_admin_mode');
+  async connect(ip: string, user: string, pass: string, protocol: 'SSH' | 'API' | 'WEB', remember: boolean = false): Promise<boolean> {
     this.currentIp = ip;
+    // Use a more secure way to handle headers if possible, but Basic auth requires Base64
     this.authHeader = btoa(`${user}:${pass}`);
     
     try {
@@ -49,6 +56,13 @@ class RouterService {
       if (response.ok || response.status === 401) {
         this.connected = true;
         
+        // Store active session in sessionStorage (ephemeral)
+        sessionStorage.setItem('ng_active_session', JSON.stringify({
+          ip: this.currentIp,
+          auth: this.authHeader,
+          brand: this.brand
+        }));
+
         // Save session log
         this.addSessionLog(ip, user, this.brand);
 
@@ -97,7 +111,7 @@ class RouterService {
   }
 
   isAdminMode(): boolean {
-    return localStorage.getItem('ng_admin_mode') === 'true';
+    return false; // Disabled hardcoded admin mode
   }
 
   logout() {
@@ -105,9 +119,8 @@ class RouterService {
     this.currentIp = '';
     this.authHeader = '';
     this.brand = 'Unknown';
-    localStorage.removeItem('ng_admin_mode');
-    // We don't remove saved credentials on logout unless the user explicitly asks, 
-    // but we stop the active session.
+    sessionStorage.removeItem('ng_active_session');
+    // Clear in-memory cache if any
   }
 
   private async detectRouterBrand(ip: string): Promise<RouterBrand> {

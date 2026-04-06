@@ -12,8 +12,10 @@ import { DashboardCard } from '../components/DashboardCard';
 import { routerServiceV2 } from '../services/routerServiceV2';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'motion/react';
+import { useTranslation } from '../contexts/LanguageContext';
 
 const WifiOptimizer: React.FC = () => {
+  const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
   const [channels, setChannels] = useState<any[]>([]);
   const [bestChannel, setBestChannel] = useState<number | null>(null);

@@ -2,6 +2,7 @@ export interface AppUsage {
   name: string;
   usage: number; // in GB
   icon?: string;
+  color?: string;
 }
 
 export interface ContentUsage {
