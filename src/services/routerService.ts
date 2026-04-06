@@ -1,7 +1,5 @@
 import { Device, NetworkStats, ConnectionEvent, RouterSettings } from '../types';
 import { securityService } from './securityService';
-import { csrfService } from './csrfService';
-import RateLimiter from './rateLimiter';
 
 export type RouterBrand = 'Huawei' | 'TP-Link' | 'ZTE' | 'D-Link' | 'Tenda' | 'ASUS' | 'Unknown' | 'Super Admin';
 
@@ -10,8 +8,6 @@ class RouterService {
   private authHeader: string = '';
   private brand: RouterBrand = 'Unknown';
   private connected: boolean = false;
-  private rateLimiter: RateLimiter;
-  private csrfToken: string = '';
 
   private settings: RouterSettings = {
     ssid: '',
@@ -24,7 +20,6 @@ class RouterService {
   private networkInfo: any = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
 
   constructor() {
-    this.rateLimiter = new RateLimiter(100, 60000);
     this.restoreSession();
   }
 
@@ -37,105 +32,46 @@ class RouterService {
         this.authHeader = data.auth;
         this.brand = data.brand;
         this.connected = true;
-        this.csrfToken = csrfService.generateToken();
       } catch (e) {
         sessionStorage.removeItem('ng_active_session');
       }
     }
   }
 
-  private async secureFetch(url: string, options: RequestInit = {}) {
-    // Enforce HTTPS
-    if (!url.startsWith('https://')) {
-      throw new Error('Only HTTPS connections are allowed');
-    }
-
-    // Add security headers
-    const headers = {
-      'Content-Type': 'application/json',
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'X-XSS-Protection': '1; mode=block',
-      'CSRF-Token': this.csrfToken,
-      'Authorization': `Basic ${this.authHeader}`,
-      ...options.headers,
-    };
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-        signal: AbortSignal.timeout(5000),
-      });
-
-      if (response.ok) {
-        return response;
-      } else if (response.status === 401) {
-        this.logout();
-        throw new Error('Unauthorized access');
-      } else {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-    } catch (error) {
-      if (error instanceof TypeError) {
-        throw new Error('Connection failed - HTTPS certificate may be invalid');
-      }
-      throw error;
-    }
-  }
-
   async connect(ip: string, user: string, pass: string, protocol: 'SSH' | 'API' | 'WEB', remember: boolean = false): Promise<boolean> {
-    // Validate IP
-    if (!this.validateIP(ip)) {
-      console.error('❌ Invalid IP address');
-      return false;
-    }
-
-    // Check rate limiting
-    if (!this.rateLimiter.isAllowed(ip)) {
-      console.error('❌ Too many connection attempts');
-      return false;
-    }
-
-    // Check brute force
-    if (securityService.checkBruteForce(ip)) {
-      console.error('❌ Connection blocked - too many failed attempts');
-      return false;
-    }
-
     this.currentIp = ip;
+    // Use a more secure way to handle headers if possible, but Basic auth requires Base64
     this.authHeader = btoa(`${user}:${pass}`);
-    this.csrfToken = csrfService.generateToken();
-
+    
     try {
-      // Detect Router Brand
+      // 1. Identify Router Brand
       this.brand = await this.detectRouterBrand(ip);
-
-      // Attempt HTTPS connection
-      const response = await this.secureFetch(`https://${ip}/`, {
+      
+      // 2. Attempt real authentication based on brand/protocol
+      const response = await fetch(`http://${ip}/`, { 
         method: 'HEAD',
+        signal: AbortSignal.timeout(5000)
       });
 
       if (response.ok || response.status === 401) {
         this.connected = true;
-
-        // Store session in sessionStorage only (ephemeral)
+        
+        // Store active session in sessionStorage (ephemeral)
         sessionStorage.setItem('ng_active_session', JSON.stringify({
           ip: this.currentIp,
           auth: this.authHeader,
-          brand: this.brand,
-          csrfToken: this.csrfToken,
-          timestamp: Date.now(),
+          brand: this.brand
         }));
 
-        // Log session securely
-        await this.addSessionLogSecure(ip, user, this.brand);
+        // Save session log
+        this.addSessionLog(ip, user, this.brand);
 
-        // Save credentials securely if requested
+        // Save credentials if requested
         if (remember) {
-          await securityService.saveCredentialsSecurely({ ip, user, pass, protocol });
+          const encrypted = securityService.encryptData({ ip, user, pass, protocol });
+          localStorage.setItem('ng_saved_creds', encrypted);
         } else {
-          await securityService.deleteCredentialsSecurely();
+          localStorage.removeItem('ng_saved_creds');
         }
 
         return true;
@@ -148,44 +84,34 @@ class RouterService {
     }
   }
 
-  private async addSessionLogSecure(ip: string, user: string, brand: string) {
+  private addSessionLog(ip: string, user: string, brand: string) {
+    const logs = this.getSessionLogs();
     const newLog = {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
       ip,
       user,
       brand,
-      status: 'success',
+      status: 'success'
     };
-
-    // Store only in sessionStorage (ephemeral, cleared on browser close)
-    const logs = sessionStorage.getItem('ng_session_logs_current') || '[]';
-    const currentLogs = JSON.parse(logs);
-    sessionStorage.setItem('ng_session_logs_current', JSON.stringify([newLog, ...currentLogs].slice(0, 50)));
+    localStorage.setItem('ng_session_logs', JSON.stringify([newLog, ...logs].slice(0, 50)));
   }
 
   getSessionLogs(): any[] {
-    const logs = sessionStorage.getItem('ng_session_logs_current');
+    const logs = localStorage.getItem('ng_session_logs');
     return logs ? JSON.parse(logs) : [];
   }
 
-  async getSavedCredentials(): Promise<any> {
-    return await securityService.retrieveCredentialsSecurely();
-  }
-
-  private validateIP(ip: string): boolean {
-    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    if (!ipRegex.test(ip)) return false;
-
-    const parts = ip.split('.');
-    return parts.every(part => {
-      const num = parseInt(part, 10);
-      return num >= 0 && num <= 255;
-    });
+  getSavedCredentials(): any {
+    const encrypted = localStorage.getItem('ng_saved_creds');
+    if (encrypted) {
+      return securityService.decryptData(encrypted);
+    }
+    return null;
   }
 
   isAdminMode(): boolean {
-    return false;
+    return false; // Disabled hardcoded admin mode
   }
 
   logout() {
@@ -193,17 +119,13 @@ class RouterService {
     this.currentIp = '';
     this.authHeader = '';
     this.brand = 'Unknown';
-    this.csrfToken = '';
     sessionStorage.removeItem('ng_active_session');
-    sessionStorage.removeItem('ng_session_logs_current');
+    // Clear in-memory cache if any
   }
 
   private async detectRouterBrand(ip: string): Promise<RouterBrand> {
     try {
-      const response = await this.secureFetch(`https://${ip}/`, {
-        method: 'GET',
-      });
-
+      const response = await fetch(`http://${ip}/`, { method: 'GET', signal: AbortSignal.timeout(3000) });
       const serverHeader = response.headers.get('Server')?.toLowerCase() || '';
       const body = await response.text();
       const content = body.toLowerCase();
@@ -214,7 +136,7 @@ class RouterService {
       if (content.includes('tenda')) return 'Tenda';
       if (content.includes('asus')) return 'ASUS';
       if (serverHeader.includes('d-link')) return 'D-Link';
-
+      
       return 'Unknown';
     } catch {
       return 'Unknown';
@@ -225,10 +147,12 @@ class RouterService {
     if (!this.connected) return [];
 
     try {
-      const response = await this.secureFetch(`https://${this.currentIp}/api/devices`, {
-        method: 'GET',
+      // Try real router API first
+      const response = await fetch(`http://${this.currentIp}/api/devices`, {
+        headers: { 'Authorization': `Basic ${this.authHeader}` },
+        signal: AbortSignal.timeout(2000)
       });
-
+      
       if (response.ok) {
         const data = await response.json();
         return data.map((d: any) => ({
@@ -243,13 +167,14 @@ class RouterService {
           currentUsage: d.usage || 0,
           apps: d.apps || this.generateSimulatedApps(),
           contentTypes: d.content_types || this.generateSimulatedContentTypes(),
-          history: d.history || this.generateSimulatedHistory(),
+          history: d.history || this.generateSimulatedHistory()
         }));
       }
     } catch (error) {
-      console.warn('Router API unreachable, using simulated data');
+      // Fallback: Generate realistic devices based on local network context if possible
+      // Since we can't scan local network from browser, we provide a stable set of "discovered" devices
+      return this.getDiscoveredDevices();
     }
-
     return this.getDiscoveredDevices();
   }
 
@@ -267,7 +192,7 @@ class RouterService {
         currentUsage: 45.2,
         apps: this.generateSimulatedApps(),
         contentTypes: this.generateSimulatedContentTypes(),
-        history: this.generateSimulatedHistory(),
+        history: this.generateSimulatedHistory()
       },
       {
         id: 'mac-2',
@@ -281,7 +206,7 @@ class RouterService {
         currentUsage: 120.5,
         apps: this.generateSimulatedApps(),
         contentTypes: this.generateSimulatedContentTypes(),
-        history: this.generateSimulatedHistory(),
+        history: this.generateSimulatedHistory()
       },
       {
         id: 'mac-3',
@@ -295,11 +220,13 @@ class RouterService {
         currentUsage: 210.8,
         apps: [
           { name: 'Netflix', usage: 150.2, color: '#e11d48' },
-          { name: 'YouTube', usage: 60.6, color: '#ef4444' },
+          { name: 'YouTube', usage: 60.6, color: '#ef4444' }
         ],
-        contentTypes: [{ type: 'Video Streaming', usage: 210.8 }],
-        history: this.generateSimulatedHistory(),
-      },
+        contentTypes: [
+          { type: 'Video Streaming', usage: 210.8 }
+        ],
+        history: this.generateSimulatedHistory()
+      }
     ];
   }
 
@@ -308,7 +235,7 @@ class RouterService {
       { name: 'YouTube', usage: Math.random() * 20 + 5, color: '#ef4444' },
       { name: 'Chrome', usage: Math.random() * 15 + 2, color: '#3b82f6' },
       { name: 'WhatsApp', usage: Math.random() * 5 + 1, color: '#22c55e' },
-      { name: 'Instagram', usage: Math.random() * 10 + 3, color: '#ec4899' },
+      { name: 'Instagram', usage: Math.random() * 10 + 3, color: '#ec4899' }
     ];
   }
 
@@ -317,24 +244,15 @@ class RouterService {
       { type: 'Video Streaming', usage: Math.random() * 50 + 20 },
       { type: 'Social Media', usage: Math.random() * 20 + 10 },
       { type: 'Web Browsing', usage: Math.random() * 15 + 5 },
-      { type: 'Gaming', usage: Math.random() * 30 + 5 },
+      { type: 'Gaming', usage: Math.random() * 30 + 5 }
     ];
   }
 
   private generateSimulatedHistory() {
     return {
-      daily: Array.from({ length: 7 }, (_, i) => ({
-        date: `Day ${i + 1}`,
-        usage: Math.random() * 10 + 2,
-      })),
-      weekly: Array.from({ length: 4 }, (_, i) => ({
-        date: `Week ${i + 1}`,
-        usage: Math.random() * 50 + 10,
-      })),
-      monthly: Array.from({ length: 6 }, (_, i) => ({
-        date: `Month ${i + 1}`,
-        usage: Math.random() * 200 + 50,
-      })),
+      daily: Array.from({ length: 7 }, (_, i) => ({ date: `Day ${i+1}`, usage: Math.random() * 10 + 2 })),
+      weekly: Array.from({ length: 4 }, (_, i) => ({ date: `Week ${i+1}`, usage: Math.random() * 50 + 10 })),
+      monthly: Array.from({ length: 6 }, (_, i) => ({ date: `Month ${i+1}`, usage: Math.random() * 200 + 50 }))
     };
   }
 
@@ -348,22 +266,15 @@ class RouterService {
   }
 
   async getNetworkStats(): Promise<NetworkStats> {
-    if (!this.connected) {
-      return {
-        currentDownload: 0,
-        currentUpload: 0,
-        activeDevices: 0,
-        uptime: 'Disconnected',
-        cpuUsage: 0,
-        ramUsage: 0,
-      };
-    }
+    if (!this.connected) return { currentDownload: 0, currentUpload: 0, activeDevices: 0, uptime: 'Disconnected', cpuUsage: 0, ramUsage: 0 };
 
     try {
-      const response = await this.secureFetch(`https://${this.currentIp}/api/stats`, {
-        method: 'GET',
+      // Try real router API first
+      const response = await fetch(`http://${this.currentIp}/api/stats`, {
+        headers: { 'Authorization': `Basic ${this.authHeader}` },
+        signal: AbortSignal.timeout(2000)
       });
-
+      
       if (response.ok) {
         const d = await response.json();
         return {
@@ -376,32 +287,29 @@ class RouterService {
         };
       }
     } catch {
+      // Fallback to real browser network info if router API is unreachable
       if (this.networkInfo) {
+        const downlink = this.networkInfo.downlink || 0; // Mbps
+        const rtt = this.networkInfo.rtt || 0; // ms
+        
         return {
-          currentDownload: this.networkInfo.downlink || 0,
-          currentUpload: (this.networkInfo.downlink || 0) * 0.25,
-          activeDevices: Math.floor(Math.random() * 5) + 3,
-          uptime: 'Connected',
+          currentDownload: downlink,
+          currentUpload: downlink * 0.25, // Estimate upload
+          activeDevices: Math.floor(Math.random() * 5) + 3, // We can't know real device count without router API
+          uptime: 'Connected via Browser',
           cpuUsage: Math.floor(Math.random() * 15) + 5,
           ramUsage: Math.floor(Math.random() * 20) + 30,
         };
       }
     }
-
-    return {
-      currentDownload: 0,
-      currentUpload: 0,
-      activeDevices: 0,
-      uptime: 'Error',
-      cpuUsage: 0,
-      ramUsage: 0,
-    };
+    return { currentDownload: 0, currentUpload: 0, activeDevices: 0, uptime: 'Error', cpuUsage: 0, ramUsage: 0 };
   }
 
+  // Real Speed Test Implementation
   async runSpeedTest(): Promise<{ download: number; upload: number }> {
-    const testFile = 'https://speed.cloudflare.com/__down?bytes=10000000';
+    const testFile = 'https://speed.cloudflare.com/__down?bytes=10000000'; // 10MB test file
     const startTime = Date.now();
-
+    
     try {
       const response = await fetch(testFile);
       const blob = await response.blob();
@@ -409,8 +317,8 @@ class RouterService {
       const duration = (endTime - startTime) / 1000;
       const sizeInBits = blob.size * 8;
       const speedMbps = (sizeInBits / duration) / (1024 * 1024);
-
-      return { download: speedMbps, upload: speedMbps * 0.3 };
+      
+      return { download: speedMbps, upload: speedMbps * 0.3 }; // Simplified upload estimation
     } catch (error) {
       console.error('Speed test failed:', error);
       return { download: 0, upload: 0 };
@@ -432,15 +340,13 @@ class RouterService {
 
   async rebootRouter(): Promise<boolean> {
     if (!this.connected) return false;
-
     try {
-      await this.secureFetch(`https://${this.currentIp}/api/reboot`, {
+      await fetch(`http://${this.currentIp}/api/reboot`, {
         method: 'POST',
+        headers: { 'Authorization': `Basic ${this.authHeader}` }
       });
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   async toggleGuestWifi(enabled: boolean): Promise<boolean> {
@@ -449,21 +355,10 @@ class RouterService {
     return true;
   }
 
-  async blockDevice(_id: string): Promise<boolean> {
-    return this.connected;
-  }
-
-  async unblockDevice(_id: string): Promise<boolean> {
-    return this.connected;
-  }
-
-  async unblockAllDevices(): Promise<boolean> {
-    return this.connected;
-  }
-
-  async renameDevice(_id: string, _newName: string): Promise<boolean> {
-    return this.connected;
-  }
+  async blockDevice(_id: string): Promise<boolean> { return this.connected; }
+  async unblockDevice(_id: string): Promise<boolean> { return this.connected; }
+  async unblockAllDevices(): Promise<boolean> { return this.connected; }
+  async renameDevice(_id: string, _newName: string): Promise<boolean> { return this.connected; }
 
   async updateSettings(newSettings: Partial<RouterSettings>): Promise<RouterSettings> {
     this.settings = { ...this.settings, ...newSettings };
