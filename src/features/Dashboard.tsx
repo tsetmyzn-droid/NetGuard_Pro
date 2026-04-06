@@ -98,16 +98,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           <Wifi className="w-10 h-10 text-slate-400" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-          {t('no_router_connected') || 'No Router Connected'}
+          {t('no_router_connected')}
         </h2>
         <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
-          {t('connect_instruction') || 'Please login with your router credentials to access the admin panel.'}
+          {t('connect_instruction')}
         </p>
         <button 
           onClick={handleLogout}
           className="px-6 py-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-bold flex items-center gap-2"
         >
-          <LogOut className="w-5 h-5" /> Back to Login
+          <LogOut className="w-5 h-5" /> {t('back_to_login')}
         </button>
       </div>
     );
@@ -127,36 +127,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 <ShieldCheck className="w-8 h-8 text-blue-400" />
               </div>
               <div>
-                <h2 className="text-2xl font-black tracking-tight">Master Supervisor Mode</h2>
-                <p className="text-blue-300 text-sm font-medium">Global Network Infrastructure Overview</p>
+                <h2 className="text-2xl font-black tracking-tight">{t('master_supervisor_mode')}</h2>
+                <p className="text-blue-300 text-sm font-medium">{t('global_infrastructure')}</p>
               </div>
             </div>
             <button 
               onClick={handleLogout}
               className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-2xl font-bold transition-all flex items-center gap-2"
             >
-              <LogOut className="w-5 h-5" /> Exit Master Mode
+              <LogOut className="w-5 h-5" /> {t('exit_master_mode')}
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">Total Connections</p>
+              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">{t('total_connections')}</p>
               <p className="text-3xl font-black">{sessionLogs.length}</p>
             </div>
             <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">Unique Brands</p>
+              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">{t('unique_brands')}</p>
               <p className="text-3xl font-black">{new Set(sessionLogs.map(l => l.brand)).size}</p>
             </div>
             <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">System Status</p>
-              <p className="text-3xl font-black text-green-400">OPTIMAL</p>
+              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">{t('system_status')}</p>
+              <p className="text-3xl font-black text-green-400">{t('optimal')}</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <History className="w-5 h-5 text-blue-400" /> Connected Router History
+              <History className="w-5 h-5 text-blue-400" /> {t('connected_router_history')}
             </h3>
             <div className="grid grid-cols-1 gap-3">
               {sessionLogs.map((log: any) => (
@@ -167,12 +167,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                     </div>
                     <div>
                       <div className="font-black text-lg">{log.brand}</div>
-                      <div className="text-sm text-blue-300 font-mono">{log.ip} • User: {log.user}</div>
+                      <div className="text-sm text-blue-300 font-mono">{log.ip} • {t('device')}: {log.user}</div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs font-bold text-slate-400 mb-1">{new Date(log.timestamp).toLocaleString()}</div>
-                    <span className="px-3 py-1 bg-green-500/20 text-green-400 text-[10px] font-black rounded-full border border-green-500/30 uppercase">Verified</span>
+                    <span className="px-3 py-1 bg-green-500/20 text-green-400 text-[10px] font-black rounded-full border border-green-500/30 uppercase">{t('verified')}</span>
                   </div>
                 </div>
               ))}
@@ -191,7 +191,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
               <Database className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-blue-100 text-xs font-bold uppercase tracking-wider">Total Routers</p>
+              <p className="text-blue-100 text-xs font-bold uppercase tracking-wider">{t('total_routers')}</p>
               <p className="text-2xl font-black">{profiles.length}</p>
             </div>
           </div>
@@ -203,8 +203,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Active Gateway</p>
-              <p className="text-xl font-bold text-slate-900 dark:text-white truncate max-w-[150px]">{isConnected ? brand : 'None'}</p>
+              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">{t('active_gateway')}</p>
+              <p className="text-xl font-bold text-slate-900 dark:text-white truncate max-w-[150px]">{isConnected ? brand : t('none')}</p>
             </div>
           </div>
         </DashboardCard>
@@ -215,7 +215,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
               <Activity className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Total Traffic</p>
+              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">{t('total_traffic')}</p>
               <p className="text-xl font-bold text-slate-900 dark:text-white">{routerServiceV2.getQuotaStatus().used.toFixed(2)} GB</p>
             </div>
           </div>
@@ -230,8 +230,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
               <History className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Session Logs</p>
-              <p className="text-xl font-bold text-slate-900 dark:text-white">{sessionLogs.length} Entries</p>
+              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">{t('session_logs')}</p>
+              <p className="text-xl font-bold text-slate-900 dark:text-white">{sessionLogs.length} {t('entries')}</p>
             </div>
           </div>
         </DashboardCard>
@@ -240,8 +240,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-            {connectionType === 'wifi' ? `${brand} Admin Panel` : t('mobile_data')}
-            {isConnected && <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>}
+            {connectionType === 'wifi' ? `${brand} ${t('dashboard')}` : t('mobile_data')}
+            {isConnected && <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">{t('live')}</span>}
           </h2>
           <p className="text-slate-500 dark:text-slate-400">{t('real_time_status')}</p>
         </div>
@@ -280,7 +280,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-2xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 <Globe className={isTestingSpeed ? "animate-spin w-4 h-4" : "w-4 h-4"} />
-                {isTestingSpeed ? "Testing..." : "Speed Test"}
+                {isTestingSpeed ? t('testing') : t('speed_test')}
               </button>
               <button 
                 onClick={handleReboot}
@@ -288,12 +288,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={isRebooting ? "animate-spin w-4 h-4" : "w-4 h-4"} />
-                {isRebooting ? "Rebooting..." : t('reboot_router')}
+                {isRebooting ? t('rebooting') : t('reboot_router')}
               </button>
               <button 
                 onClick={handleLogout}
                 className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                title="Logout"
+                title={t('logout')}
               >
                 <LogOut className="w-5 h-5" />
               </button>
@@ -309,11 +309,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           className="grid grid-cols-2 gap-4 p-6 bg-blue-600 text-white rounded-[32px] shadow-xl shadow-blue-500/20"
         >
           <div className="text-center border-r border-white/20">
-            <p className="text-xs text-blue-100 uppercase font-bold mb-1">Download</p>
+            <p className="text-xs text-blue-100 uppercase font-bold mb-1">{t('download_mbps')}</p>
             <p className="text-3xl font-black">{speedResult.download.toFixed(2)} <span className="text-sm font-normal">Mbps</span></p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-blue-100 uppercase font-bold mb-1">Upload</p>
+            <p className="text-xs text-blue-100 uppercase font-bold mb-1">{t('upload_mbps')}</p>
             <p className="text-3xl font-black">{speedResult.upload.toFixed(2)} <span className="text-sm font-normal">Mbps</span></p>
           </div>
         </motion.div>
@@ -492,24 +492,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       </>)}
       {/* Parental Control Section */}
       {!isAdminMode && (
-        <DashboardCard title="Parental Control & Content Filtering">
+        <DashboardCard title={t('parental_control_title')}>
           <div className="mt-4 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-center gap-6">
             <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shrink-0">
               <Lock className="w-8 h-8" />
             </div>
             <div className="flex-1 text-center md:text-left">
               <h4 className="text-lg font-bold text-slate-900 dark:text-white flex items-center justify-center md:justify-start gap-2">
-                Content Filtering
+                {t('content_filter')}
                 <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-black rounded-full uppercase tracking-tighter">
-                  <Info className="w-3 h-3" /> Under Development
+                  <Info className="w-3 h-3" /> {t('under_development')}
                 </span>
               </h4>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                Block malicious websites, adult content, and set browsing schedules for specific devices. This feature is currently being optimized for your router model.
+                {t('content_filtering_desc')}
               </p>
             </div>
             <button disabled className="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-2xl font-bold cursor-not-allowed">
-              Configure
+              {t('configure')}
             </button>
           </div>
         </DashboardCard>
@@ -531,7 +531,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             >
               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <History className="w-5 h-5 text-blue-500" /> Session Logs
+                  <History className="w-5 h-5 text-blue-500" /> {t('session_logs')}
                 </h3>
                 <button 
                   onClick={() => setShowLogs(false)}
@@ -542,7 +542,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {sessionLogs.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">No session logs found.</div>
+                  <div className="text-center py-12 text-slate-400">{t('no_logs_found')}</div>
                 ) : (
                   sessionLogs.map((log: any) => (
                     <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
@@ -557,7 +557,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                       </div>
                       <div className="text-right">
                         <div className="text-xs font-bold text-slate-400">{new Date(log.timestamp).toLocaleString()}</div>
-                        <div className="text-[10px] text-green-500 font-black uppercase">Success</div>
+                        <div className="text-[10px] text-green-500 font-black uppercase">{t('success')}</div>
                       </div>
                     </div>
                   ))
@@ -568,7 +568,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                   onClick={() => setShowLogs(false)}
                   className="px-8 py-3 bg-slate-900 dark:bg-slate-700 text-white rounded-2xl font-bold"
                 >
-                  Close
+                  {t('close')}
                 </button>
               </div>
             </motion.div>

@@ -110,7 +110,7 @@ const MobileDataView: React.FC = () => {
               <div className="flex justify-between items-end">
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white">{t('data_plan')}</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('used')} {stats.dataPlanUsed.toFixed(1)} GB of {stats.dataPlanLimit} GB</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('gb_of_gb').replace('{used}', stats.dataPlanUsed.toFixed(1)).replace('{limit}', stats.dataPlanLimit.toString())}</p>
                 </div>
                 <span className="text-xl font-black text-blue-600 dark:text-blue-400">{usagePercentage.toFixed(0)}%</span>
               </div>

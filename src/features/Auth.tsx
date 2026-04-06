@@ -12,11 +12,14 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { routerService } from '../services/routerService';
 
+import { useTranslation } from '../contexts/LanguageContext';
+
 interface AuthProps {
   onLogin: () => void;
 }
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [routerAddress, setRouterAddress] = useState('192.168.1.1');
@@ -59,10 +62,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       if (success) {
         onLogin();
       } else {
-        setError('Failed to authorize with router. Check credentials.');
+        setError(t('auth_error_auth'));
       }
     } catch (err) {
-      setError('Failed to connect to router. Check address and network.');
+      setError(t('auth_error_conn'));
     } finally {
       setIsLoading(false);
     }
@@ -80,11 +83,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <ShieldCheck className="text-white w-8 h-8" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">NetGuard Pro</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Secure Gateway Management</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">{t('secure_gateway')}</p>
           
           {!import.meta.env.PROD && (
             <div className="mt-4 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold border border-blue-100 dark:border-blue-800">
-              Preview Mode: Use <span className="text-blue-800 dark:text-blue-200">admin</span> / <span className="text-blue-800 dark:text-blue-200">admin123</span>
+              {t('preview_mode')} <span className="text-blue-800 dark:text-blue-200">admin</span> / <span className="text-blue-800 dark:text-blue-200">admin123</span>
             </div>
           )}
         </div>
@@ -98,7 +101,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Connection Protocol</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t('connection_protocol')}</label>
             <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
               {(['SSH', 'API', 'WEB'] as const).map((p) => (
                 <button
@@ -117,16 +120,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               ))}
             </div>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">
-              {protocol === 'SSH' && 'Paramiko (SSH) for CLI access'}
-              {protocol === 'API' && 'Requests (HTTP) for REST API'}
-              {protocol === 'WEB' && 'Selenium (Web) for scraping dashboard'}
+              {protocol === 'SSH' && t('ssh_desc')}
+              {protocol === 'API' && t('api_desc')}
+              {protocol === 'WEB' && t('web_desc')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Router Address</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t('router_address')}</label>
             <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input 
                 type="text" 
                 placeholder="192.168.1.1"
@@ -138,7 +141,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Username</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t('username')}</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input 
@@ -152,7 +155,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Password</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t('password')}</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input 
@@ -176,12 +179,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               >
                 <div className={cn(
                    "w-4 h-4 bg-white rounded-full absolute top-1 transition-all",
-                   remember ? "right-1" : "left-1"
+                   remember ? (document.documentElement.dir === 'rtl' ? "left-1" : "right-1") : (document.documentElement.dir === 'rtl' ? "right-1" : "left-1")
                 )} />
               </div>
-              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Remember Password</span>
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{t('remember_password')}</span>
             </label>
-            <button type="button" className="text-sm font-bold text-blue-600 hover:text-blue-700">Forgot?</button>
+            <button type="button" className="text-sm font-bold text-blue-600 hover:text-blue-700">{t('forgot')}</button>
           </div>
 
           <button 
@@ -193,7 +196,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                Sign In <ArrowRight className="w-5 h-5" />
+                {t('sign_in')} <ArrowRight className={cn("w-5 h-5", document.documentElement.dir === 'rtl' && "rotate-180")} />
               </>
             )}
           </button>
@@ -202,7 +205,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
           <button className="w-full py-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
             <Fingerprint className="w-6 h-6 text-blue-600" />
-            Biometric Login
+            {t('biometric_login')}
           </button>
         </div>
 
