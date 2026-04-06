@@ -11,7 +11,11 @@ import {
   Globe,
   Signal,
   Database,
-  Activity
+  Activity,
+  LogOut,
+  Info,
+  History,
+  Lock
 } from 'lucide-react';
 import { DashboardCard } from '../components/DashboardCard';
 import { routerService } from '../services/routerService';
@@ -24,7 +28,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import MobileDataView from './MobileDataView';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onLogout: () => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const { t } = useTranslation();
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [speedData, setSpeedData] = useState<any[]>([]);
@@ -32,13 +40,16 @@ const Dashboard: React.FC = () => {
   const [isTestingSpeed, setIsTestingSpeed] = useState(false);
   const [speedResult, setSpeedResult] = useState<{download: number, upload: number} | null>(null);
   const [connectionType, setConnectionType] = useState<ConnectionType>('wifi');
+  const [showLogs, setShowLogs] = useState(false);
 
   const brand = routerService.getBrand();
   const isConnected = routerService.isConnected();
+  const isAdminMode = routerService.isAdminMode();
+  const sessionLogs = routerService.getSessionLogs();
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (connectionType === 'wifi' && isConnected) {
+      if (connectionType === 'wifi' && isConnected && !isAdminMode) {
         const data = await routerService.getNetworkStats();
         setStats(data);
         
@@ -73,6 +84,11 @@ const Dashboard: React.FC = () => {
     setIsTestingSpeed(false);
   };
 
+  const handleLogout = () => {
+    routerService.logout();
+    onLogout();
+  };
+
   const profiles = routerServiceV2.getProfiles();
 
   if (!isConnected && connectionType === 'wifi') {
@@ -87,14 +103,88 @@ const Dashboard: React.FC = () => {
         <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
           {t('connect_instruction') || 'Please login with your router credentials to access the admin panel.'}
         </p>
+        <button 
+          onClick={handleLogout}
+          className="px-6 py-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-bold flex items-center gap-2"
+        >
+          <LogOut className="w-5 h-5" /> Back to Login
+        </button>
       </div>
     );
   }
 
   return (
     <div className="p-4 md:p-8 space-y-6 pb-24 md:pb-8 transition-colors duration-300">
-      {/* Supervisor Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {isAdminMode && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-6 bg-gradient-to-r from-slate-900 to-blue-900 rounded-[32px] text-white shadow-2xl border border-blue-500/30"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/30">
+                <ShieldCheck className="w-8 h-8 text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight">Master Supervisor Mode</h2>
+                <p className="text-blue-300 text-sm font-medium">Global Network Infrastructure Overview</p>
+              </div>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-2xl font-bold transition-all flex items-center gap-2"
+            >
+              <LogOut className="w-5 h-5" /> Exit Master Mode
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">Total Connections</p>
+              <p className="text-3xl font-black">{sessionLogs.length}</p>
+            </div>
+            <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">Unique Brands</p>
+              <p className="text-3xl font-black">{new Set(sessionLogs.map(l => l.brand)).size}</p>
+            </div>
+            <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+              <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-1">System Status</p>
+              <p className="text-3xl font-black text-green-400">OPTIMAL</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <History className="w-5 h-5 text-blue-400" /> Connected Router History
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {sessionLogs.map((log: any) => (
+                <div key={log.id} className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                      <Globe className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="font-black text-lg">{log.brand}</div>
+                      <div className="text-sm text-blue-300 font-mono">{log.ip} • User: {log.user}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-slate-400 mb-1">{new Date(log.timestamp).toLocaleString()}</div>
+                    <span className="px-3 py-1 bg-green-500/20 text-green-400 text-[10px] font-black rounded-full border border-green-500/30 uppercase">Verified</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {!isAdminMode && (
+        <>
+          {/* Supervisor Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <DashboardCard className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -127,6 +217,21 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Total Traffic</p>
               <p className="text-xl font-bold text-slate-900 dark:text-white">{routerServiceV2.getQuotaStatus().used.toFixed(2)} GB</p>
+            </div>
+          </div>
+        </DashboardCard>
+
+        <DashboardCard 
+          onClick={() => setShowLogs(true)}
+          className="bg-white dark:bg-slate-900 cursor-pointer hover:border-blue-500 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-2xl flex items-center justify-center">
+              <History className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Session Logs</p>
+              <p className="text-xl font-bold text-slate-900 dark:text-white">{sessionLogs.length} Entries</p>
             </div>
           </div>
         </DashboardCard>
@@ -184,6 +289,13 @@ const Dashboard: React.FC = () => {
               >
                 <RefreshCw className={isRebooting ? "animate-spin w-4 h-4" : "w-4 h-4"} />
                 {isRebooting ? "Rebooting..." : t('reboot_router')}
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
               </button>
             </div>
           )}
@@ -374,6 +486,92 @@ const Dashboard: React.FC = () => {
             exit={{ opacity: 0, x: -20 }}
           >
             <MobileDataView />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </>)}
+      {/* Parental Control Section */}
+      {!isAdminMode && (
+        <DashboardCard title="Parental Control & Content Filtering">
+          <div className="mt-4 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-center gap-6">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shrink-0">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white flex items-center justify-center md:justify-start gap-2">
+                Content Filtering
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-black rounded-full uppercase tracking-tighter">
+                  <Info className="w-3 h-3" /> Under Development
+                </span>
+              </h4>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                Block malicious websites, adult content, and set browsing schedules for specific devices. This feature is currently being optimized for your router model.
+              </p>
+            </div>
+            <button disabled className="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-2xl font-bold cursor-not-allowed">
+              Configure
+            </button>
+          </div>
+        </DashboardCard>
+      )}
+
+      <AnimatePresence>
+        {showLogs && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <History className="w-5 h-5 text-blue-500" /> Session Logs
+                </h3>
+                <button 
+                  onClick={() => setShowLogs(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  <RefreshCw className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {sessionLogs.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">No session logs found.</div>
+                ) : (
+                  sessionLogs.map((log: any) => (
+                    <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center shadow-sm">
+                          <Globe className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 dark:text-white">{log.ip}</div>
+                          <div className="text-xs text-slate-500">{log.user} • {log.brand}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-bold text-slate-400">{new Date(log.timestamp).toLocaleString()}</div>
+                        <div className="text-[10px] text-green-500 font-black uppercase">Success</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="p-6 bg-slate-50 dark:bg-slate-800/50 text-center">
+                <button 
+                  onClick={() => setShowLogs(false)}
+                  className="px-8 py-3 bg-slate-900 dark:bg-slate-700 text-white rounded-2xl font-bold"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -24,20 +24,37 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [use2FA, setUse2FA] = useState(false);
   const [error, setError] = useState('');
+  const [remember, setRemember] = useState(false);
+
+  React.useEffect(() => {
+    const saved = routerService.getSavedCredentials();
+    if (saved) {
+      setRouterAddress(saved.ip);
+      setUsername(saved.user);
+      setPassword(saved.pass);
+      setProtocol(saved.protocol);
+      setRemember(true);
+      
+      // Auto-login if we have saved credentials
+      const autoLogin = async () => {
+        setIsLoading(true);
+        const success = await routerService.connect(saved.ip, saved.user, saved.pass, saved.protocol, true);
+        if (success) onLogin();
+        setIsLoading(false);
+      };
+      autoLogin();
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // In development/preview, we allow any credentials to "work" to simulate the experience
-    // but we can still keep the hint for the default ones.
-    const IS_PREVIEW = !import.meta.env.PROD;
     
     setIsLoading(true);
     setError('');
     
     try {
       // Real connection attempt using the new service
-      const success = await routerService.connect(routerAddress, username, password, protocol);
+      const success = await routerService.connect(routerAddress, username, password, protocol, remember);
       
       if (success) {
         onLogin();
@@ -151,18 +168,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <div className="flex items-center justify-between px-1">
             <label className="flex items-center gap-3 cursor-pointer group">
               <div 
-                onClick={() => setUse2FA(!use2FA)}
+                onClick={() => setRemember(!remember)}
                 className={cn(
                   "w-10 h-6 rounded-full transition-all relative",
-                  use2FA ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"
+                  remember ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"
                 )}
               >
                 <div className={cn(
-                  "w-4 h-4 bg-white rounded-full absolute top-1 transition-all",
-                  use2FA ? "right-1" : "left-1"
+                   "w-4 h-4 bg-white rounded-full absolute top-1 transition-all",
+                   remember ? "right-1" : "left-1"
                 )} />
               </div>
-              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Enable 2FA</span>
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Remember Password</span>
             </label>
             <button type="button" className="text-sm font-bold text-blue-600 hover:text-blue-700">Forgot?</button>
           </div>

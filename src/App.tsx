@@ -49,13 +49,13 @@ export default function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard onLogout={handleLogout} />;
       case 'devices': return <DeviceList />;
       case 'analytics': return <Analytics />;
       case 'profiles': return <RouterProfiles />;
       case 'optimizer': return <WifiOptimizer />;
       case 'settings': return <Settings />;
-      default: return <Dashboard />;
+      default: return <Dashboard onLogout={handleLogout} />;
     }
   };
 
