@@ -70,15 +70,39 @@ const HelpCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       ]
     },
     {
+      id: 'connectivity',
+      title: t('router_connectivity'),
+      description: t('router_connectivity_help'),
+      icon: <Globe className="w-5 h-5 text-blue-500" />,
+      details: [
+        'Router Address: Enter the IP address of your gateway (e.g., 192.168.1.1).',
+        'SSH (Paramiko): Connect via command-line interface for deep control.',
+        'API (Requests): Connect via router REST API for fast data retrieval.',
+        'WEB (Selenium): Connect via web interface scraping for older routers.'
+      ]
+    },
+    {
+      id: 'analytics',
+      title: t('advanced_analytics'),
+      description: t('detailed_consumption_help'),
+      icon: <BarChart3 className="w-5 h-5 text-orange-500" />,
+      details: [
+        'Time Range: Switch between Daily, Weekly, and Monthly views.',
+        'App Usage: See which apps (YouTube, Netflix, etc.) consume most data.',
+        'Content Types: View distribution of Video, Social, Gaming, and Work.',
+        'History: Interactive charts showing usage patterns over time.'
+      ]
+    },
+    {
       id: 'devices',
       title: t('device_management'),
       description: t('control_access'),
       icon: <Smartphone className="w-5 h-5 text-purple-500" />,
       details: [
+        'Device Details: Click any device to see its specific app usage and history.',
         'Block/Unblock: Instantly cut off internet for any device.',
         'Rename: Give devices friendly names (e.g., "Dad\'s Phone").',
-        'Signal Strength: See how far a device is from the router.',
-        'Export: Download a CSV list of all network devices.'
+        'Signal Strength: See how far a device is from the router.'
       ]
     },
     {

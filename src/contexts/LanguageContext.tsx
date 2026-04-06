@@ -114,7 +114,11 @@ const translations: Record<Language, Record<string, string>> = {
     'control_access': 'Control who accesses your network.',
     'configure_dns_help': 'Configure custom DNS servers for your network.',
     'ai_translation': 'AI Translation',
-    'ai_translation_help': 'Learn how AI helps translate the app.'
+    'ai_translation_help': 'Learn how AI helps translate the app.',
+    'advanced_analytics': 'Advanced Analytics',
+    'router_connectivity': 'Router Connectivity',
+    'router_connectivity_help': 'Connect to your router using different protocols.',
+    'detailed_consumption_help': 'Track detailed consumption history and app usage.'
   },
   ar: {
     'dashboard': 'لوحة التحكم',
@@ -218,7 +222,11 @@ const translations: Record<Language, Record<string, string>> = {
     'control_access': 'التحكم في من يصل إلى شبكتك.',
     'configure_dns_help': 'تكوين خوادم DNS مخصصة لشبكتك.',
     'ai_translation': 'ترجمة الذكاء الاصطناعي',
-    'ai_translation_help': 'تعرف على كيفية مساعدة الذكاء الاصطناعي في ترجمة التطبيق.'
+    'ai_translation_help': 'تعرف على كيفية مساعدة الذكاء الاصطناعي في ترجمة التطبيق.',
+    'advanced_analytics': 'التحليلات المتقدمة',
+    'router_connectivity': 'اتصال الراوتر',
+    'router_connectivity_help': 'الاتصال بالراوتر باستخدام بروتوكولات مختلفة.',
+    'detailed_consumption_help': 'تتبع سجل الاستهلاك التفصيلي واستخدام التطبيقات.'
   }
 };
 
