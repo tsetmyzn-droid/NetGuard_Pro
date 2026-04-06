@@ -58,11 +58,23 @@ class RouterServiceV2 {
     return this.totalUsageGB;
   }
 
-  // محاكاة التعرف على نوع الراوتر (Universal Router Detection)
+  // Real Router Detection using brand detection logic
   async detectRouterType(ip: string): Promise<string> {
-    // محاكاة فحص الـ MAC Address أو الـ Header
-    const types = ['TP-Link Archer', 'Huawei HG8245', 'D-Link DIR', 'ZTE F660', 'Tenda AC10'];
-    return types[Math.floor(Math.random() * types.length)];
+    try {
+      const response = await fetch(`http://${ip}/`, { method: 'GET', signal: AbortSignal.timeout(3000) });
+      const body = await response.text();
+      const content = body.toLowerCase();
+
+      if (content.includes('huawei')) return 'Huawei Gateway';
+      if (content.includes('tp-link') || content.includes('tplink')) return 'TP-Link Archer';
+      if (content.includes('zte')) return 'ZTE F660/F670';
+      if (content.includes('tenda')) return 'Tenda AC Series';
+      if (content.includes('asus')) return 'ASUS RT Series';
+      
+      return 'Generic Router';
+    } catch {
+      return 'Unknown Device';
+    }
   }
 
   getQuotaStatus() {

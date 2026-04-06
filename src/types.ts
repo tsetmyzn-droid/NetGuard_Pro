@@ -57,3 +57,16 @@ export interface RouterSettings {
   channel: number;
   securityMode: string;
 }
+
+export type ConnectionType = 'wifi' | 'cellular' | 'none';
+
+export interface MobileDataStats {
+  connectionType: ConnectionType;
+  operatorName: string;
+  signalStrength: number; // 0-100
+  dataPlanLimit: number; // in GB
+  dataPlanUsed: number; // in GB
+  daysRemaining: number;
+  isRoaming: boolean;
+  apps: AppUsage[];
+}

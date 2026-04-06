@@ -28,33 +28,24 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Default credentials for preview (only in dev mode)
+    // In development/preview, we allow any credentials to "work" to simulate the experience
+    // but we can still keep the hint for the default ones.
     const IS_PREVIEW = !import.meta.env.PROD;
-    const DEFAULT_USER = 'admin';
-    const DEFAULT_PASS = 'admin123';
-
-    if (!username || !password || !routerAddress) {
-      setError('Please enter all credentials');
-      return;
-    }
-
-    if (IS_PREVIEW && (username !== DEFAULT_USER || password !== DEFAULT_PASS)) {
-      setError('Invalid username or password. Try admin / admin123');
-      return;
-    }
     
     setIsLoading(true);
     setError('');
     
     try {
-      // Simulate protocol-specific connection
-      if (protocol === 'SSH') await routerService.connectViaSSH(routerAddress, username, password);
-      else if (protocol === 'API') await routerService.connectViaAPI(routerAddress, username, password);
-      else await routerService.connectViaWeb(routerAddress, username, password);
-
-      onLogin();
+      // Real connection attempt using the new service
+      const success = await routerService.connect(routerAddress, username, password, protocol);
+      
+      if (success) {
+        onLogin();
+      } else {
+        setError('Failed to authorize with router. Check credentials.');
+      }
     } catch (err) {
-      setError('Failed to connect to router. Check address and credentials.');
+      setError('Failed to connect to router. Check address and network.');
     } finally {
       setIsLoading(false);
     }

@@ -118,7 +118,19 @@ const translations: Record<Language, Record<string, string>> = {
     'advanced_analytics': 'Advanced Analytics',
     'router_connectivity': 'Router Connectivity',
     'router_connectivity_help': 'Connect to your router using different protocols.',
-    'detailed_consumption_help': 'Track detailed consumption history and app usage.'
+    'detailed_consumption_help': 'Track detailed consumption history and app usage.',
+    'mobile_data': 'Mobile Data',
+    'cellular': 'Cellular',
+    'wifi': 'Wi-Fi',
+    'connection_type': 'Connection Type',
+    'data_plan': 'Data Plan',
+    'used': 'Used',
+    'remaining': 'Remaining',
+    'days_left': 'Days Left',
+    'signal_strength': 'Signal Strength',
+    'operator': 'Operator',
+    'roaming': 'Roaming',
+    'set_data_limit': 'Set Data Limit'
   },
   ar: {
     'dashboard': 'لوحة التحكم',
@@ -226,7 +238,19 @@ const translations: Record<Language, Record<string, string>> = {
     'advanced_analytics': 'التحليلات المتقدمة',
     'router_connectivity': 'اتصال الراوتر',
     'router_connectivity_help': 'الاتصال بالراوتر باستخدام بروتوكولات مختلفة.',
-    'detailed_consumption_help': 'تتبع سجل الاستهلاك التفصيلي واستخدام التطبيقات.'
+    'detailed_consumption_help': 'تتبع سجل الاستهلاك التفصيلي واستخدام التطبيقات.',
+    'mobile_data': 'بيانات الجوال',
+    'cellular': 'خلوي',
+    'wifi': 'واي فاي',
+    'connection_type': 'نوع الاتصال',
+    'data_plan': 'باقة البيانات',
+    'used': 'مستخدم',
+    'remaining': 'متبقي',
+    'days_left': 'أيام متبقية',
+    'signal_strength': 'قوة الإشارة',
+    'operator': 'المشغل',
+    'roaming': 'تجوال',
+    'set_data_limit': 'تعيين حد البيانات'
   }
 };
 
