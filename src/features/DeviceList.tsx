@@ -409,7 +409,7 @@ const DeviceList: React.FC = () => {
                         </div>
                       </div>
                       <div className="h-[240px] w-full bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <AreaChart data={selectedDevice.history.daily}>
                             <defs>
                               <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
@@ -453,7 +453,7 @@ const DeviceList: React.FC = () => {
                     <div className="space-y-4">
                       <h4 className="text-lg font-bold text-slate-900 dark:text-white">{t('content_distribution')}</h4>
                       <div className="h-[200px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <PieChart>
                             <Pie
                               data={selectedDevice.contentTypes}

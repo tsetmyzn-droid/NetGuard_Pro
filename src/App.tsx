@@ -10,7 +10,7 @@ import DeviceList from './features/DeviceList';
 import Analytics from './features/Analytics';
 import Settings from './features/Settings';
 import RouterProfiles from './features/RouterProfiles';
-import WifiOptimizer from './features/WifiOptimizer';
+import WifiOptimizer from './services/WifiOptimizer';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import HelpCenter from './components/HelpCenter';
@@ -23,22 +23,48 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Check local storage for auth session
-    const session = localStorage.getItem('netguard_session');
-    if (session) {
-      setIsAuthenticated(true);
+    // Check session storage for auth session
+    const session = sessionStorage.getItem('netguard_session');
+    const lastActivity = sessionStorage.getItem('netguard_last_activity');
+    
+    if (session && lastActivity) {
+      const lastTime = parseInt(lastActivity, 10);
+      // Check if session is expired (30 mins)
+      if (Date.now() - lastTime > 30 * 60 * 1000) {
+        handleLogout();
+      } else {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('netguard_last_activity', Date.now().toString());
+      }
     }
     setIsLoaded(true);
+
+    // Update last activity on any user interaction
+    const updateActivity = () => {
+      if (sessionStorage.getItem('netguard_session')) {
+        sessionStorage.setItem('netguard_last_activity', Date.now().toString());
+      }
+    };
+
+    window.addEventListener('mousedown', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+
+    return () => {
+      window.removeEventListener('mousedown', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+    };
   }, []);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
-    localStorage.setItem('netguard_session', 'active');
+    sessionStorage.setItem('netguard_session', 'active');
+    sessionStorage.setItem('netguard_last_activity', Date.now().toString());
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('netguard_session');
+    sessionStorage.removeItem('netguard_session');
+    sessionStorage.removeItem('netguard_last_activity');
   };
 
   if (!isLoaded) return null;

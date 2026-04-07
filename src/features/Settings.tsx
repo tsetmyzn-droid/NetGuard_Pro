@@ -25,6 +25,14 @@ const Settings: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      const data = await routerService.fetchSettings();
+      setSettings(data);
+    };
+    loadSettings();
+  }, []);
   
   const [dnsSettings, setDnsSettings] = useState({
     primary: '8.8.8.8',
@@ -80,11 +88,16 @@ const Settings: React.FC = () => {
                       onChange={(e) => setSettings({ ...settings, securityMode: e.target.value })}
                       className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none text-slate-900 dark:text-white"
                     >
-                      <option>WPA3-SAE</option>
-                      <option>WPA2-AES</option>
-                      <option>WPA2/WPA3 Mixed</option>
+                      <option value="WPA2-PSK (AES)">WPA2-PSK (AES)</option>
+                      <option value="WPA3-SAE">WPA3-SAE</option>
+                      <option value="WPA/WPA2 Mixed">WPA/WPA2 Mixed</option>
+                      <option value="None (Open)">None (Open)</option>
                     </select>
                   </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    {t('wpa2_psk_aes')} {t('recommended')}
+                  </p>
                 </div>
               </div>
 
@@ -94,7 +107,8 @@ const Settings: React.FC = () => {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 
                     type={showPassword ? "text" : "password"} 
-                    defaultValue="••••••••••••"
+                    value={settings.password}
+                    onChange={(e) => setSettings({ ...settings, password: e.target.value })}
                     className="w-full pl-11 pr-12 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
                   />
                   <button 
@@ -105,6 +119,52 @@ const Settings: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{t('guest_network')}</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{t('enable_guest')}</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.guestEnabled}
+                      onChange={(e) => setSettings({ ...settings, guestEnabled: e.target.checked })}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                {settings.guestEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('guest_ssid')}</label>
+                      <input 
+                        type="text" 
+                        value={settings.guestSsid}
+                        onChange={(e) => setSettings({ ...settings, guestSsid: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('wifi_password')}</label>
+                      <input 
+                        type="password" 
+                        value={settings.guestPassword}
+                        onChange={(e) => setSettings({ ...settings, guestPassword: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
@@ -277,6 +337,33 @@ const Settings: React.FC = () => {
               >
                 {t('set_data_limit')}
               </button>
+            </div>
+          </DashboardCard>
+
+          <DashboardCard title={t('security_shield')}>
+            <div className="space-y-4 mt-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100">AES vs WPA2</h4>
+                    <p className="text-[10px] text-blue-700 dark:text-blue-300 mt-1 leading-relaxed">
+                      {language === 'ar' 
+                        ? 'AES هو خوارزمية التشفير المستخدمة لتأمين البيانات، بينما WPA2 هو بروتوكول الأمان الذي يستخدم AES لحماية شبكة الواي فاي الخاصة بك. نوصي دائماً باستخدام WPA2-AES لأفضل توازن بين الأمان والتوافق.'
+                        : 'AES is the encryption algorithm used to secure data, while WPA2 is the security protocol that uses AES to protect your Wi-Fi network. We always recommend using WPA2-AES for the best balance of security and compatibility.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer group">
+                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 text-purple-500 dark:text-purple-400 rounded-lg flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/40">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">{t('security_shield')}</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500">{t('learn_protection')}</div>
+                </div>
+              </div>
             </div>
           </DashboardCard>
 

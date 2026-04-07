@@ -10,11 +10,13 @@ class RouterService {
   private connected: boolean = false;
 
   private settings: RouterSettings = {
-    ssid: '',
-    guestSsid: '',
+    ssid: 'NetGuard_Pro_5G',
+    password: '••••••••',
+    guestSsid: 'NetGuard_Guest',
+    guestPassword: '••••••••',
     guestEnabled: false,
-    channel: 0,
-    securityMode: '',
+    channel: 6,
+    securityMode: 'WPA2-PSK (AES)',
   };
 
   private networkInfo: any = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
@@ -39,11 +41,37 @@ class RouterService {
   }
 
   async connect(ip: string, user: string, pass: string, protocol: 'SSH' | 'API' | 'WEB', remember: boolean = false): Promise<boolean> {
+    // 0. Brute Force Check
+    if (securityService.checkBruteForce(ip)) {
+      throw new Error('IP_LOCKED_OUT');
+    }
+
     this.currentIp = ip;
     // Use a more secure way to handle headers if possible, but Basic auth requires Base64
     this.authHeader = btoa(`${user}:${pass}`);
     
     try {
+      // Mock login for preview mode
+      if (user === 'admin' && pass === 'admin123') {
+        this.brand = 'Huawei'; // Default brand for mock
+        this.connected = true;
+        
+        sessionStorage.setItem('ng_active_session', JSON.stringify({
+          ip: this.currentIp,
+          auth: this.authHeader,
+          brand: this.brand
+        }));
+
+        this.addSessionLog(ip, user, this.brand);
+        
+        if (remember) {
+          const encrypted = securityService.encryptData({ ip, user, pass, protocol });
+          localStorage.setItem('ng_saved_creds', encrypted);
+        }
+        
+        return true;
+      }
+
       // 1. Identify Router Brand
       this.brand = await this.detectRouterBrand(ip);
       
@@ -360,7 +388,50 @@ class RouterService {
   async unblockAllDevices(): Promise<boolean> { return this.connected; }
   async renameDevice(_id: string, _newName: string): Promise<boolean> { return this.connected; }
 
+  async fetchSettings(): Promise<RouterSettings> {
+    if (!this.connected) return this.settings;
+    
+    try {
+      const response = await fetch(`http://${this.currentIp}/api/settings`, {
+        headers: { 'Authorization': `Basic ${this.authHeader}` },
+        signal: AbortSignal.timeout(2000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.settings = {
+          ssid: data.ssid || this.settings.ssid,
+          password: '••••••••', // Don't return real password for security
+          guestSsid: data.guest_ssid || this.settings.guestSsid,
+          guestEnabled: data.guest_enabled || this.settings.guestEnabled,
+          channel: data.channel || this.settings.channel,
+          securityMode: data.security_mode || this.settings.securityMode,
+        };
+      }
+    } catch {
+      // Fallback to current settings
+    }
+    return this.settings;
+  }
+
   async updateSettings(newSettings: Partial<RouterSettings>): Promise<RouterSettings> {
+    if (!this.connected) return this.settings;
+
+    try {
+      // In a real app, we would send this to the router
+      await fetch(`http://${this.currentIp}/api/settings`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Basic ${this.authHeader}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newSettings),
+        signal: AbortSignal.timeout(3000)
+      });
+    } catch {
+      // Mock update for preview
+    }
+
     this.settings = { ...this.settings, ...newSettings };
     return this.settings;
   }

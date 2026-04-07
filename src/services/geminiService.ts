@@ -10,12 +10,15 @@ export const geminiService = {
       return text;
     }
 
+    // Basic sanitization to prevent prompt injection
+    const sanitizedText = text.replace(/<[^>]*>?/gm, '').substring(0, 500);
+
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
           { text: `Translate the following text to ${targetLang === 'ar' ? 'Arabic' : 'English'}:` },
-          { text: text }
+          { text: sanitizedText }
         ],
         config: {
           systemInstruction: "You are a professional translator. Return ONLY the translated text. Do not include explanations, quotes, or any other text.",

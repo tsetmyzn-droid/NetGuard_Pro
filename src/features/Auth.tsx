@@ -6,7 +6,10 @@ import {
   Fingerprint, 
   ArrowRight,
   ShieldAlert,
-  Globe
+  Globe,
+  Eye,
+  EyeOff,
+  Server
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -19,13 +22,13 @@ interface AuthProps {
 }
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const { t } = useTranslation();
+  const { t, language, setLanguage, isRTL } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [routerAddress, setRouterAddress] = useState('192.168.1.1');
   const [protocol, setProtocol] = useState<'SSH' | 'API' | 'WEB'>('API');
   const [isLoading, setIsLoading] = useState(false);
-  const [use2FA, setUse2FA] = useState(false);
   const [error, setError] = useState('');
   const [remember, setRemember] = useState(false);
 
@@ -76,8 +79,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 shadow-xl shadow-slate-200/50 dark:shadow-none border border-white dark:border-slate-800"
+        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[32px] p-8 md:p-12 shadow-xl shadow-slate-200/50 dark:shadow-none border border-white dark:border-slate-800 relative overflow-hidden"
       >
+        <div className="absolute top-6 right-6 flex gap-2">
+          <button 
+            onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+            className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all flex items-center gap-2 text-xs font-bold"
+          >
+            <Globe className="w-4 h-4" />
+            {language === 'en' ? 'AR' : 'EN'}
+          </button>
+        </div>
+
         <div className="flex flex-col items-center text-center mb-10">
           <div className="w-16 h-16 bg-blue-600 rounded-[24px] flex items-center justify-center shadow-lg shadow-blue-600/30 mb-6">
             <ShieldCheck className="text-white w-8 h-8" />
@@ -127,44 +140,72 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t('router_address')}</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mx-1">{t('router_address')}</label>
             <div className="relative">
-              <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Server className={cn(
+                "absolute top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400",
+                isRTL ? "right-4" : "left-4"
+              )} />
               <input 
                 type="text" 
                 placeholder="192.168.1.1"
                 value={routerAddress}
                 onChange={(e) => setRouterAddress(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
+                className={cn(
+                  "w-full py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white",
+                  isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+                )}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t('username')}</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mx-1">{t('username')}</label>
             <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <User className={cn(
+                "absolute top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400",
+                isRTL ? "right-4" : "left-4"
+              )} />
               <input 
                 type="text" 
                 placeholder="admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
+                className={cn(
+                  "w-full py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white",
+                  isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+                )}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t('password')}</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mx-1">{t('password')}</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Lock className={cn(
+                "absolute top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400",
+                isRTL ? "right-4" : "left-4"
+              )} />
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"} 
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white"
+                className={cn(
+                  "w-full py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white",
+                  isRTL ? "pr-12 pl-12 text-right" : "pl-12 pr-12 text-left"
+                )}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className={cn(
+                  "absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors",
+                  isRTL ? "left-4" : "right-4"
+                )}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 
@@ -179,7 +220,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               >
                 <div className={cn(
                    "w-4 h-4 bg-white rounded-full absolute top-1 transition-all",
-                   remember ? (document.documentElement.dir === 'rtl' ? "left-1" : "right-1") : (document.documentElement.dir === 'rtl' ? "right-1" : "left-1")
+                   remember 
+                    ? (isRTL ? "left-1" : "right-1") 
+                    : (isRTL ? "right-1" : "left-1")
                 )} />
               </div>
               <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{t('remember_password')}</span>
@@ -196,7 +239,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                {t('sign_in')} <ArrowRight className={cn("w-5 h-5", document.documentElement.dir === 'rtl' && "rotate-180")} />
+                {t('sign_in')} <ArrowRight className={cn("w-5 h-5", isRTL && "rotate-180")} />
               </>
             )}
           </button>

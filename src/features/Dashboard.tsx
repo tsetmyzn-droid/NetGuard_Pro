@@ -379,7 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <DashboardCard title={t('real_time_traffic')} className="lg:col-span-2">
                     <div className="h-[300px] w-full mt-4">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <AreaChart data={speedData}>
                           <defs>
                             <linearGradient id="colorDownload" x1="0" y1="0" x2="0" y2="1">

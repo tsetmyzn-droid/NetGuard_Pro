@@ -53,7 +53,9 @@ export interface ConnectionEvent {
 
 export interface RouterSettings {
   ssid: string;
+  password?: string;
   guestSsid: string;
+  guestPassword?: string;
   guestEnabled: boolean;
   channel: number;
   securityMode: string;
