@@ -36,12 +36,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const { t } = useTranslation();
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [speedData, setSpeedData] = useState<any[]>([]);
+  const [usageHistory, setUsageHistory] = useState<any[]>([]);
   const [isRebooting, setIsRebooting] = useState(false);
   const [isTestingSpeed, setIsTestingSpeed] = useState(false);
   const [speedResult, setSpeedResult] = useState<{download: number, upload: number} | null>(null);
   const [connectionType, setConnectionType] = useState<ConnectionType>('wifi');
   const [showLogs, setShowLogs] = useState(false);
-
   const [showRebootModal, setShowRebootModal] = useState(false);
 
   const brand = routerService.getBrand();
@@ -49,7 +49,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const isAdminMode = routerService.isAdminMode();
   const sessionLogs = routerService.getSessionLogs();
 
+  const fetchUsageHistory = async () => {
+    try {
+      const response = await fetch('/api/usage/history');
+      const data = await response.json();
+      setUsageHistory(data);
+    } catch (err) {
+      console.error('Failed to fetch history:', err);
+    }
+  };
+
   useEffect(() => {
+    fetchUsageHistory();
     const fetchStats = async () => {
       if (connectionType === 'wifi' && isConnected && !isAdminMode) {
         const data = await routerService.getNetworkStats();
@@ -62,6 +73,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             upload: data.currentUpload
           }].slice(-10);
           return newData;
+        });
+
+        // Record daily usage to DB
+        const today = new Date().toISOString().split('T')[0];
+        fetch('/api/usage/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: today,
+            download: data.totalDownload,
+            upload: data.totalUpload,
+            total: data.totalDownload + data.totalUpload
+          })
         });
       }
     };
@@ -184,6 +208,67 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
       {!isAdminMode && (
         <>
+          {/* Unlimited Internet Campaign Banner */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-8 bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-800 rounded-[40px] text-white shadow-2xl relative overflow-hidden border border-white/10"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+            
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-white/20">
+                  <Globe className="w-3 h-3" /> {t('unlimited_internet_campaign') || 'حملة إنترنت غير محدود في مصر'}
+                </div>
+                <h2 className="text-4xl md:text-5xl font-black leading-tight mb-4 tracking-tighter">
+                  {t('your_quota_status') || 'حالة باقتك الآن'}
+                </h2>
+                <p className="text-blue-100 text-lg font-medium max-w-md mb-8 opacity-90">
+                  {t('quota_desc') || 'نحن نراقب استهلاكك بدقة لنضمن لك أفضل تجربة إنترنت.'}
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <div className="px-6 py-3 bg-white text-blue-600 rounded-2xl font-black shadow-lg">
+                    {t('renew_now') || 'تجديد الباقة'}
+                  </div>
+                  <div className="px-6 py-3 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl font-black">
+                    {t('usage_details') || 'تفاصيل الاستهلاك'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-xl rounded-[32px] p-8 border border-white/20 shadow-inner">
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-sm font-bold text-blue-100">{t('remaining_data') || 'المتبقي من الباقة'}</span>
+                  <span className="text-2xl font-black">142.5 <span className="text-sm font-normal">GB</span></span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-4 mb-4 overflow-hidden p-1">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: '65%' }}
+                    className="h-full bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full shadow-lg shadow-blue-400/20"
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] font-black text-blue-200 uppercase tracking-widest">
+                  <span>{t('used') || 'مستهلك'}: 107.5 GB</span>
+                  <span>{t('total') || 'إجمالي'}: 250 GB</span>
+                </div>
+                
+                <div className="mt-8 pt-8 border-t border-white/10 grid grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-[10px] font-black text-blue-200 uppercase mb-1">{t('days_left') || 'الأيام المتبقية'}</p>
+                    <p className="text-2xl font-black">12 <span className="text-xs font-normal opacity-70">{t('days') || 'يوم'}</span></p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-blue-200 uppercase mb-1">{t('daily_avg') || 'متوسط الاستهلاك'}</p>
+                    <p className="text-2xl font-black">8.4 <span className="text-xs font-normal opacity-70">GB</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Supervisor Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <DashboardCard className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none">
@@ -377,7 +462,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <DashboardCard title={t('real_time_traffic')} className="lg:col-span-2">
+                <DashboardCard title={t('real_time_traffic')} className="lg:col-span-2">
                     <div className="h-[300px] w-full mt-4">
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <AreaChart data={speedData}>
@@ -420,6 +505,33 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                             fillOpacity={1} 
                             fill="url(#colorUpload)" 
                             animationDuration={1000}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </DashboardCard>
+
+                  <DashboardCard title={t('daily_usage_history') || 'تاريخ الاستهلاك اليومي'} className="lg:col-span-3">
+                    <div className="h-[200px] w-full mt-4">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <AreaChart data={usageHistory}>
+                          <defs>
+                            <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip />
+                          <Area 
+                            type="monotone" 
+                            dataKey="total" 
+                            stroke="#10b981" 
+                            strokeWidth={2}
+                            fillOpacity={1} 
+                            fill="url(#colorTotal)" 
                           />
                         </AreaChart>
                       </ResponsiveContainer>

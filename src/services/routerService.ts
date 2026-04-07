@@ -130,6 +130,22 @@ class RouterService {
     return logs ? JSON.parse(logs) : [];
   }
 
+  saveCredentials(ip: string, user: string, pass: string, protocol: 'SSH' | 'API' | 'WEB') {
+    const encrypted = securityService.encryptData({ ip, user, pass, protocol });
+    localStorage.setItem('ng_saved_creds', encrypted);
+    
+    // Also update current session
+    this.currentIp = ip;
+    this.authHeader = btoa(`${user}:${pass}`);
+    this.connected = true;
+    
+    sessionStorage.setItem('ng_active_session', JSON.stringify({
+      ip: this.currentIp,
+      auth: this.authHeader,
+      brand: this.brand
+    }));
+  }
+
   getSavedCredentials(): any {
     const encrypted = localStorage.getItem('ng_saved_creds');
     if (encrypted) {
@@ -294,7 +310,7 @@ class RouterService {
   }
 
   async getNetworkStats(): Promise<NetworkStats> {
-    if (!this.connected) return { currentDownload: 0, currentUpload: 0, activeDevices: 0, uptime: 'Disconnected', cpuUsage: 0, ramUsage: 0 };
+    if (!this.connected) return { currentDownload: 0, currentUpload: 0, totalDownload: 0, totalUpload: 0, activeDevices: 0, uptime: 'Disconnected', cpuUsage: 0, ramUsage: 0 };
 
     try {
       // Try real router API first
@@ -308,6 +324,8 @@ class RouterService {
         return {
           currentDownload: d.download_speed || 0,
           currentUpload: d.upload_speed || 0,
+          totalDownload: d.total_download || 0,
+          totalUpload: d.total_upload || 0,
           activeDevices: d.active_count || 0,
           uptime: d.uptime || '0s',
           cpuUsage: d.cpu || 0,
@@ -318,11 +336,12 @@ class RouterService {
       // Fallback to real browser network info if router API is unreachable
       if (this.networkInfo) {
         const downlink = this.networkInfo.downlink || 0; // Mbps
-        const rtt = this.networkInfo.rtt || 0; // ms
         
         return {
           currentDownload: downlink,
           currentUpload: downlink * 0.25, // Estimate upload
+          totalDownload: 107.5, // Mock total
+          totalUpload: 45.2, // Mock total
           activeDevices: Math.floor(Math.random() * 5) + 3, // We can't know real device count without router API
           uptime: 'Connected via Browser',
           cpuUsage: Math.floor(Math.random() * 15) + 5,
@@ -330,7 +349,7 @@ class RouterService {
         };
       }
     }
-    return { currentDownload: 0, currentUpload: 0, activeDevices: 0, uptime: 'Error', cpuUsage: 0, ramUsage: 0 };
+    return { currentDownload: 0, currentUpload: 0, totalDownload: 0, totalUpload: 0, activeDevices: 0, uptime: 'Error', cpuUsage: 0, ramUsage: 0 };
   }
 
   // Real Speed Test Implementation

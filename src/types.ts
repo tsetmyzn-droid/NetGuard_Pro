@@ -38,6 +38,8 @@ export interface Device {
 export interface NetworkStats {
   currentDownload: number;
   currentUpload: number;
+  totalDownload: number;
+  totalUpload: number;
   activeDevices: number;
   uptime: string;
   cpuUsage: number;
