@@ -65,15 +65,19 @@ class RouterService {
         this.addSessionLog(ip, user, this.brand);
         
         if (remember) {
-          const encrypted = securityService.encryptData({ ip, user, pass, protocol });
-          localStorage.setItem('ng_saved_creds', encrypted);
+          this.saveCredentials(ip, user, pass, protocol);
         }
         
         return true;
       }
 
-      // 1. Identify Router Brand
-      this.brand = await this.detectRouterBrand(ip);
+      // 1. Identify Router Brand (Stable Connection Simulation)
+      // We use a timeout to detect if the router is reachable
+      try {
+        this.brand = await this.detectRouterBrand(ip);
+      } catch (e) {
+        throw new Error('ROUTER_NOT_FOUND');
+      }
       
       // 2. Attempt real authentication based on brand/protocol
       const response = await fetch(`http://${ip}/`, { 
@@ -94,20 +98,22 @@ class RouterService {
         // Save session log
         this.addSessionLog(ip, user, this.brand);
 
-        // Save credentials if requested
+        // Save credentials if requested (Encrypted via securityService)
         if (remember) {
-          const encrypted = securityService.encryptData({ ip, user, pass, protocol });
-          localStorage.setItem('ng_saved_creds', encrypted);
-        } else {
-          localStorage.removeItem('ng_saved_creds');
+          this.saveCredentials(ip, user, pass, protocol);
         }
 
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Connection Error:', error);
       this.connected = false;
+      
+      if (error.message === 'ROUTER_NOT_FOUND' || error.name === 'AbortError' || error.message.includes('Failed to fetch')) {
+        throw new Error('CHECK_HOME_WIFI');
+      }
+      
       return false;
     }
   }
@@ -374,6 +380,21 @@ class RouterService {
 
   getBrand(): RouterBrand {
     return this.brand;
+  }
+
+  async autoDetectRouter(): Promise<{ brand: RouterBrand, mac: string }> {
+    try {
+      const response = await fetch('/api/router/detect');
+      const data = await response.json();
+      if (data.success) {
+        this.brand = data.brand as RouterBrand;
+        return { brand: this.brand, mac: data.mac };
+      }
+      return { brand: 'Unknown', mac: 'Unknown' };
+    } catch (e) {
+      console.error('Auto Detect Error:', e);
+      return { brand: 'Unknown', mac: 'Unknown' };
+    }
   }
 
   isConnected(): boolean {

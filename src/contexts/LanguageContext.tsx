@@ -186,6 +186,8 @@ const translations: Record<Language, Record<string, string>> = {
     'web_desc': 'Selenium (Web) for scraping dashboard',
     'auth_error_auth': 'Failed to authorize with router. Check credentials.',
     'auth_error_conn': 'Failed to connect to router. Check address and network.',
+    'auth_error_brute': 'Too many failed attempts. Please try again later.',
+    'check_home_wifi': 'Please make sure you are connected to your home Wi-Fi.',
     'of': 'of',
     'gb_of_gb': '{used} GB of {limit} GB',
     'download_mbps': 'Download',
@@ -234,7 +236,19 @@ const translations: Record<Language, Record<string, string>> = {
     'limit_usage': 'Limit Usage',
     'profile_placeholder': 'Home Router, Office, etc.',
     'pass_placeholder': 'Router Admin Password',
-    'auto_detect': 'Auto-Detect'
+    'auto_detect': 'Auto-Detect',
+    'security_shield_active': 'Security Shield Active',
+    'threats_detected': 'Threats Detected',
+    'scanning_for_threats': 'Scanning for threats...',
+    'brute_force_detected': 'Brute Force Attack Detected',
+    'mitm_detected': 'Man-in-the-Middle Attack Detected',
+    'evil_twin_detected': 'Evil Twin Network Detected',
+    'speed_test_result': 'Speed Test Result',
+    'ping': 'Ping',
+    'ms': 'ms',
+    'mbps': 'Mbps',
+    'auto_detect_success': 'Router detected successfully',
+    'auto_detect_failed': 'Auto-detection failed'
   },
   ar: {
     'wifi_settings': 'إعدادات الواي فاي',
@@ -410,6 +424,8 @@ const translations: Record<Language, Record<string, string>> = {
     'web_desc': 'Selenium (Web) لكشط لوحة التحكم',
     'auth_error_auth': 'فشل التفويض مع الراوتر. تحقق من البيانات.',
     'auth_error_conn': 'فشل الاتصال بالراوتر. تحقق من العنوان والشبكة.',
+    'auth_error_brute': 'محاولات كثيرة فاشلة. يرجى المحاولة لاحقاً.',
+    'check_home_wifi': 'تأكد من اتصالك بالواي فاي الخاص بالمنزل',
     'of': 'من',
     'gb_of_gb': '{used} جيجابايت من {limit} جيجابايت',
     'download_mbps': 'تحميل',
@@ -503,7 +519,19 @@ const translations: Record<Language, Record<string, string>> = {
     'automatic': 'تلقائي',
     'manual': 'يدوي',
     'lang_change_desc': 'تغيير اللغة سيقوم بتحديث الواجهة وتحليل الذكاء الاصطناعي.',
-    'language_region': 'اللغة والمنطقة'
+    'language_region': 'اللغة والمنطقة',
+    'security_shield_active': 'الدرع الأمني نشط',
+    'threats_detected': 'تم اكتشاف تهديدات',
+    'scanning_for_threats': 'جاري الفحص عن التهديدات...',
+    'brute_force_detected': 'تم اكتشاف هجوم تخمين',
+    'mitm_detected': 'تم اكتشاف هجوم انتحال',
+    'evil_twin_detected': 'تم اكتشاف شبكة وهمية',
+    'speed_test_result': 'نتيجة اختبار السرعة',
+    'ping': 'بينج',
+    'ms': 'مللي ثانية',
+    'mbps': 'ميجابت/ث',
+    'auto_detect_success': 'تم التعرف على الراوتر بنجاح',
+    'auto_detect_failed': 'فشل التعرف التلقائي'
   }
 };
 

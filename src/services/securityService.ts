@@ -84,6 +84,49 @@ class SecurityService {
     `;
     document.head.appendChild(style);
   }
+
+  // درع أمني (Security Shield)
+  async scanForThreats(): Promise<{
+    bruteForce: { detected: boolean, attempts: number },
+    mitm: { detected: boolean, fingerprintChanged: boolean },
+    evilTwin: { detected: boolean, suspiciousNetworks: string[] },
+    timestamp: string
+  }> {
+    try {
+      const response = await fetch('/api/security/scan');
+      const data = await response.json();
+      
+      // Local checks
+      const localMitm = this.checkLocalMitm();
+      const localEvilTwin = this.checkLocalEvilTwin();
+
+      return {
+        ...data,
+        mitm: { ...data.mitm, detected: data.mitm.detected || localMitm },
+        evilTwin: { ...data.evilTwin, detected: data.evilTwin.detected || localEvilTwin.detected, suspiciousNetworks: [...data.evilTwin.suspiciousNetworks, ...localEvilTwin.networks] }
+      };
+    } catch (e) {
+      console.error('Security Scan Error:', e);
+      return {
+        bruteForce: { detected: false, attempts: 0 },
+        mitm: { detected: false, fingerprintChanged: false },
+        evilTwin: { detected: false, suspiciousNetworks: [] },
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private checkLocalMitm(): boolean {
+    // Check if the gateway MAC address has changed suddenly
+    const currentGatewayMac = localStorage.getItem('ng_gateway_mac');
+    // In a real browser, we can't easily get the gateway MAC, so we simulate
+    return false; 
+  }
+
+  private checkLocalEvilTwin(): { detected: boolean, networks: string[] } {
+    // Simulate detecting networks with the same SSID but different security
+    return { detected: false, networks: [] };
+  }
 }
 
 export const securityService = new SecurityService();

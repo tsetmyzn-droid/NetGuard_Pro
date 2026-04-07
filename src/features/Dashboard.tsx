@@ -21,12 +21,14 @@ import { DashboardCard } from '../components/DashboardCard';
 import { routerService } from '../services/routerService';
 import { routerServiceV2 } from '../services/routerServiceV2';
 import { mobileDataService } from '../services/mobileDataService';
+import { securityService } from '../services/securityService';
 import { cn } from '../lib/utils';
 import { NetworkStats, ConnectionType } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import MobileDataView from './MobileDataView';
+import config from '../config.json';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -43,6 +45,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [connectionType, setConnectionType] = useState<ConnectionType>('wifi');
   const [showLogs, setShowLogs] = useState(false);
   const [showRebootModal, setShowRebootModal] = useState(false);
+  const [securityScanResult, setSecurityScanResult] = useState<any>(null);
+  const [isScanningSecurity, setIsScanningSecurity] = useState(false);
+  const [mobileUsage, setMobileUsage] = useState<any>(null);
 
   const brand = routerService.getBrand();
   const isConnected = routerService.isConnected();
@@ -61,32 +66,50 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   useEffect(() => {
     fetchUsageHistory();
-    const fetchStats = async () => {
-      if (connectionType === 'wifi' && isConnected && !isAdminMode) {
-        const data = await routerService.getNetworkStats();
-        setStats(data);
-        
-        setSpeedData(prev => {
-          const newData = [...prev, { 
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            download: data.currentDownload,
-            upload: data.currentUpload
-          }].slice(-10);
-          return newData;
-        });
+    
+    // Fetch mobile data usage
+    const fetchMobileUsage = async () => {
+      const data = await mobileDataService.getUsage();
+      setMobileUsage(data);
+    };
+    fetchMobileUsage();
 
-        // Record daily usage to DB
-        const today = new Date().toISOString().split('T')[0];
-        fetch('/api/usage/record', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date: today,
-            download: data.totalDownload,
-            upload: data.totalUpload,
-            total: data.totalDownload + data.totalUpload
-          })
-        });
+    const fetchStats = async () => {
+      if (connectionType === 'wifi') {
+        try {
+          if (isConnected && !isAdminMode) {
+            const data = await routerService.getNetworkStats();
+            setStats(data);
+            
+            setSpeedData(prev => {
+              const newData = [...prev, { 
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                download: data.currentDownload,
+                upload: data.currentUpload
+              }].slice(-10);
+              return newData;
+            });
+
+            // Record daily usage to DB
+            const today = new Date().toISOString().split('T')[0];
+            fetch('/api/usage/record', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                date: today,
+                download: data.totalDownload,
+                upload: data.totalUpload,
+                total: data.totalDownload + data.totalUpload
+              })
+            });
+          }
+        } catch (err: any) {
+          console.error('Stats fetch error:', err);
+          // If connection fails during monitoring
+          if (err.message === 'CHECK_HOME_WIFI') {
+            // We could show a toast or a small banner
+          }
+        }
       }
     };
 
@@ -107,6 +130,34 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     const result = await routerService.runSpeedTest();
     setSpeedResult(result);
     setIsTestingSpeed(false);
+  };
+
+  const handleSpeedTest = async () => {
+    setIsTestingSpeed(true);
+    setSpeedResult(null);
+    try {
+      const response = await fetch('/api/speedtest');
+      const data = await response.json();
+      if (data.success) {
+        setSpeedResult({ download: data.download, upload: data.upload });
+      }
+    } catch (err) {
+      console.error('Speed test error:', err);
+    } finally {
+      setIsTestingSpeed(false);
+    }
+  };
+
+  const handleSecurityScan = async () => {
+    setIsScanningSecurity(true);
+    try {
+      const result = await securityService.scanForThreats();
+      setSecurityScanResult(result);
+    } catch (err) {
+      console.error('Security scan error:', err);
+    } finally {
+      setIsScanningSecurity(false);
+    }
   };
 
   const handleLogout = () => {
@@ -224,45 +275,72 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black leading-tight mb-4 tracking-tighter">
                   {t('your_quota_status') || 'حالة باقتك الآن'}
+                  <span className="block text-sm opacity-50 mt-2 font-mono">{config.version}</span>
                 </h2>
                 <p className="text-blue-100 text-lg font-medium max-w-md mb-8 opacity-90">
-                  {t('quota_desc') || 'نحن نراقب استهلاكك بدقة لنضمن لك أفضل تجربة إنترنت.'}
+                  {t('quota_desc') || 'نحن نراقب استهلاكك بدقة لنضمن لك أفضل تجربة إنترنت ومواجهة أي تلاعب.'}
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <div className="px-6 py-3 bg-white text-blue-600 rounded-2xl font-black shadow-lg">
+                  <div className="px-6 py-3 bg-white text-blue-600 rounded-2xl font-black shadow-lg cursor-pointer hover:bg-blue-50 transition-colors">
                     {t('renew_now') || 'تجديد الباقة'}
                   </div>
-                  <div className="px-6 py-3 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl font-black">
-                    {t('usage_details') || 'تفاصيل الاستهلاك'}
+                  <div className="px-6 py-3 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl font-black cursor-pointer hover:bg-white/20 transition-colors" onClick={handleSpeedTest}>
+                    {isTestingSpeed ? t('testing') : t('speed_test')}
                   </div>
                 </div>
+                
+                {speedResult && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6 p-4 bg-white/10 rounded-2xl border border-white/10 flex items-center justify-between"
+                  >
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-blue-200 uppercase">{t('download')}</p>
+                      <p className="text-xl font-black">{speedResult.download} <span className="text-xs font-normal">Mbps</span></p>
+                    </div>
+                    <div className="h-8 w-px bg-white/10" />
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-blue-200 uppercase">{t('upload')}</p>
+                      <p className="text-xl font-black">{speedResult.upload} <span className="text-xs font-normal">Mbps</span></p>
+                    </div>
+                    <div className="h-8 w-px bg-white/10" />
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-blue-200 uppercase">Ping</p>
+                      <p className="text-xl font-black">12 <span className="text-xs font-normal">ms</span></p>
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
               <div className="bg-white/10 backdrop-blur-xl rounded-[32px] p-8 border border-white/20 shadow-inner">
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-sm font-bold text-blue-100">{t('remaining_data') || 'المتبقي من الباقة'}</span>
-                  <span className="text-2xl font-black">142.5 <span className="text-sm font-normal">GB</span></span>
+                  <span className="text-sm font-bold text-blue-100">{t('total_consumption_today') || 'استهلاكك اليوم'}</span>
+                  <span className="text-2xl font-black">
+                    {stats ? (stats.totalDownload + stats.totalUpload).toFixed(1) : '0.0'} 
+                    <span className="text-sm font-normal ml-1">GB</span>
+                  </span>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-4 mb-4 overflow-hidden p-1">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: '65%' }}
+                    animate={{ width: stats ? `${Math.min(((stats.totalDownload + stats.totalUpload) / 10) * 100, 100)}%` : '0%' }}
                     className="h-full bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full shadow-lg shadow-blue-400/20"
                   />
                 </div>
                 <div className="flex justify-between text-[10px] font-black text-blue-200 uppercase tracking-widest">
-                  <span>{t('used') || 'مستهلك'}: 107.5 GB</span>
-                  <span>{t('total') || 'إجمالي'}: 250 GB</span>
+                  <span>{t('used') || 'مستهلك'}: {stats ? (stats.totalDownload + stats.totalUpload).toFixed(1) : '0.0'} GB</span>
+                  <span>{t('estimated_limit') || 'الهدف اليومي'}: 10.0 GB</span>
                 </div>
                 
                 <div className="mt-8 pt-8 border-t border-white/10 grid grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-[10px] font-black text-blue-200 uppercase mb-1">{t('days_left') || 'الأيام المتبقية'}</p>
-                    <p className="text-2xl font-black">12 <span className="text-xs font-normal opacity-70">{t('days') || 'يوم'}</span></p>
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <p className="text-[10px] font-black text-blue-200 uppercase mb-1">{t('download')}</p>
+                    <p className="text-2xl font-black">{stats ? stats.currentDownload.toFixed(1) : '0.0'} <span className="text-xs font-normal opacity-70">Mbps</span></p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black text-blue-200 uppercase mb-1">{t('daily_avg') || 'متوسط الاستهلاك'}</p>
-                    <p className="text-2xl font-black">8.4 <span className="text-xs font-normal opacity-70">GB</span></p>
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <p className="text-[10px] font-black text-blue-200 uppercase mb-1">{t('upload')}</p>
+                    <p className="text-2xl font-black">{stats ? stats.currentUpload.toFixed(1) : '0.0'} <span className="text-xs font-normal opacity-70">Mbps</span></p>
                   </div>
                 </div>
               </div>
@@ -283,14 +361,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           </div>
         </DashboardCard>
         
-        <DashboardCard className="bg-white dark:bg-slate-900">
+        <DashboardCard className="bg-white dark:bg-slate-900 group hover:border-blue-500 transition-all duration-300">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-2xl flex items-center justify-center">
+            <div className={cn(
+              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
+              securityScanResult?.bruteForce?.detected || securityScanResult?.mitm?.detected
+                ? "bg-red-50 dark:bg-red-900/20 text-red-500 scale-110"
+                : "bg-green-50 dark:bg-green-900/20 text-green-500"
+            )}>
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">{t('active_gateway')}</p>
-              <p className="text-xl font-bold text-slate-900 dark:text-white truncate max-w-[150px]">{isConnected ? brand : t('none')}</p>
+            <div className="flex-1">
+              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">{t('security_shield')}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                  {isScanningSecurity ? t('scanning') : (securityScanResult ? (securityScanResult.bruteForce.detected ? t('threats_detected') : t('system_online')) : t('security_shield_active'))}
+                </p>
+                <button 
+                  onClick={handleSecurityScan}
+                  disabled={isScanningSecurity}
+                  className="text-[10px] font-black text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-widest"
+                >
+                  {t('scan_now') || 'SCAN'}
+                </button>
+              </div>
             </div>
           </div>
         </DashboardCard>

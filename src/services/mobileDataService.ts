@@ -46,6 +46,15 @@ class MobileDataService {
   async updateDataPlan(limit: number): Promise<void> {
     this.stats.dataPlanLimit = limit;
   }
+
+  async getUsage(): Promise<any> {
+    return {
+      used: this.stats.dataPlanUsed,
+      limit: this.stats.dataPlanLimit,
+      remaining: this.stats.dataPlanLimit - this.stats.dataPlanUsed,
+      daysLeft: this.stats.daysRemaining
+    };
+  }
 }
 
 export const mobileDataService = new MobileDataService();

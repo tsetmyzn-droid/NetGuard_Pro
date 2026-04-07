@@ -43,23 +43,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     
     try {
       if (loginType === 'router') {
-        const response = await fetch('/api/router/connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ip: routerAddress, username, password })
-        });
+        const success = await routerService.connect(routerAddress, username, password, protocol, remember);
         
-        const data = await response.json();
-        
-        if (data.success) {
-          setRouterType(data.routerType);
-          // Save credentials if remember is checked
-          if (remember) {
-            routerService.saveCredentials(routerAddress, username, password, protocol);
-          }
+        if (success) {
           onLogin();
         } else {
-          setError(t('please_check_data') || 'يرجى مراجعة البيانات');
+          setError(t('auth_error_auth'));
         }
       } else {
         // Mobile data login simulation
@@ -69,8 +58,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         }, 2000);
         return;
       }
-    } catch (err) {
-      setError(t('please_check_data') || 'يرجى مراجعة البيانات');
+    } catch (err: any) {
+      if (err.message === 'CHECK_HOME_WIFI') {
+        setError(t('check_home_wifi'));
+      } else if (err.message === 'IP_LOCKED_OUT') {
+        setError(t('auth_error_brute'));
+      } else {
+        setError(t('auth_error_conn'));
+      }
     } finally {
       if (loginType === 'router') setIsLoading(false);
     }
@@ -152,10 +147,37 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     onChange={(e) => setRouterAddress(e.target.value)}
                     className={cn(
                       "w-full py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 dark:text-white",
-                      isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+                      isRTL ? "pr-12 pl-24 text-right" : "pl-12 pr-24 text-left"
                     )}
                   />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsLoading(true);
+                      const result = await routerService.autoDetectRouter();
+                      if (result.brand !== 'Unknown') {
+                        setRouterType(result.brand);
+                        // In a real app, we might also set the IP if it was discovered
+                      }
+                      setIsLoading(false);
+                    }}
+                    className={cn(
+                      "absolute top-1/2 -translate-y-1/2 px-3 py-1.5 bg-blue-600/10 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-black hover:bg-blue-600/20 transition-all uppercase tracking-widest",
+                      isRTL ? "left-3" : "right-3"
+                    )}
+                  >
+                    {t('auto_detect')}
+                  </button>
                 </div>
+                {routerType && (
+                  <motion.p 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest mt-1 px-1"
+                  >
+                    {t('router_found').replace('{ip}', routerType)}
+                  </motion.p>
+                )}
               </div>
 
               <div className="space-y-2">
