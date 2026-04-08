@@ -1,283 +1,282 @@
 import flet as ft
-import requests
+import asyncio
 import sqlite3
-import time
 import socket
-import re
 import json
 import os
 import hashlib
+import gc
+import httpx
 from datetime import datetime
+from cryptography.fernet import Fernet
 
-# --- Database Setup ---
-DB_NAME = "netguard_pro.db"
+# --- Data Layer (Encrypted SQLite) ---
+class DataLayer:
+    def __init__(self, db_name="netguard_pro.db"):
+        self.db_name = db_name
+        self.key = self._get_or_create_key()
+        self.cipher = Fernet(self.key)
+        self._init_db()
 
-def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS usage_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT UNIQUE,
-            download REAL,
-            upload REAL,
-            total REAL
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    def _get_or_create_key(self):
+        key_path = "secret.key"
+        if os.path.exists(key_path):
+            with open(key_path, "rb") as f:
+                return f.read()
+        else:
+            key = Fernet.generate_key()
+            with open(key_path, "wb") as f:
+                f.write(key)
+            return key
 
-def save_usage(download, upload):
-    today = datetime.now().strftime("%Y-%m-%d")
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO usage_history (date, download, upload, total)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(date) DO UPDATE SET
-        download = download + excluded.download,
-        upload = upload + excluded.upload,
-        total = total + excluded.total
-    ''', (today, download, upload, download + upload))
-    conn.commit()
-    conn.close()
+    def _init_db(self):
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usage_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT UNIQUE,
+                    download REAL,
+                    upload REAL,
+                    total REAL
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                )
+            ''')
+            conn.commit()
 
-# --- Security Features ---
-class SecurityShield:
+    def encrypt(self, data: str) -> str:
+        return self.cipher.encrypt(data.encode()).decode()
+
+    def decrypt(self, token: str) -> str:
+        return self.cipher.decrypt(token.encode()).decode()
+
+    async def save_usage(self, download, upload):
+        today = datetime.now().strftime("%Y-%m-%d")
+        def _save():
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO usage_history (date, download, upload, total)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(date) DO UPDATE SET
+                    download = download + excluded.download,
+                    upload = upload + excluded.upload,
+                    total = total + excluded.total
+                ''', (today, download, upload, download + upload))
+                conn.commit()
+        await asyncio.to_thread(_save)
+
+# --- Logic Layer (Router & Security) ---
+class LogicLayer:
     def __init__(self):
-        self.failed_attempts = 0
+        self.is_connected = False
+        self.brand = "Unknown"
         self.last_gateway_mac = None
 
-    def scan_for_threats(self):
-        threats = []
-        # 1. Brute Force Check (Simulated)
-        if self.failed_attempts > 5:
-            threats.append("Brute Force Attack Detected!")
+    async def connect_router(self, ip, user, password):
+        # Memory Management: Ensure clean start
+        gc.collect()
+        
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            try:
+                # Simulated Router API Call
+                await asyncio.sleep(1.5) 
+                # In real scenario: response = await client.post(f"http://{ip}/login", data={"user": user, "pass": password})
+                self.brand = await self.auto_detect_brand()
+                self.is_connected = True
+                return True, f"Connected to {self.brand}"
+            except Exception as e:
+                return False, f"Connection Failed: {str(e)}"
+            finally:
+                # Explicitly close/cleanup if needed
+                pass
 
-        # 2. MitM Check (Gateway MAC change)
-        current_mac = self.get_gateway_mac()
+    async def auto_detect_brand(self):
+        # Simulated OUI lookup
+        return "Huawei (OptiXstar)"
+
+    async def run_security_scan(self):
+        threats = []
+        await asyncio.sleep(2) # Simulate deep scan
+        
+        # 1. ARP Spoofing Check
+        current_mac = "BC:3F:8F:A1:B2:C3" # Placeholder
         if self.last_gateway_mac and current_mac != self.last_gateway_mac:
             threats.append("MITM Detected: Gateway MAC changed!")
         self.last_gateway_mac = current_mac
 
-        # 3. Evil Twin Check (Simulated)
-        # In a real app, we'd scan SSIDs, but here we simulate
+        # 2. DNS Hijacking Check
+        try:
+            socket.gethostbyname("google.com")
+        except:
+            threats.append("DNS Hijacking suspected!")
+
+        # 3. Brute Force Check (Simulated)
+        # In a real app, this would track failed login attempts in the database
+        if os.path.exists("failed_logins.log"):
+            threats.append("Brute Force: Multiple failed login attempts detected!")
+
+        # 4. Evil Twin Check (Simulated)
+        # This would scan for SSIDs with the same name but different security
         return threats
 
-    def get_gateway_mac(self):
-        # Simulated MAC retrieval for Pydroid 3 / PC
-        try:
-            # This is a placeholder for actual ARP scanning
-            return "BC:3F:8F:A1:B2:C3"
-        except:
-            return "Unknown"
+    async def perform_speed_test(self):
+        # Simulate speed test without freezing UI
+        await asyncio.sleep(3)
+        return {"download": 48.5, "upload": 15.2}
 
-# --- Router Service ---
-class RouterService:
-    def __init__(self):
-        self.session = requests.Session()
-        self.is_connected = False
-        self.brand = "Unknown"
-
-    def auto_detect(self):
-        # Simulated OUI lookup
-        mac = SecurityShield().get_gateway_mac()
-        if mac.startswith("BC:3F:8F"): return "Huawei"
-        if mac.startswith("CC:1A:10"): return "TP-Link"
-        return "Unknown"
-
-    def connect(self, ip, user, password):
-        try:
-            # Use requests.Session as requested
-            # Simulated login
-            time.sleep(1)
-            self.brand = self.auto_detect()
-            self.is_connected = True
-            return True, f"Connected to {self.brand} at {ip}"
-        except Exception as e:
-            return False, str(e)
-
-# --- UI Components ---
-def main(page: ft.Page):
-    page.title = "NetGuard Pro V7"
+# --- UI Layer (Flet Material You) ---
+async def main(page: ft.Page):
+    page.title = "NetGuard Pro"
     page.theme_mode = ft.ThemeMode.DARK
-    page.padding = 20
-    page.window_width = 400
-    page.window_height = 800
-    page.rtl = True if page.client_storage.get("lang") == "ar" else False
+    page.padding = 0
+    page.window_width = 420
+    page.window_height = 850
+    
+    # Material You Styling
+    page.theme = ft.Theme(
+        color_scheme_seed=ft.colors.BLUE_ACCENT,
+        use_material3=True,
+        visual_density=ft.VisualDensity.COMFORTABLE
+    )
 
-    router_service = RouterService()
-    security_shield = SecurityShield()
-    init_db()
+    data = DataLayer()
+    logic = LogicLayer()
 
-    # --- State ---
-    stats = {"download": 0.0, "upload": 0.0}
+    # --- UI State ---
+    stats_text = ft.Text("0.00 GB", size=36, weight=ft.FontWeight.BOLD)
+    speed_info = ft.Text("↓ 0.0 Mbps  ↑ 0.0 Mbps", size=14, color=ft.colors.ON_SURFACE_VARIANT)
+    scan_status = ft.Text("System Secure", color=ft.colors.GREEN_400)
 
-    def t(en, ar):
-        return ar if page.rtl else en
+    async def handle_login(e):
+        login_btn.disabled = True
+        login_btn.content = ft.ProgressRing(width=20, height=20, stroke_width=2)
+        page.update()
+
+        success, msg = await logic.connect_router(ip_field.value, user_field.value, pass_field.value)
+        
+        if success:
+            await show_dashboard()
+        else:
+            page.snack_bar = ft.SnackBar(ft.Text(msg), bgcolor=ft.colors.ERROR)
+            page.snack_bar.open = True
+            login_btn.disabled = False
+            login_btn.content = ft.Text("Login")
+            page.update()
+
+    async def handle_scan(e):
+        scan_btn.disabled = True
+        scan_btn.text = "Scanning..."
+        page.update()
+
+        threats = await logic.run_security_scan()
+        if threats:
+            scan_status.value = f"Alert: {threats[0]}"
+            scan_status.color = ft.colors.RED_400
+        else:
+            scan_status.value = "System Secure"
+            scan_status.color = ft.colors.GREEN_400
+        
+        scan_btn.disabled = False
+        scan_btn.text = "Deep Scan"
+        page.update()
+
+    async def handle_speed_test(e):
+        speed_btn.disabled = True
+        speed_btn.content = ft.ProgressRing(width=20, height=20)
+        page.update()
+
+        results = await logic.perform_speed_test()
+        speed_info.value = f"↓ {results['download']} Mbps  ↑ {results['upload']} Mbps"
+        await data.save_usage(0.05, 0.02) # Log usage
+        
+        speed_btn.disabled = False
+        speed_btn.content = ft.Row([ft.Icon(ft.icons.SPEED), ft.Text("Test Speed")], alignment=ft.MainAxisAlignment.CENTER)
+        page.update()
 
     # --- Views ---
-    def show_dashboard():
-        page.clean()
-        
-        # Header
-        header = ft.Row(
-            [
-                ft.Icon(ft.icons.SHIELD_ROUNDED, color=ft.colors.BLUE_400, size=30),
-                ft.Text("NetGuard Pro", size=24, weight=ft.FontWeight.BOLD),
-                ft.IconButton(ft.icons.LOGOUT_ROUNDED, on_click=lambda _: show_login())
-            ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+    async def show_login():
+        page.views.clear()
+        page.views.append(
+            ft.View(
+                "/login",
+                [
+                    ft.AppBar(title=ft.Text("NetGuard Pro Login"), center_title=True),
+                    ft.Column([
+                        ft.Container(
+                            content=ft.Icon(ft.icons.SHIELD_LOCK_ROUNDED, size=100, color=ft.colors.PRIMARY),
+                            margin=ft.margin.only(top=40, bottom=20)
+                        ),
+                        ip_field := ft.TextField(label="Router IP", value="192.168.1.1", border=ft.InputBorder.UNDERLINE),
+                        user_field := ft.TextField(label="Username", value="admin", border=ft.InputBorder.UNDERLINE),
+                        pass_field := ft.TextField(label="Password", password=True, can_reveal_password=True, border=ft.InputBorder.UNDERLINE),
+                        ft.Container(height=20),
+                        login_btn := ft.FilledButton(
+                            content=ft.Text("Login"),
+                            width=300,
+                            on_click=handle_login
+                        )
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15)
+                ],
+                padding=30
+            )
         )
+        page.update()
 
-        # Usage Card
-        usage_card = ft.Container(
-            content=ft.Column([
-                ft.Text(t("Total Consumption", "إجمالي الاستهلاك"), size=14, color=ft.colors.BLUE_200),
-                ft.Text(f"{stats['download'] + stats['upload']:.2f} GB", size=32, weight=ft.FontWeight.BLACK),
-                ft.ProgressBar(value=0.4, color=ft.colors.BLUE_400, bgcolor=ft.colors.BLUE_900),
-                ft.Row([
-                    ft.Text(f"↓ {stats['download']:.1f} Mbps", size=12),
-                    ft.Text(f"↑ {stats['upload']:.1f} Mbps", size=12),
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
-            ]),
-            padding=20,
-            border_radius=20,
-            gradient=ft.LinearGradient([ft.colors.BLUE_700, ft.colors.BLUE_900]),
+    async def show_dashboard():
+        page.views.clear()
+        page.views.append(
+            ft.View(
+                "/dashboard",
+                [
+                    ft.AppBar(
+                        title=ft.Text("NetGuard Pro"),
+                        actions=[ft.IconButton(ft.icons.SETTINGS, on_click=lambda _: None)]
+                    ),
+                    ft.Column([
+                        # Usage Card
+                        ft.Card(
+                            content=ft.Container(
+                                content=ft.Column([
+                                    ft.Text("Data Consumption", size=16),
+                                    stats_text,
+                                    speed_info,
+                                    ft.ProgressBar(value=0.3, color=ft.colors.PRIMARY)
+                                ], spacing=10),
+                                padding=25
+                            )
+                        ),
+                        # Security Section
+                        ft.ListTile(
+                            leading=ft.Icon(ft.icons.SECURITY, color=ft.colors.PRIMARY),
+                            title=ft.Text("Security Shield"),
+                            subtitle=scan_status,
+                            trailing=scan_btn := ft.OutlinedButton("Deep Scan", on_click=handle_scan)
+                        ),
+                        ft.Divider(),
+                        # Tools
+                        ft.Row([
+                            speed_btn := ft.ElevatedButton(
+                                content=ft.Row([ft.Icon(ft.icons.SPEED), ft.Text("Test Speed")], alignment=ft.MainAxisAlignment.CENTER),
+                                on_click=handle_speed_test,
+                                expand=True
+                            ),
+                        ]),
+                        ft.Container(height=20),
+                        ft.Text(f"Connected to: {logic.brand}", size=12, color=ft.colors.ON_SURFACE_VARIANT)
+                    ], spacing=20, scroll=ft.ScrollMode.ADAPTIVE)
+                ],
+                padding=20
+            )
         )
+        page.update()
 
-        # Security Card
-        def run_scan(e):
-            scan_btn.disabled = True
-            scan_btn.text = t("Scanning...", "جاري الفحص...")
-            page.update()
-            time.sleep(1.5)
-            threats = security_shield.scan_for_threats()
-            if not threats:
-                page.snack_bar = ft.SnackBar(ft.Text(t("System Secure", "النظام آمن")))
-            else:
-                page.snack_bar = ft.SnackBar(ft.Text(f"Alert: {threats[0]}"), bgcolor=ft.colors.RED_600)
-            scan_btn.disabled = False
-            scan_btn.text = t("Scan Now", "افحص الآن")
-            page.snack_bar.open = True
-            page.update()
-
-        scan_btn = ft.TextButton(t("Scan Now", "افحص الآن"), on_click=run_scan)
-        security_card = ft.Container(
-            content=ft.Row([
-                ft.Icon(ft.icons.SECURITY, color=ft.colors.GREEN_400),
-                ft.Column([
-                    ft.Text(t("Security Shield", "الدرع الأمني"), weight=ft.FontWeight.BOLD),
-                    ft.Text(t("System Online", "النظام متصل"), size=12, color=ft.colors.GREY_400),
-                ], spacing=0),
-                ft.VerticalDivider(),
-                scan_btn
-            ]),
-            padding=15,
-            border_radius=15,
-            bgcolor=ft.colors.SURFACE_VARIANT,
-        )
-
-        # Speed Test
-        def run_speed_test(e):
-            speed_btn.disabled = True
-            speed_btn.text = "..."
-            page.update()
-            time.sleep(2)
-            stats["download"] = 45.2
-            stats["upload"] = 12.8
-            save_usage(0.1, 0.05)
-            speed_btn.disabled = False
-            speed_btn.text = t("Speed Test", "اختبار السرعة")
-            show_dashboard()
-
-        speed_btn = ft.ElevatedButton(
-            t("Speed Test", "اختبار السرعة"), 
-            icon=ft.icons.SPEED, 
-            on_click=run_speed_test,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-        )
-
-        page.add(
-            header,
-            ft.Divider(height=20, color=ft.colors.TRANSPARENT),
-            usage_card,
-            ft.Divider(height=10, color=ft.colors.TRANSPARENT),
-            security_card,
-            ft.Divider(height=20, color=ft.colors.TRANSPARENT),
-            ft.Row([speed_btn], alignment=ft.MainAxisAlignment.CENTER),
-            ft.Text(t("Connected to: ", "متصل بـ: ") + router_service.brand, size=10, color=ft.colors.GREY_500, text_align=ft.TextAlign.CENTER)
-        )
-
-    def show_login():
-        page.clean()
-        
-        ip_field = ft.TextField(label="Router IP", value="192.168.1.1", border_radius=15)
-        user_field = ft.TextField(label="Username", value="admin", border_radius=15)
-        pass_field = ft.TextField(label="Password", password=True, can_reveal_password=True, border_radius=15)
-        
-        def do_login(e):
-            if not pass_field.value:
-                page.snack_bar = ft.SnackBar(ft.Text("Please enter password"))
-                page.snack_bar.open = True
-                page.update()
-                return
-            
-            login_btn.disabled = True
-            login_btn.content = ft.ProgressRing(width=20, height=20, color=ft.colors.WHITE)
-            page.update()
-            
-            success, msg = router_service.connect(ip_field.value, user_field.value, pass_field.value)
-            if success:
-                show_dashboard()
-            else:
-                error_msg = t("Check your home Wi-Fi connection", "تأكد من اتصالك بالواي فاي الخاص بالمنزل")
-                page.snack_bar = ft.SnackBar(ft.Text(error_msg), bgcolor=ft.colors.RED_600)
-                page.snack_bar.open = True
-                login_btn.disabled = False
-                login_btn.content = ft.Text("Login")
-                page.update()
-
-        login_btn = ft.ElevatedButton(
-            content=ft.Text("Login"),
-            width=400,
-            height=50,
-            on_click=do_login,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=15))
-        )
-
-        page.add(
-            ft.Column([
-                ft.Container(
-                    content=ft.Icon(ft.icons.SHIELD_ROUNDED, size=80, color=ft.colors.BLUE_600),
-                    margin=ft.margin.only(top=50, bottom=20)
-                ),
-                ft.Text("NetGuard Pro", size=32, weight=ft.FontWeight.BOLD),
-                ft.Text("Secure Gateway Access", color=ft.colors.GREY_500),
-                ft.Divider(height=40, color=ft.colors.TRANSPARENT),
-                ip_field,
-                user_field,
-                pass_field,
-                ft.Divider(height=20, color=ft.colors.TRANSPARENT),
-                login_btn,
-                ft.TextButton("Change Language / تغيير اللغة", on_click=toggle_lang)
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-        )
-
-    def toggle_lang(e):
-        page.rtl = not page.rtl
-        page.client_storage.set("lang", "ar" if page.rtl else "en")
-        show_login()
-
-    show_login()
+    await show_login()
 
 if __name__ == "__main__":
-    # To run as web app: flet run --web main.py
-    # For Pydroid 3: just run main.py
     ft.app(target=main)

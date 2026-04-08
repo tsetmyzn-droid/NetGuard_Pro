@@ -8,6 +8,16 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import CryptoJS from 'crypto-js';
 
+console.log('Starting NetGuard Pro Server...');
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
+
 const execAsync = promisify(exec);
 const SECRET_KEY = process.env.DB_ENCRYPTION_KEY || 'netguard-default-secret-key';
 
@@ -32,6 +42,11 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   // Initialize SQLite Database
   const dbPath = process.env.NODE_ENV === 'production' 
@@ -204,4 +219,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error('CRITICAL: Failed to start server:', err);
+  process.exit(1);
+});
