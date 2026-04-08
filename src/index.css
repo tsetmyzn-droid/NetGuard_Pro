@@ -24,3 +24,11 @@ body {
 .mono {
   font-family: var(--font-mono);
 }
+
+.rtl {
+  direction: rtl;
+}
+
+.ltr {
+  direction: ltr;
+}
