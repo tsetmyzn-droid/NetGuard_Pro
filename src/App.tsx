@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Activity, Zap, Wifi, Smartphone, RefreshCw, LogOut, Globe, AlertTriangle, Lock, User, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Shield, Activity, Zap, Wifi, Smartphone, RefreshCw, LogOut, Globe, AlertTriangle, Lock, User, ChevronRight, ArrowDown, ArrowUp, History, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -8,8 +9,19 @@ const App: React.FC = () => {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [scanning, setScanning] = useState(false);
   const [speed, setSpeed] = useState({ down: 0, up: 0 });
-  const [threats, setThreats] = useState(0);
+  const [threats, setThreats] = useState<any[]>([]);
   const [isTestingSpeed, setIsTestingSpeed] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dash' | 'logs'>('dash');
+
+  const usageData = useMemo(() => [
+    { name: '04/01', total: 4.2 },
+    { name: '04/02', total: 3.8 },
+    { name: '04/03', total: 5.1 },
+    { name: '04/04', total: 2.9 },
+    { name: '04/05', total: 6.4 },
+    { name: '04/06', total: 4.7 },
+    { name: '04/07', total: 5.2 },
+  ], []);
 
   const t = {
     ar: {
@@ -28,16 +40,23 @@ const App: React.FC = () => {
       deepScan: "فحص عميق",
       scanning: "جاري الفحص...",
       systemSafe: "النظام آمن",
-      threatsDetected: "تم اكتشاف تهديدات",
+      threatsDetected: "تهديدات مكتشفة",
       aiAssistant: "المساعد الذكي",
-      aiMsg: "الذكاء الاصطناعي يحلل شبكتك الآن... تأكد من إغلاق المنافذ غير المستخدمة لتحسين الأمان.",
+      aiMsg: "الذكاء الاصطناعي يحلل شبكتك الآن... تم اكتشاف محاولة وصول غير مصرح بها من IP خارجي، يرجى تغيير كلمة مرور المسؤول.",
       speedTest: "اختبار السرعة",
       testing: "جاري الاختبار...",
       connectedTo: "متصل بـ",
       download: "تحميل",
       upload: "رفع",
       daily: "يومي",
-      monthly: "شهري"
+      monthly: "شهري",
+      history: "سجل الأمان",
+      dashboard: "الرئيسية",
+      logs: "السجلات",
+      noLogs: "لا توجد سجلات أمنية حالياً",
+      mitm: "هجوم رجل في المنتصف",
+      dns: "اختطاف DNS",
+      port: "منفذ مفتوح"
     },
     en: {
       title: "NetGuard Pro",
@@ -57,14 +76,21 @@ const App: React.FC = () => {
       systemSafe: "System Secure",
       threatsDetected: "Threats Detected",
       aiAssistant: "AI Assistant",
-      aiMsg: "AI is analyzing your network... ensure unused ports are closed to improve security.",
+      aiMsg: "AI is analyzing your network... unauthorized access attempt detected from external IP, please change admin password.",
       speedTest: "Speed Test",
       testing: "Testing...",
       connectedTo: "Connected to",
       download: "Download",
       upload: "Upload",
       daily: "Daily",
-      monthly: "Monthly"
+      monthly: "Monthly",
+      history: "Security Logs",
+      dashboard: "Dashboard",
+      logs: "Logs",
+      noLogs: "No security logs currently",
+      mitm: "MITM Attack",
+      dns: "DNS Hijacking",
+      port: "Open Port"
     }
   };
 
@@ -88,7 +114,11 @@ const App: React.FC = () => {
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
-      setThreats(Math.floor(Math.random() * 2));
+      const newThreats = [
+        { id: 1, type: cur.port, severity: 'Medium', desc: 'Port 8080 is open' },
+        { id: 2, type: cur.dns, severity: 'High', desc: 'DNS resolution mismatch' }
+      ];
+      setThreats(newThreats);
     }, 3000);
   };
 
@@ -184,14 +214,13 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* Background Glow */}
         <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none"></div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-[#0a0a0a] tech-grid p-6 max-w-md mx-auto relative overflow-hidden ${lang === 'ar' ? 'rtl' : 'ltr'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+    <div className={`min-h-screen bg-[#0a0a0a] tech-grid p-6 max-w-md mx-auto relative overflow-hidden pb-24 ${lang === 'ar' ? 'rtl' : 'ltr'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-2">
@@ -214,130 +243,195 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Status Bar */}
-      <div className="glass-card p-4 mb-6">
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{cur.status}</span>
-          <span className="flex items-center gap-1 text-[10px] font-bold text-green-400">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            {cur.connected}
-          </span>
-        </div>
-        <div className="h-[1px] bg-white/10 mb-3"></div>
-        <div className="grid grid-cols-2 gap-4 text-[11px] mono text-white/60">
-          <div className="flex justify-between">
-            <span>{cur.latency}:</span>
-            <span className="text-white">24ms</span>
-          </div>
-          <div className="flex justify-between">
-            <span>{cur.uptime}:</span>
-            <span className="text-white">12h 4m</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Detailed Consumption Card */}
-      <div className="glass-card p-6 mb-6 bg-gradient-to-br from-cyan-500/10 to-transparent">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-medium text-white/70">{cur.consumption}</span>
-          <Activity className="w-4 h-4 text-cyan-400" />
-        </div>
-        
-        <div className="flex items-end gap-2 mb-4">
-          <div className="text-4xl font-bold mono">12.45</div>
-          <div className="text-sm text-white/40 mb-1 mono">GB</div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1 text-[10px] text-white/40 uppercase">
-              <ArrowDown className="w-3 h-3 text-green-400" />
-              {cur.download}
-            </div>
-            <div className="text-lg font-bold mono">{speed.down.toFixed(1)} <span className="text-[10px] text-white/30">Mbps</span></div>
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-1 text-[10px] text-white/40 uppercase">
-              <ArrowUp className="w-3 h-3 text-blue-400" />
-              {cur.upload}
-            </div>
-            <div className="text-lg font-bold mono">{speed.up.toFixed(1)} <span className="text-[10px] text-white/30">Mbps</span></div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between text-[10px] mono">
-            <span className="text-white/40">{cur.daily}</span>
-            <span className="text-cyan-400">1.2 GB / 5 GB</span>
-          </div>
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: '24%' }}
-              className="h-full bg-cyan-400"
-            />
-          </div>
-          <div className="flex justify-between text-[10px] mono">
-            <span className="text-white/40">{cur.monthly}</span>
-            <span className="text-blue-400">45.8 GB / 200 GB</span>
-          </div>
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: '45%' }}
-              className="h-full bg-blue-400"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Security Section */}
-      <div className="glass-card p-4 mb-6 border-cyan-400/20">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-cyan-400" />
-            <span className="font-bold">{cur.shield}</span>
-          </div>
-          <button 
-            onClick={handleScan}
-            disabled={scanning}
-            className="text-xs font-bold text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
+      <AnimatePresence mode="wait">
+        {activeTab === 'dash' ? (
+          <motion.div
+            key="dash"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
           >
-            {scanning ? cur.scanning : cur.deepScan}
-          </button>
-        </div>
-        <div className={`text-sm font-bold ${threats > 0 ? 'text-red-400' : 'text-green-400'}`}>
-          {threats > 0 ? `${cur.threatsDetected}: ${threats}` : cur.systemSafe}
-        </div>
-      </div>
+            {/* Status Bar */}
+            <div className="glass-card p-4">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{cur.status}</span>
+                <span className="flex items-center gap-1 text-[10px] font-bold text-green-400">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  {cur.connected}
+                </span>
+              </div>
+              <div className="h-[1px] bg-white/10 mb-3"></div>
+              <div className="grid grid-cols-2 gap-4 text-[11px] mono text-white/60">
+                <div className="flex justify-between">
+                  <span>{cur.latency}:</span>
+                  <span className="text-white">24ms</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{cur.uptime}:</span>
+                  <span className="text-white">12h 4m</span>
+                </div>
+              </div>
+            </div>
 
-      {/* AI Assistant */}
-      <div className="glass-card p-4 mb-6 bg-blue-900/20 border-blue-400/20">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-amber-400" />
-            <span className="font-bold text-sm">{cur.aiAssistant}</span>
-          </div>
-        </div>
-        <p className="text-xs italic text-white/80 leading-relaxed">
-          {cur.aiMsg}
-        </p>
-      </div>
+            {/* Detailed Consumption Card */}
+            <div className="glass-card p-6 bg-gradient-to-br from-cyan-500/10 to-transparent">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-white/70">{cur.consumption}</span>
+                <Activity className="w-4 h-4 text-cyan-400" />
+              </div>
+              
+              <div className="flex items-end gap-2 mb-6">
+                <div className="text-4xl font-bold mono">12.45</div>
+                <div className="text-sm text-white/40 mb-1 mono">GB</div>
+              </div>
 
-      {/* Action Button */}
-      <button 
-        onClick={runSpeedTest}
-        disabled={isTestingSpeed}
-        className="w-full py-4 glass-card bg-cyan-400/10 hover:bg-cyan-400/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-50"
-      >
-        <Zap className={`w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform ${isTestingSpeed ? 'animate-bounce' : ''}`} />
-        <span className="font-bold">{isTestingSpeed ? cur.testing : cur.speedTest}</span>
-      </button>
+              {/* Chart */}
+              <div className="h-32 w-full mb-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={usageData}>
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <Area type="monotone" dataKey="total" stroke="#22d3ee" fillOpacity={1} fill="url(#colorTotal)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
 
-      <div className="mt-6 text-center">
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1 text-[10px] text-white/40 uppercase">
+                    <ArrowDown className="w-3 h-3 text-green-400" />
+                    {cur.download}
+                  </div>
+                  <div className="text-lg font-bold mono">{speed.down.toFixed(1)} <span className="text-[10px] text-white/30">Mbps</span></div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1 text-[10px] text-white/40 uppercase">
+                    <ArrowUp className="w-3 h-3 text-blue-400" />
+                    {cur.upload}
+                  </div>
+                  <div className="text-lg font-bold mono">{speed.up.toFixed(1)} <span className="text-[10px] text-white/30">Mbps</span></div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-[10px] mono">
+                  <span className="text-white/40">{cur.daily}</span>
+                  <span className="text-cyan-400">1.2 GB / 5 GB</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: '24%' }}
+                    className="h-full bg-cyan-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Security Section */}
+            <div className="glass-card p-4 border-cyan-400/20">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-cyan-400" />
+                  <span className="font-bold">{cur.shield}</span>
+                </div>
+                <button 
+                  onClick={handleScan}
+                  disabled={scanning}
+                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
+                >
+                  {scanning ? cur.scanning : cur.deepScan}
+                </button>
+              </div>
+              <div className={`flex items-center gap-2 text-sm font-bold ${threats.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {threats.length > 0 ? <ShieldAlert className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                {threats.length > 0 ? `${cur.threatsDetected}: ${threats.length}` : cur.systemSafe}
+              </div>
+            </div>
+
+            {/* AI Assistant */}
+            <div className="glass-card p-4 bg-blue-900/20 border-blue-400/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-amber-400" />
+                  <span className="font-bold text-sm">{cur.aiAssistant}</span>
+                </div>
+              </div>
+              <p className="text-xs italic text-white/80 leading-relaxed">
+                {cur.aiMsg}
+              </p>
+            </div>
+
+            {/* Action Button */}
+            <button 
+              onClick={runSpeedTest}
+              disabled={isTestingSpeed}
+              className="w-full py-4 glass-card bg-cyan-400/10 hover:bg-cyan-400/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-50"
+            >
+              <Zap className={`w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform ${isTestingSpeed ? 'animate-bounce' : ''}`} />
+              <span className="font-bold">{isTestingSpeed ? cur.testing : cur.speedTest}</span>
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="logs"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-4"
+          >
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <History className="w-5 h-5 text-cyan-400" />
+              {cur.history}
+            </h2>
+            <div className="space-y-3">
+              {threats.length > 0 ? threats.map(log => (
+                <div key={log.id} className="glass-card p-4 border-l-4 border-l-red-500">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="font-bold text-sm">{log.type}</span>
+                    <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded">{log.severity}</span>
+                  </div>
+                  <p className="text-xs text-white/60">{log.desc}</p>
+                  <div className="mt-2 text-[9px] text-white/30 mono">2026-04-08 15:30:21</div>
+                </div>
+              )) : (
+                <div className="text-center py-12 text-white/30">
+                  <Shield className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                  <p className="text-sm">{cur.noLogs}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="mt-8 text-center">
         <span className="text-[10px] mono text-white/30 uppercase tracking-widest">
           {cur.connectedTo}: Huawei OptiXstar
         </span>
+      </div>
+
+      {/* Bottom Nav */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-md glass-card p-2 flex gap-2 z-50">
+        <button 
+          onClick={() => setActiveTab('dash')}
+          className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === 'dash' ? 'bg-cyan-400 text-black' : 'hover:bg-white/5 text-white/60'}`}
+        >
+          <Activity className="w-4 h-4" />
+          <span className="text-xs font-bold">{cur.dashboard}</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('logs')}
+          className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === 'logs' ? 'bg-cyan-400 text-black' : 'hover:bg-white/5 text-white/60'}`}
+        >
+          <History className="w-4 h-4" />
+          <span className="text-xs font-bold">{cur.logs}</span>
+        </button>
       </div>
 
       {/* Background Glow */}
