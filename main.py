@@ -436,7 +436,7 @@ async def main(page: ft.Page):
         # Initial AI Advice
         await handle_ai_refresh(None)
 
-    await show_login()
+    await show_dashboard()
 
 if __name__ == "__main__":
     ft.app(target=main)
