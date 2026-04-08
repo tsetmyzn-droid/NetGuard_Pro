@@ -4,3 +4,4 @@ httpx
 cryptography
 pycryptodome
 google-genai
+psutil
