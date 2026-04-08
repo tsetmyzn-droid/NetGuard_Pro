@@ -361,26 +361,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           </div>
         </DashboardCard>
         
-        <DashboardCard className="bg-white dark:bg-slate-900 group hover:border-blue-500 transition-all duration-300">
+        <DashboardCard className="bg-white dark:bg-slate-900 group hover:border-blue-500 transition-all duration-300 border-2 border-transparent">
           <div className="flex items-center gap-4">
             <div className={cn(
-              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
+              "w-14 h-14 rounded-[20px] flex items-center justify-center transition-all duration-500 shadow-sm",
               securityScanResult?.bruteForce?.detected || securityScanResult?.mitm?.detected
                 ? "bg-red-50 dark:bg-red-900/20 text-red-500 scale-110"
-                : "bg-green-50 dark:bg-green-900/20 text-green-500"
+                : "bg-blue-50 dark:bg-blue-900/20 text-blue-500"
             )}>
-              <ShieldCheck className="w-6 h-6" />
+              <ShieldCheck className="w-7 h-7" />
             </div>
             <div className="flex-1">
-              <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">{t('security_shield')}</p>
+              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">{t('security_shield')}</p>
               <div className="flex items-center justify-between">
-                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                <p className="text-lg font-black text-slate-900 dark:text-white">
                   {isScanningSecurity ? t('scanning') : (securityScanResult ? (securityScanResult.bruteForce.detected ? t('threats_detected') : t('system_online')) : t('security_shield_active'))}
                 </p>
                 <button 
                   onClick={handleSecurityScan}
                   disabled={isScanningSecurity}
-                  className="text-[10px] font-black text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-widest"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest"
                 >
                   {t('scan_now') || 'SCAN'}
                 </button>

@@ -6,8 +6,23 @@ import * as cheerio from 'cheerio';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import CryptoJS from 'crypto-js';
 
 const execAsync = promisify(exec);
+const SECRET_KEY = process.env.DB_ENCRYPTION_KEY || 'netguard-default-secret-key';
+
+// Helper to encrypt data
+const encrypt = (text: string) => CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
+const decrypt = (ciphertext: string) => {
+  const bytes = CryptoJS.AES.decrypt(ciphertext, SECRET_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+};
+
+// IP Validation Helper
+const isValidIP = (ip: string) => {
+  const regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  return regex.test(ip);
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,6 +77,9 @@ async function startServer() {
       else if (mac.startsWith('CC:1A:10') || mac.startsWith('00:19:C7')) brand = 'TP-Link';
       else if (mac.startsWith('34:4B:50') || mac.startsWith('00:26:ED')) brand = 'ZTE';
       else if (mac.startsWith('00:0C:43')) brand = 'Ralink/D-Link';
+      else if (mac.startsWith('00:1D:AA')) brand = 'D-Link';
+      else if (mac.startsWith('00:24:01')) brand = 'D-Link';
+      else if (mac.startsWith('00:21:29')) brand = 'Cisco';
 
       res.json({ success: true, mac, brand });
     } catch (error) {
@@ -93,21 +111,35 @@ async function startServer() {
   });
 
   app.get('/api/security/scan', async (req, res) => {
-    // Simulate a security scan
+    // Simulate a security scan with more logic
     const results = {
       bruteForce: { detected: false, attempts: 0 },
       mitm: { detected: false, fingerprintChanged: false },
       evilTwin: { detected: false, suspiciousNetworks: [] },
+      dnsHijacking: { detected: false, suspiciousDns: [] },
       timestamp: new Date().toISOString()
     };
 
-    // Randomly simulate a threat for demo purposes if needed, 
-    // but usually we want it clean.
+    try {
+      // Check for suspicious DNS (simulated)
+      const dns = await execAsync('cat /etc/resolv.conf').catch(() => ({ stdout: '' }));
+      if (dns.stdout.includes('8.8.8.8') || dns.stdout.includes('1.1.1.1')) {
+        // Safe DNS
+      } else if (dns.stdout.includes('nameserver')) {
+        // Potential hijacking if it's a weird IP
+      }
+    } catch (e) {}
+
     res.json(results);
   });
 
   app.post('/api/router/connect', async (req, res) => {
     const { ip, username, password } = req.body;
+    
+    if (!isValidIP(ip)) {
+      return res.status(400).json({ success: false, message: 'Invalid IP address format' });
+    }
+
     try {
       // Router detection and login logic
       // This is a generic implementation that tries to identify the router

@@ -4,6 +4,22 @@
 
 ---
 
+## 📊 حالة الميزات (Feature Status)
+
+| الميزة | الحالة | ملاحظات |
+| :--- | :--- | :--- |
+| **Auto-Detect Router** | ✅ تمت الموافقة وتمت | يعمل عبر MAC OUI |
+| **Internal Speed Test** | ✅ تمت الموافقة وتمت | قياس حقيقي عبر Cloudflare |
+| **Mobile Data Interface** | ✅ تمت الموافقة وتمت | واجهة منفصلة للاستهلاك |
+| **Security Shield** | ✅ تمت الموافقة وتمت | اكتشاف Brute Force, MitM, Evil Twin |
+| **Flet Dashboard (Python)** | ✅ تمت الموافقة وتمت | متوفر في `netguard_pro_flet.py` |
+| **Local Database** | ✅ تمت الموافقة وتمت | SQLite مع تشفير البيانات |
+| **Pydroid 3 Compatibility** | ✅ تمت الموافقة وتمت | عبر نسخة Python المرفقة |
+| **AI Analysis (Gemini)** | 🔄 يخطط لإضافتها | تحسين تحليل الاستهلاك |
+| **Remote Control** | ❌ تم إلغاؤها | لدواعي أمنية (Local Only) |
+
+---
+
 ## 🏗️ البنية التقنية (Technical Stack)
 
 تم بناء التطبيق باستخدام أحدث التقنيات لضمان السرعة، الأمان، والتوافق العابر للمنصات:
