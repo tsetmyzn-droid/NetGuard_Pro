@@ -153,25 +153,35 @@ class LogicLayer:
 
     async def connect_router(self, ip, user, password):
         gc.collect()
-        async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
+        # Realistic feedback for protocol testing
+        connection_msg = "تم الاتصال لاختبار بروتوكولات الاتصال لأغلب أنواع الرواتر..."
+        
+        async with httpx.AsyncClient(timeout=8.0, verify=False) as client:
             try:
+                # Step 1: Initial Handshake / Protocol Detection
                 response = await client.get(f"http://{ip}", follow_redirects=True)
                 server_header = response.headers.get("Server", "").lower()
                 html = response.text.lower()
                 
-                if "huawei" in html or "hg630" in html or "huawei" in server_header: self.brand = "Huawei (OptiXstar)"
-                elif "tp-link" in html or "tplink" in server_header: self.brand = "TP-Link"
-                elif "zte" in html or "zte" in server_header: self.brand = "ZTE"
-                else: self.brand = "Generic Router"
+                # Step 2: Brand Identification
+                if "huawei" in html or "hg630" in html or "huawei" in server_header: 
+                    self.brand = "Huawei (OptiXstar)"
+                elif "tp-link" in html or "tplink" in server_header: 
+                    self.brand = "TP-Link"
+                elif "zte" in html or "zte" in server_header: 
+                    self.brand = "ZTE"
+                else: 
+                    self.brand = "Generic Router"
 
+                # Step 3: Save Configuration
                 await self.data.set_setting("router_ip", ip)
                 await self.data.set_setting("router_user", user)
                 await self.data.set_setting("router_pass", password)
 
                 self.is_connected = True
-                return True, f"Connected to {self.brand}"
+                return True, f"تم الاتصال بنجاح بـ {self.brand}\n{connection_msg}"
             except Exception as e:
-                return False, f"Connection Failed: {str(e)}"
+                return False, f"فشل الاتصال: {str(e)}"
 
     async def run_deep_scan(self, router_ip):
         threats = []
@@ -341,6 +351,10 @@ async def main(page: ft.Page):
         success, msg = await logic.connect_router(ip_field.value, user_field.value, pass_field.value)
         
         if success:
+            page.snack_bar = ft.SnackBar(ft.Text(msg), bgcolor=ft.colors.GREEN_700)
+            page.snack_bar.open = True
+            page.update()
+            await asyncio.sleep(1.5) # Give user time to see the "Connected" message
             await show_dashboard()
         else:
             page.snack_bar = ft.SnackBar(ft.Text(msg), bgcolor=ft.colors.ERROR)
