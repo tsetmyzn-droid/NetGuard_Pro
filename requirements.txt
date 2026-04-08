@@ -3,3 +3,4 @@ requests
 httpx
 cryptography
 pycryptodome
+google-genai
