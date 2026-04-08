@@ -10,6 +10,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHONIOENCODING: utf-8
 
 jobs:
   build-windows:
@@ -29,19 +30,15 @@ jobs:
           pip install -r requirements.txt
           pip install flet
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.22.0'
-          channel: 'stable'
-
       - name: Build Windows EXE
-        run: flet build windows
+        run: |
+          echo y | flet build windows
+        shell: cmd
 
       - name: Upload EXE Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NetGuard-Pro-Windows
+          name: NetGuard-Pro-Windows-EXE
           path: build/windows/*.exe
 
   build-android:
@@ -67,17 +64,6 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.22.0'
-          channel: 'stable'
-
       - name: Build Android APK
-        run: flet build apk
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: NetGuard-Pro-Android
-          path: build/apk/*.apk
+        run: |
+          yes | flet build apk

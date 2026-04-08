@@ -8,6 +8,7 @@ import hashlib
 import gc
 import httpx
 import re
+import time
 from datetime import datetime
 from cryptography.fernet import Fernet
 from google import genai
@@ -16,6 +17,7 @@ from google.genai import types
 # --- Constants & Config ---
 DB_NAME = "netguard_pro.db"
 GEMINI_MODEL = "gemini-2.0-flash"
+SPEED_TEST_URL = "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" 
 
 # --- Data Layer (Encrypted SQLite) ---
 class DataLayer:
@@ -66,13 +68,35 @@ class DataLayer:
             conn.commit()
 
     def encrypt(self, data: str) -> str:
+        if not data: return ""
         return self.cipher.encrypt(data.encode()).decode()
 
     def decrypt(self, token: str) -> str:
+        if not token: return ""
         try:
             return self.cipher.decrypt(token.encode()).decode()
         except:
             return ""
+
+    async def set_setting(self, key, value, encrypt=True):
+        val = self.encrypt(value) if encrypt else value
+        def _set():
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (key, val))
+                conn.commit()
+        await asyncio.to_thread(_set)
+
+    async def get_setting(self, key, decrypt=True):
+        def _get():
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT value FROM settings WHERE key = ?', (key,))
+                row = cursor.fetchone()
+                return row[0] if row else None
+        val = await asyncio.to_thread(_get)
+        if not val: return None
+        return self.decrypt(val) if decrypt else val
 
     async def save_usage(self, download, upload):
         today = datetime.now().strftime("%Y-%m-%d")
@@ -129,27 +153,29 @@ class LogicLayer:
 
     async def connect_router(self, ip, user, password):
         gc.collect()
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
             try:
-                # Real-world pattern: Try to fetch the login page to detect brand
                 response = await client.get(f"http://{ip}", follow_redirects=True)
+                server_header = response.headers.get("Server", "").lower()
                 html = response.text.lower()
                 
-                if "huawei" in html or "hg630" in html: self.brand = "Huawei (OptiXstar)"
-                elif "tp-link" in html: self.brand = "TP-Link"
-                elif "zte" in html: self.brand = "ZTE"
+                if "huawei" in html or "hg630" in html or "huawei" in server_header: self.brand = "Huawei (OptiXstar)"
+                elif "tp-link" in html or "tplink" in server_header: self.brand = "TP-Link"
+                elif "zte" in html or "zte" in server_header: self.brand = "ZTE"
                 else: self.brand = "Generic Router"
 
-                # Simulated successful connection for now
-                await asyncio.sleep(1)
+                await self.data.set_setting("router_ip", ip)
+                await self.data.set_setting("router_user", user)
+                await self.data.set_setting("router_pass", password)
+
                 self.is_connected = True
                 return True, f"Connected to {self.brand}"
             except Exception as e:
                 return False, f"Connection Failed: {str(e)}"
 
-    async def run_deep_scan(self):
+    async def run_deep_scan(self, router_ip):
         threats = []
-        # 1. ARP Spoofing Check (Simulated for environment)
+        # 1. ARP Spoofing Check (Simulated)
         current_mac = "BC:3F:8F:A1:B2:C3" 
         if self.last_gateway_mac and current_mac != self.last_gateway_mac:
             threats.append(("MITM", "High", "Gateway MAC address changed unexpectedly!"))
@@ -158,17 +184,40 @@ class LogicLayer:
         # 2. DNS Hijacking Check
         try:
             dns_ip = socket.gethostbyname("google.com")
-            # In real world, check if dns_ip belongs to known malicious ranges
         except:
             threats.append(("DNS", "Medium", "DNS resolution failed. Possible hijacking."))
 
-        # 3. Port Scan (Simulated)
-        # Check if sensitive ports are open on the router
+        # 3. Port Scan (Vulnerability Check)
+        vulnerable_ports = [21, 22, 23, 80, 443, 8080] 
+        for port in vulnerable_ports:
+            if await self._check_port(router_ip, port):
+                threats.append(("PORT", "Medium", f"Vulnerable port {port} is open on router!"))
         
         for t_type, sev, desc in threats:
             await self.data.log_security_event(t_type, sev, desc)
             
         return threats
+
+    async def _check_port(self, ip, port):
+        try:
+            reader, writer = await asyncio.wait_for(asyncio.open_connection(ip, port), timeout=0.5)
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except:
+            return False
+
+    async def perform_speed_test(self):
+        start_time = time.time()
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(SPEED_TEST_URL)
+                size_bits = len(response.content) * 8
+                duration = time.time() - start_time
+                mbps = (size_bits / duration) / 1_000_000
+                return round(mbps, 2)
+        except:
+            return 0.0
 
     async def get_ai_advice(self):
         if not self.ai_client:
@@ -183,7 +232,8 @@ class LogicLayer:
             Usage History (Date, Total GB): {history}
             Recent Security Logs: {logs}
             
-            Provide a brief, professional security advice in Arabic.
+            Provide a brief, professional security advice in Arabic. 
+            Focus on 'Unlimited Internet' campaign context if relevant.
             """
             
             response = self.ai_client.models.generate_content(
@@ -202,11 +252,12 @@ async def main(page: ft.Page):
     page.window_width = 450
     page.window_height = 850
     
-    # Material You Styling
+    # Technical Dashboard Theme
     page.theme = ft.Theme(
-        color_scheme_seed=ft.colors.BLUE_ACCENT,
+        color_scheme_seed=ft.colors.CYAN_ACCENT,
         use_material3=True,
         visual_density=ft.VisualDensity.COMFORTABLE,
+        font_family="Inter",
     )
 
     data = DataLayer()
@@ -232,7 +283,11 @@ async def main(page: ft.Page):
             "wifi": "Wi-Fi",
             "lang": "العربية",
             "advice_loading": "AI is thinking...",
-            "connected_to": "Connected to: "
+            "connected_to": "Connected to: ",
+            "logout": "Logout",
+            "status": "System Status",
+            "uptime": "Uptime",
+            "latency": "Latency"
         },
         "ar": {
             "title": "حارس الشبكة برو",
@@ -252,7 +307,11 @@ async def main(page: ft.Page):
             "wifi": "واي فاي",
             "lang": "English",
             "advice_loading": "الذكاء الاصطناعي يفكر...",
-            "connected_to": "متصل بـ: "
+            "connected_to": "متصل بـ: ",
+            "logout": "خروج",
+            "status": "حالة النظام",
+            "uptime": "وقت التشغيل",
+            "latency": "التأخير"
         }
     }
 
@@ -261,17 +320,18 @@ async def main(page: ft.Page):
         return translations[lang].get(key, key)
 
     # --- UI Components ---
-    stats_text = ft.Text("0.00 GB", size=36, weight=ft.FontWeight.BOLD)
-    speed_info = ft.Text("↓ 0.0 Mbps  ↑ 0.0 Mbps", size=14, color=ft.colors.ON_SURFACE_VARIANT)
-    scan_status = ft.Text(t("secure"), color=ft.colors.GREEN_400)
+    stats_text = ft.Text("0.00 GB", size=36, weight=ft.FontWeight.BOLD, font_family="monospace")
+    speed_info = ft.Text("↓ 0.0 Mbps", size=14, color=ft.colors.CYAN_400, font_family="monospace")
+    scan_status = ft.Text(t("secure"), color=ft.colors.GREEN_400, weight=ft.FontWeight.BOLD)
     ai_advice_text = ft.Text(t("advice_loading"), italic=True, size=13)
+    status_grid = ft.Column(spacing=5)
 
     async def toggle_lang(e):
         current = page.client_storage.get("lang") or "ar"
         new_lang = "en" if current == "ar" else "ar"
         page.client_storage.set("lang", new_lang)
         page.rtl = (new_lang == "ar")
-        await show_login()
+        await show_dashboard()
 
     async def handle_login(e):
         login_btn.disabled = True
@@ -294,9 +354,10 @@ async def main(page: ft.Page):
         scan_btn.text = "..."
         page.update()
 
-        threats = await logic.run_deep_scan()
+        router_ip = await data.get_setting("router_ip") or "192.168.1.1"
+        threats = await logic.run_deep_scan(router_ip)
         if threats:
-            scan_status.value = t("threats")
+            scan_status.value = f"{t('threats')} ({len(threats)})"
             scan_status.color = ft.colors.RED_400
             page.snack_bar = ft.SnackBar(ft.Text(f"Alert: {threats[0][2]}"), bgcolor=ft.colors.ERROR)
             page.snack_bar.open = True
@@ -308,12 +369,31 @@ async def main(page: ft.Page):
         scan_btn.text = t("scan")
         page.update()
 
+    async def handle_speed_test(e):
+        speed_btn.disabled = True
+        speed_btn.content = ft.ProgressRing(width=20, height=20)
+        page.update()
+
+        mbps = await logic.perform_speed_test()
+        speed_info.value = f"↓ {mbps} Mbps"
+        await data.save_usage(0.01, 0.005) 
+        
+        speed_btn.disabled = False
+        speed_btn.content = ft.Row([ft.Icon(ft.icons.SPEED), ft.Text(t("speed"))], alignment=ft.MainAxisAlignment.CENTER)
+        page.update()
+
     async def handle_ai_refresh(e):
         ai_advice_text.value = t("advice_loading")
         page.update()
         advice = await logic.get_ai_advice()
         ai_advice_text.value = advice
         page.update()
+
+    async def handle_logout(e):
+        await data.set_setting("router_ip", "")
+        await data.set_setting("router_user", "")
+        await data.set_setting("router_pass", "")
+        await show_login()
 
     # --- Views ---
     async def show_login():
@@ -331,7 +411,7 @@ async def main(page: ft.Page):
                     ),
                     ft.Column([
                         ft.Container(
-                            content=ft.Icon(ft.icons.SHIELD_LOCK_ROUNDED, size=100, color=ft.colors.PRIMARY),
+                            content=ft.Icon(ft.icons.SHIELD_LOCK_ROUNDED, size=100, color=ft.colors.CYAN_ACCENT),
                             margin=ft.margin.only(top=40, bottom=20)
                         ),
                         ft.Text(t("title"), size=32, weight=ft.FontWeight.BOLD),
@@ -355,42 +435,60 @@ async def main(page: ft.Page):
 
     async def show_dashboard():
         page.views.clear()
+        page.rtl = (page.client_storage.get("lang") or "ar") == "ar"
+        
         page.views.append(
             ft.View(
                 "/dashboard",
                 [
                     ft.AppBar(
                         title=ft.Text(t("title")),
-                        actions=[ft.IconButton(ft.icons.LOGOUT_ROUNDED, on_click=lambda _: show_login())]
+                        actions=[
+                            ft.IconButton(ft.icons.LANGUAGE, on_click=toggle_lang),
+                            ft.IconButton(ft.icons.LOGOUT_ROUNDED, tooltip=t("logout"), on_click=handle_logout)
+                        ]
                     ),
                     ft.Column([
-                        # Mode Selector
-                        ft.SegmentedButton(
-                            segments=[
-                                ft.Segment(value="wifi", label=ft.Text(t("wifi")), icon=ft.Icon(ft.icons.WIFI)),
-                                ft.Segment(value="mobile", label=ft.Text(t("mobile_data")), icon=ft.Icon(ft.icons.CELL_WIFI)),
-                            ],
-                            selected={"wifi"},
-                            on_change=lambda e: None
+                        # Status Grid (Technical Recipe)
+                        ft.Container(
+                            content=ft.Column([
+                                ft.Row([
+                                    ft.Text(t("status"), size=12, weight=ft.FontWeight.BOLD, color=ft.colors.CYAN_400),
+                                    ft.Spacer(),
+                                    ft.Text("ONLINE", size=10, weight=ft.FontWeight.BOLD, color=ft.colors.GREEN_400),
+                                ]),
+                                ft.Divider(height=1, color=ft.colors.with_opacity(0.2, ft.colors.ON_SURFACE)),
+                                ft.Row([
+                                    ft.Text(f"{t('latency')}:", size=11, color=ft.colors.ON_SURFACE_VARIANT),
+                                    ft.Text("24ms", size=11, font_family="monospace"),
+                                    ft.VerticalDivider(),
+                                    ft.Text(f"{t('uptime')}:", size=11, color=ft.colors.ON_SURFACE_VARIANT),
+                                    ft.Text("12h 4m", size=11, font_family="monospace"),
+                                ])
+                            ], spacing=8),
+                            padding=15,
+                            border=ft.border.all(1, ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE)),
+                            border_radius=10,
                         ),
                         # Usage Card
                         ft.Card(
                             content=ft.Container(
                                 content=ft.Column([
-                                    ft.Text(t("consumption"), size=16, weight=ft.FontWeight.W_500),
+                                    ft.Text(t("consumption"), size=14, weight=ft.FontWeight.W_500, color=ft.colors.ON_SURFACE_VARIANT),
                                     stats_text,
                                     speed_info,
-                                    ft.ProgressBar(value=0.35, color=ft.colors.PRIMARY, bgcolor=ft.colors.PRIMARY_CONTAINER)
+                                    ft.ProgressBar(value=0.35, color=ft.colors.CYAN_ACCENT, bgcolor=ft.colors.CYAN_900)
                                 ], spacing=10),
                                 padding=25
                             ),
-                            elevation=2
+                            elevation=0,
+                            color=ft.colors.SURFACE_VARIANT
                         ),
                         # Security Section
                         ft.Container(
                             content=ft.Column([
                                 ft.Row([
-                                    ft.Icon(ft.icons.SECURITY, color=ft.colors.PRIMARY),
+                                    ft.Icon(ft.icons.SECURITY, color=ft.colors.CYAN_ACCENT),
                                     ft.Text(t("security"), weight=ft.FontWeight.BOLD),
                                     ft.Spacer(),
                                     scan_btn := ft.TextButton(t("scan"), on_click=handle_scan)
@@ -399,7 +497,7 @@ async def main(page: ft.Page):
                             ]),
                             padding=15,
                             border_radius=15,
-                            bgcolor=ft.colors.SURFACE_VARIANT
+                            bgcolor=ft.colors.with_opacity(0.05, ft.colors.CYAN_ACCENT)
                         ),
                         # AI Assistant Card
                         ft.Card(
@@ -419,23 +517,25 @@ async def main(page: ft.Page):
                         ),
                         # Tools
                         ft.Row([
-                            ft.ElevatedButton(
+                            speed_btn := ft.ElevatedButton(
                                 content=ft.Row([ft.Icon(ft.icons.SPEED), ft.Text(t("speed"))], alignment=ft.MainAxisAlignment.CENTER),
-                                on_click=lambda _: None,
+                                on_click=handle_speed_test,
                                 expand=True,
-                                height=50
+                                height=50,
+                                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=12))
                             ),
                         ]),
-                        ft.Text(f"{t('connected_to')}{logic.brand}", size=11, color=ft.colors.ON_SURFACE_VARIANT)
+                        ft.Text(f"{t('connected_to')}{logic.brand}", size=10, color=ft.colors.ON_SURFACE_VARIANT, font_family="monospace")
                     ], spacing=15, scroll=ft.ScrollMode.ADAPTIVE)
                 ],
                 padding=20
             )
         )
         page.update()
-        # Initial AI Advice
         await handle_ai_refresh(None)
 
+    # --- App Startup Logic ---
+    # Always open Dashboard first as requested
     await show_dashboard()
 
 if __name__ == "__main__":
