@@ -1,0 +1,23 @@
+# Flet build ignore file
+.git/
+.github/
+node_modules/
+src/
+package.json
+package-lock.json
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+postcss.config.js
+tailwind.config.js
+index.html
+README.md
+.env
+.env.example
+secret.key
+netguard_pro.db
+build/
+dist/
+__pycache__/
+*.pyc
+.fletignore
