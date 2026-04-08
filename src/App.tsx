@@ -6,6 +6,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showMobileLogin, setShowMobileLogin] = useState(false);
+  const [isMobileLoggedIn, setIsMobileLoggedIn] = useState(false);
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [scanning, setScanning] = useState(false);
   const [speed, setSpeed] = useState({ down: 0, up: 0 });
@@ -56,7 +58,14 @@ const App: React.FC = () => {
       noLogs: "لا توجد سجلات أمنية حالياً",
       mitm: "هجوم رجل في المنتصف",
       dns: "اختطاف DNS",
-      port: "منفذ مفتوح"
+      port: "منفذ مفتوح",
+      mobileData: "بيانات الجوال",
+      mobileLogin: "تسجيل دخول الجوال",
+      phone: "رقم الجوال",
+      back: "عودة",
+      devices: "الأجهزة المتصلة",
+      optimize: "تحسين الاتصال",
+      encrypt: "تشفير الملفات"
     },
     en: {
       title: "NetGuard Pro",
@@ -90,7 +99,14 @@ const App: React.FC = () => {
       noLogs: "No security logs currently",
       mitm: "MITM Attack",
       dns: "DNS Hijacking",
-      port: "Open Port"
+      port: "Open Port",
+      mobileData: "Mobile Data",
+      mobileLogin: "Mobile Login",
+      phone: "Phone Number",
+      back: "Back",
+      devices: "Connected Devices",
+      optimize: "Optimize",
+      encrypt: "Encrypt Files"
     }
   };
 
@@ -146,6 +162,43 @@ const App: React.FC = () => {
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
           <Shield className="w-12 h-12 text-cyan-400" />
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (showMobileLogin) {
+    return (
+      <div className={`min-h-screen ${lang === 'ar' ? 'font-sans' : 'font-sans'} bg-[#050505] text-white p-6 flex flex-col items-center justify-center`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md bg-[#111] p-8 rounded-3xl border border-white/10">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => setShowMobileLogin(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+              <ChevronRight className={lang === 'ar' ? '' : 'rotate-180'} />
+            </button>
+            <h2 className="text-2xl font-bold">{cur.mobileLogin}</h2>
+          </div>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-widest text-white/50">{cur.phone}</label>
+              <div className="relative">
+                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:border-cyan-500 outline-none transition-colors" placeholder="05xxxxxxxx" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-widest text-white/50">{cur.password}</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                <input type="password" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:border-cyan-500 outline-none transition-colors" placeholder="••••••••" />
+              </div>
+            </div>
+            <button 
+              onClick={() => { setIsMobileLoggedIn(true); setShowMobileLogin(false); }}
+              className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-green-900/20"
+            >
+              {cur.login}
+            </button>
+          </div>
         </motion.div>
       </div>
     );
@@ -272,6 +325,41 @@ const App: React.FC = () => {
                   <span className="text-white">12h 4m</span>
                 </div>
               </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setShowMobileLogin(true)}
+                className="flex items-center justify-between p-4 bg-green-900/20 border border-green-500/20 rounded-2xl hover:bg-green-900/30 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-5 h-5 text-green-400" />
+                  <span className="text-sm font-medium">{cur.mobileData}</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 text-white/30 ${lang === 'ar' ? 'rotate-180' : ''}`} />
+              </button>
+              <button className="flex items-center justify-between p-4 bg-blue-900/20 border border-blue-500/20 rounded-2xl hover:bg-blue-900/30 transition-all">
+                <div className="flex items-center gap-3">
+                  <Wifi className="w-5 h-5 text-blue-400" />
+                  <span className="text-sm font-medium">{cur.devices}</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 text-white/30 ${lang === 'ar' ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+
+            {/* Security Tools */}
+            <div className="grid grid-cols-2 gap-4">
+              <button className="flex flex-col gap-2 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-left">
+                <Zap className="w-6 h-6 text-amber-400" />
+                <span className="text-sm font-bold">{cur.optimize}</span>
+                <span className="text-[10px] text-white/40">DNS & Proxy</span>
+              </button>
+              <button className="flex flex-col gap-2 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-left">
+                <Lock className="w-6 h-6 text-cyan-400" />
+                <span className="text-sm font-bold">{cur.encrypt}</span>
+                <span className="text-[10px] text-white/40">AES-256</span>
+              </button>
             </div>
 
             {/* Detailed Consumption Card */}
