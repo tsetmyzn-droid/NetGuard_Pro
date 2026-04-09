@@ -27,7 +27,7 @@ const App: React.FC = () => {
 
   const t = {
     ar: {
-      title: "حارس الشبكة برو",
+      title: "NetGuard Pro",
       login: "تسجيل الدخول",
       routerIp: "عنوان IP الراوتر",
       username: "اسم المستخدم",
@@ -254,6 +254,14 @@ const App: React.FC = () => {
           >
             <span>{cur.connect}</span>
             <ChevronRight className={`w-5 h-5 ${lang === 'ar' ? 'rotate-180' : ''}`} />
+          </button>
+          <button 
+            type="button"
+            onClick={() => setShowMobileLogin(true)}
+            className="w-full py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
+          >
+            <Smartphone className="w-5 h-5 text-green-400" />
+            <span>{cur.mobileData}</span>
           </button>
         </form>
 
