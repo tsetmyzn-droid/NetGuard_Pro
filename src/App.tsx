@@ -14,6 +14,12 @@ const App: React.FC = () => {
   const [threats, setThreats] = useState<any[]>([]);
   const [isTestingSpeed, setIsTestingSpeed] = useState(false);
   const [activeTab, setActiveTab] = useState<'dash' | 'logs'>('dash');
+  const [snackbar, setSnackbar] = useState<{ msg: string; type: 'error' | 'success' | 'info' } | null>(null);
+
+  const showSnackbar = (msg: string, type: 'error' | 'success' | 'info' = 'info') => {
+    setSnackbar({ msg, type });
+    setTimeout(() => setSnackbar(null), 3000);
+  };
 
   const usageData = useMemo(() => [
     { name: '04/01', total: 4.2 },
@@ -120,21 +126,38 @@ const App: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Simulate network operation with error handling
     setTimeout(() => {
+      const success = Math.random() > 0.1; // 90% success rate for demo
       setLoading(false);
-      setIsLoggedIn(true);
-    }, 1000);
+      if (success) {
+        setIsLoggedIn(true);
+        showSnackbar(lang === 'ar' ? "تم الاتصال بالراوتر بنجاح" : "Connected to router successfully", 'success');
+      } else {
+        showSnackbar(lang === 'ar' ? "فشل الاتصال: يرجى التحقق من البيانات أو عنوان IP" : "Connection failed: Please check credentials or IP address", 'error');
+      }
+    }, 1500);
   };
 
   const handleScan = () => {
     setScanning(true);
     setTimeout(() => {
-      setScanning(false);
-      const newThreats = [
-        { id: 1, type: cur.port, severity: 'Medium', desc: 'Port 8080 is open' },
-        { id: 2, type: cur.dns, severity: 'High', desc: 'DNS resolution mismatch' }
-      ];
-      setThreats(newThreats);
+      try {
+        const success = Math.random() > 0.1;
+        if (!success) throw new Error("Scan interrupted");
+        
+        setScanning(false);
+        const newThreats = [
+          { id: 1, type: cur.port, severity: 'Medium', desc: 'Port 8080 is open' },
+          { id: 2, type: cur.dns, severity: 'High', desc: 'DNS resolution mismatch' }
+        ];
+        setThreats(newThreats);
+        showSnackbar(lang === 'ar' ? "اكتمل الفحص بنجاح" : "Scan completed successfully", 'success');
+      } catch (err) {
+        setScanning(false);
+        showSnackbar(lang === 'ar' ? "حدث خطأ أثناء الفحص العميق" : "An error occurred during deep scan", 'error');
+      }
     }, 3000);
   };
 
@@ -142,14 +165,23 @@ const App: React.FC = () => {
     setIsTestingSpeed(true);
     let count = 0;
     const interval = setInterval(() => {
-      setSpeed({
-        down: Math.random() * 100,
-        up: Math.random() * 50
-      });
-      count++;
-      if (count > 20) {
+      try {
+        if (Math.random() < 0.02) throw new Error("Network timeout"); // Random failure simulation
+
+        setSpeed({
+          down: Math.random() * 100,
+          up: Math.random() * 50
+        });
+        count++;
+        if (count > 20) {
+          clearInterval(interval);
+          setIsTestingSpeed(false);
+          showSnackbar(lang === 'ar' ? "اكتمل اختبار السرعة" : "Speed test completed", 'success');
+        }
+      } catch (err) {
         clearInterval(interval);
         setIsTestingSpeed(false);
+        showSnackbar(lang === 'ar' ? "فشل اختبار السرعة: انقطع الاتصال" : "Speed test failed: Connection lost", 'error');
       }
     }, 100);
   };
@@ -383,8 +415,8 @@ const App: React.FC = () => {
               </div>
 
               {/* Chart */}
-              <div className="h-32 w-full mb-6">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-32 w-full mb-6 min-h-[128px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <AreaChart data={usageData}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
@@ -448,19 +480,6 @@ const App: React.FC = () => {
                 {threats.length > 0 ? <ShieldAlert className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                 {threats.length > 0 ? `${cur.threatsDetected}: ${threats.length}` : cur.systemSafe}
               </div>
-            </div>
-
-            {/* AI Assistant */}
-            <div className="glass-card p-4 bg-blue-900/20 border-blue-400/20">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-amber-400" />
-                  <span className="font-bold text-sm">{cur.aiAssistant}</span>
-                </div>
-              </div>
-              <p className="text-xs italic text-white/80 leading-relaxed">
-                {cur.aiMsg}
-              </p>
             </div>
 
             {/* Action Button */}
@@ -532,6 +551,27 @@ const App: React.FC = () => {
 
       {/* Background Glow */}
       <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+      {/* Snackbar */}
+      <AnimatePresence>
+        {snackbar && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 20, x: '-50%' }}
+            className={`fixed bottom-24 left-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[280px] border ${
+              snackbar.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-100' : 
+              snackbar.type === 'success' ? 'bg-green-900/90 border-green-500/50 text-green-100' :
+              'bg-blue-900/90 border-blue-500/50 text-blue-100'
+            }`}
+          >
+            {snackbar.type === 'error' ? <AlertTriangle className="w-5 h-5" /> : 
+             snackbar.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : 
+             <Shield className="w-5 h-5" />}
+            <span className="text-sm font-bold">{snackbar.msg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
