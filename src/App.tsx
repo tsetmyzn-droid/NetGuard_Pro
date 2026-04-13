@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Shield, Activity, Zap, Wifi, Smartphone, RefreshCw, LogOut, Globe, AlertTriangle, Lock, User, ChevronRight, ArrowDown, ArrowUp, History, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Shield, Activity, Zap, Wifi, Smartphone, RefreshCw, LogOut, Globe, AlertTriangle, Lock, User, ChevronRight, ArrowDown, ArrowUp, History, ShieldAlert, CheckCircle2, Image as ImageIcon, Camera, Wand2, Maximize, ScanSearch, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -13,8 +16,17 @@ const App: React.FC = () => {
   const [speed, setSpeed] = useState({ down: 0, up: 0 });
   const [threats, setThreats] = useState<any[]>([]);
   const [isTestingSpeed, setIsTestingSpeed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dash' | 'logs'>('dash');
+  const [activeTab, setActiveTab] = useState<'dash' | 'logs' | 'ai'>('dash');
   const [snackbar, setSnackbar] = useState<{ msg: string; type: 'error' | 'success' | 'info' } | null>(null);
+
+  // AI State
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const showSnackbar = (msg: string, type: 'error' | 'success' | 'info' = 'info') => {
     setSnackbar({ msg, type });
@@ -71,7 +83,16 @@ const App: React.FC = () => {
       back: "عودة",
       devices: "الأجهزة المتصلة",
       optimize: "تحسين الاتصال",
-      encrypt: "تشفير الملفات"
+      encrypt: "تشفير الملفات",
+      aiLab: "مختبر الذكاء الاصطناعي",
+      generateImage: "توليد صورة",
+      analyzeImage: "تحليل صورة",
+      promptPlaceholder: "اكتب وصفاً للصورة...",
+      generating: "جاري التوليد...",
+      analyzing: "جاري التحليل...",
+      aspectRatio: "أبعاد الصورة",
+      uploadPrompt: "ارفع صورة لتحليلها",
+      aiResult: "نتائج الذكاء الاصطناعي"
     },
     en: {
       title: "NetGuard Pro",
@@ -112,7 +133,16 @@ const App: React.FC = () => {
       back: "Back",
       devices: "Connected Devices",
       optimize: "Optimize",
-      encrypt: "Encrypt Files"
+      encrypt: "Encrypt Files",
+      aiLab: "AI Lab",
+      generateImage: "Generate Image",
+      analyzeImage: "Analyze Image",
+      promptPlaceholder: "Type image description...",
+      generating: "Generating...",
+      analyzing: "Analyzing...",
+      aspectRatio: "Aspect Ratio",
+      uploadPrompt: "Upload image to analyze",
+      aiResult: "AI Results"
     }
   };
 
@@ -186,6 +216,78 @@ const App: React.FC = () => {
     }, 100);
   };
 
+  const generateImage = async () => {
+    if (!aiPrompt) return;
+    setAiLoading(true);
+    setAiImage(null);
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-image-preview',
+        contents: { parts: [{ text: aiPrompt }] },
+        config: {
+          imageConfig: {
+            aspectRatio: aspectRatio as any,
+            imageSize: "1K"
+          }
+        }
+      });
+
+      const parts = response.candidates?.[0]?.content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if (part.inlineData) {
+            setAiImage(`data:image/png;base64,${part.inlineData.data}`);
+            showSnackbar(lang === 'ar' ? "تم توليد الصورة بنجاح" : "Image generated successfully", 'success');
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showSnackbar(lang === 'ar' ? "فشل توليد الصورة" : "Failed to generate image", 'error');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const analyzeImage = async () => {
+    if (!selectedFile) return;
+    setAiLoading(true);
+    setAiAnalysis(null);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(selectedFile);
+      reader.onloadend = async () => {
+        const base64Data = (reader.result as string).split(',')[1];
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.1-pro-preview',
+          contents: {
+            parts: [
+              { inlineData: { data: base64Data, mimeType: selectedFile.type } },
+              { text: "Analyze this image in detail, focusing on security aspects if applicable." }
+            ]
+          }
+        });
+        setAiAnalysis(response.text || null);
+        showSnackbar(lang === 'ar' ? "اكتمل التحليل" : "Analysis completed", 'success');
+        setAiLoading(false);
+      };
+    } catch (err) {
+      console.error(err);
+      showSnackbar(lang === 'ar' ? "فشل تحليل الصورة" : "Failed to analyze image", 'error');
+      setAiLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#0a0a0a]">
@@ -245,10 +347,10 @@ const App: React.FC = () => {
             animate={{ scale: 1, opacity: 1 }}
             className="inline-block p-4 rounded-2xl bg-cyan-400/10 mb-4"
           >
-            <Shield className="w-12 h-12 text-cyan-400" />
+            <img src="/logo1.svg" alt="NetGuard Pro" className="w-24 h-24" />
           </motion.div>
           <h1 className="text-3xl font-bold tracking-tight text-white">{cur.title}</h1>
-          <p className="text-white/40 text-sm mt-2">Enterprise Network Security</p>
+          <p className="text-cyan-400 text-sm mt-2 italic">حقك ان تعرف</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -316,8 +418,8 @@ const App: React.FC = () => {
     <div className={`min-h-screen bg-[#0a0a0a] tech-grid p-6 max-w-md mx-auto relative overflow-hidden pb-24 ${lang === 'ar' ? 'rtl' : 'ltr'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-2">
-          <Shield className="w-8 h-8 text-cyan-400" />
+        <div className="flex items-center gap-3">
+          <img src="/logo1.svg" alt="Logo" className="w-10 h-10" referrerPolicy="no-referrer" />
           <h1 className="text-xl font-bold tracking-tight">{cur.title}</h1>
         </div>
         <div className="flex gap-2">
@@ -415,9 +517,9 @@ const App: React.FC = () => {
               </div>
 
               {/* Chart */}
-              <div className="h-32 w-full mb-6 min-h-[128px]">
+              <div className="h-40 w-full mb-6 relative">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <AreaChart data={usageData}>
+                  <AreaChart data={usageData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/>
@@ -492,7 +594,7 @@ const App: React.FC = () => {
               <span className="font-bold">{isTestingSpeed ? cur.testing : cur.speedTest}</span>
             </button>
           </motion.div>
-        ) : (
+        ) : activeTab === 'logs' ? (
           <motion.div
             key="logs"
             initial={{ opacity: 0, y: 20 }}
@@ -522,6 +624,104 @@ const App: React.FC = () => {
               )}
             </div>
           </motion.div>
+        ) : (
+          <motion.div
+            key="ai"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-cyan-400" />
+              {cur.aiLab}
+            </h2>
+
+            {/* Image Generation */}
+            <div className="glass-card p-4 space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ImageIcon className="w-4 h-4 text-cyan-400" />
+                <span className="text-sm font-bold">{cur.generateImage}</span>
+              </div>
+              <textarea 
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder={cur.promptPlaceholder}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm outline-none focus:border-cyan-400/50 min-h-[80px]"
+              />
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <Maximize className="w-4 h-4 text-white/40" />
+                  <select 
+                    value={aspectRatio}
+                    onChange={(e) => setAspectRatio(e.target.value)}
+                    className="bg-white/5 border border-white/10 rounded-lg text-[10px] p-1 outline-none"
+                  >
+                    {["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"].map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <button 
+                  onClick={generateImage}
+                  disabled={aiLoading || !aiPrompt}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 disabled:opacity-50"
+                >
+                  {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                  {aiLoading ? cur.generating : cur.generateImage}
+                </button>
+              </div>
+              {aiImage && (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-4 rounded-xl overflow-hidden border border-white/10">
+                  <img src={aiImage} alt="AI Generated" className="w-full h-auto" />
+                </motion.div>
+              )}
+            </div>
+
+            {/* Image Analysis */}
+            <div className="glass-card p-4 space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ScanSearch className="w-4 h-4 text-cyan-400" />
+                <span className="text-sm font-bold">{cur.analyzeImage}</span>
+              </div>
+              <div className="relative group">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange}
+                  className="hidden" 
+                  id="ai-upload" 
+                />
+                <label 
+                  htmlFor="ai-upload"
+                  className="w-full h-32 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-cyan-400/50 hover:bg-white/5 transition-all"
+                >
+                  {previewUrl ? (
+                    <img src={previewUrl} className="h-full w-full object-contain p-2" />
+                  ) : (
+                    <>
+                      <Camera className="w-8 h-8 text-white/20" />
+                      <span className="text-xs text-white/40">{cur.uploadPrompt}</span>
+                    </>
+                  )}
+                </label>
+              </div>
+              <button 
+                onClick={analyzeImage}
+                disabled={aiLoading || !selectedFile}
+                className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ScanSearch className="w-3 h-3" />}
+                {aiLoading ? cur.analyzing : cur.analyzeImage}
+              </button>
+              {aiAnalysis && (
+                <div className="mt-4 p-3 bg-cyan-400/5 border border-cyan-400/20 rounded-xl">
+                  <div className="text-[10px] font-bold text-cyan-400 uppercase mb-2">{cur.aiResult}</div>
+                  <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">{aiAnalysis}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -546,6 +746,13 @@ const App: React.FC = () => {
         >
           <History className="w-4 h-4" />
           <span className="text-xs font-bold">{cur.logs}</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('ai')}
+          className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === 'ai' ? 'bg-cyan-400 text-black' : 'hover:bg-white/5 text-white/60'}`}
+        >
+          <Wand2 className="w-4 h-4" />
+          <span className="text-xs font-bold">AI</span>
         </button>
       </div>
 
