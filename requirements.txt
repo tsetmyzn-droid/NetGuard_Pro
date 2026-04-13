@@ -5,3 +5,5 @@ cryptography
 pycryptodome
 google-genai
 psutil
+scapy
+python-nmap
