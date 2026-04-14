@@ -188,7 +188,6 @@ async def main(page: ft.Page):
         page.update()
 
     asyncio.create_task(update_real_time_stats())
-    asyncio.create_task(logic.run_security_monitor(page))
     await show_dashboard()
 
 if __name__ == "__main__":

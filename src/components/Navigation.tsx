@@ -13,7 +13,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange
       {[
         { id: 'dashboard', icon: LayoutDashboard },
         { id: 'logs', icon: Shield },
-        { id: 'ai-lab', icon: Brain },
       ].map((item) => (
         <button
           key={item.id}

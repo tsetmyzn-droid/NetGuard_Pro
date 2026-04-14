@@ -1,4 +1,4 @@
-export type View = 'login' | 'dashboard' | 'logs' | 'ai-lab';
+export type View = 'login' | 'dashboard' | 'logs';
 export type Language = 'ar' | 'en';
 
 export interface SecurityEvent {

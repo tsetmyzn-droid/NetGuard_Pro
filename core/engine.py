@@ -9,11 +9,14 @@ import hashlib
 import random
 import flet as ft
 from cryptography.fernet import Fernet
-from google import genai
 from core.database import DataLayer
 from core.constants import SPEED_TEST_URL
 from core.routers.huawei import HuaweiDriver
 from core.routers.zte import ZTEDriver
+from core.routers.tplink import TPLinkDriver
+from core.routers.dlink import DLinkDriver
+from core.routers.nokia import NokiaDriver
+from core.routers.netgear import NetgearDriver
 
 # Scapy for deep network analysis
 try:
@@ -29,37 +32,57 @@ class LogicLayer:
         self.brand = "Unknown"
         self.driver = None
         self.last_gateway_mac = None
-        self.ai_client = None
-        api_key = os.getenv("GEMINI_API_KEY")
-        if api_key:
-            self.ai_client = genai.Client(api_key=api_key)
 
     async def connect_router(self, ip, user, password):
         gc.collect()
         connection_msg = "جاري فحص بروتوكولات الإدارة (HTTP/UPnP)..."
         
         try:
-            # Step 1: Detect Brand
-            async with httpx.AsyncClient(timeout=2.0, verify=False) as client:
-                resp = await client.get(f"http://{ip}", follow_redirects=True)
-                html = resp.text.lower()
-                server = resp.headers.get("Server", "").lower()
+            # Step 1: Detect Brand with robust patterns
+            async with httpx.AsyncClient(timeout=3.0, verify=False) as client:
+                try:
+                    resp = await client.get(f"http://{ip}", follow_redirects=True)
+                    html = resp.text.lower()
+                    server = resp.headers.get("Server", "").lower()
+                    title = re.search(r'<title>(.*?)</title>', html)
+                    title_text = title.group(1) if title else ""
 
-                if "huawei" in html or "hg630" in html or "huawei" in server:
-                    self.brand = "Huawei"
-                    self.driver = HuaweiDriver(ip, user, password)
-                elif "zte" in html or "zte" in server:
-                    self.brand = "ZTE"
-                    self.driver = ZTEDriver(ip, user, password)
-                else:
-                    self.brand = "Generic"
-                    self.driver = None # Fallback to simulation
+                    # Detection Logic
+                    if any(x in html or x in server or x in title_text for x in ["huawei", "hg630", "hg633", "dg8245", "optixstar"]):
+                        self.brand = "Huawei"
+                        self.driver = HuaweiDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["zte", "zxhn", "h168n", "h188a"]):
+                        self.brand = "ZTE"
+                        self.driver = ZTEDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["tp-link", "tplink", "archer"]):
+                        self.brand = "TP-Link"
+                        self.driver = TPLinkDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["d-link", "dlink", "dir-"]):
+                        self.brand = "D-Link"
+                        self.driver = DLinkDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["nokia", "g-2425g"]):
+                        self.brand = "Nokia"
+                        self.driver = NokiaDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["netgear", "wnr", "wndr"]):
+                        self.brand = "Netgear"
+                        self.driver = NetgearDriver(ip, user, password)
+                    else:
+                        self.brand = "Generic"
+                        self.driver = None
+                except Exception as e:
+                    print(f"Detection failed: {e}")
+                    self.brand = "Unknown"
+                    self.driver = None
 
             # Step 2: Attempt Real Login if driver exists
             if self.driver:
                 success = await self.driver.login()
                 if success:
                     self.is_connected = True
+                    # Save settings for persistence
+                    await self.data.set_setting("router_ip", ip)
+                    await self.data.set_setting("router_user", user)
+                    await self.data.set_setting("router_pass", password)
                     return True, f"تم الاتصال بنجاح بـ {self.brand}\n{connection_msg}"
                 else:
                     return False, f"فشل تسجيل الدخول إلى {self.brand}. تأكد من البيانات."
@@ -67,6 +90,9 @@ class LogicLayer:
             # Step 3: Fallback for Generic/Unknown
             if user == "admin" and password:
                 self.is_connected = True
+                await self.data.set_setting("router_ip", ip)
+                await self.data.set_setting("router_user", user)
+                await self.data.set_setting("router_pass", password)
                 return True, f"تم الاتصال (وضع التوافق) بـ {self.brand}\n{connection_msg}"
             
             return False, "بيانات غير صحيحة"
@@ -243,6 +269,27 @@ class LogicLayer:
             await writer.wait_closed()
             return True
         except: return False
+
+    async def calculate_estimated_consumption(self, current_usage_gb):
+        """
+        حساب الاستهلاك التقديري لنهاية الشهر بناءً على الاستهلاك الحالي.
+        """
+        from datetime import datetime
+        import calendar
+        
+        now = datetime.now()
+        days_in_month = calendar.monthrange(now.year, now.month)[1]
+        current_day = now.day
+        
+        if current_day == 0: current_day = 1
+        daily_avg = current_usage_gb / current_day
+        estimated_total = daily_avg * days_in_month
+        
+        return {
+            "daily_avg": round(daily_avg, 2),
+            "estimated_total": round(estimated_total, 2),
+            "days_remaining": days_in_month - current_day
+        }
 
     async def perform_speed_test(self):
         start_time = time.time()

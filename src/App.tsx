@@ -5,7 +5,6 @@ import { TRANSLATIONS } from './constants';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
 import { Logs } from './components/Logs';
-import { AILab } from './components/AILab';
 import { Navigation } from './components/Navigation';
 
 function App() {
@@ -68,7 +67,6 @@ function App() {
       <main className="relative z-10">
         {view === 'dashboard' && <Dashboard lang={lang} />}
         {view === 'logs' && <Logs lang={lang} />}
-        {view === 'ai-lab' && <AILab lang={lang} />}
       </main>
 
       {/* Navigation */}
