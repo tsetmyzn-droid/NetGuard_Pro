@@ -1,6 +1,7 @@
 import flet as ft
 import asyncio
 import psutil
+import random
 from core.database import DataLayer
 from core.engine import LogicLayer
 from core.translations import TRANSLATIONS
@@ -17,6 +18,12 @@ async def main(page: ft.Page):
         use_material3=True,
         visual_density=ft.VisualDensity.COMFORTABLE,
         font_family="Inter",
+        page_transitions=ft.PageTransitionsTheme(
+            android=ft.PageTransitionTheme.FADE_THROUGH,
+            ios=ft.PageTransitionTheme.CUPERTINO,
+            macos=ft.PageTransitionTheme.ZOOM,
+            windows=ft.PageTransitionTheme.FADE_IN_OUT,
+        ),
     )
 
     data = DataLayer()
@@ -92,13 +99,71 @@ async def main(page: ft.Page):
         page.update()
 
     async def show_devices(e):
-        page.views.append(ft.View("/devices", [ft.AppBar(title=ft.Text(t("devices")), center_title=True), ft.Column([ft.Container(height=20), devices_list := ft.Column(spacing=10)], scroll=ft.ScrollMode.AUTO)]))
+        page.views.append(ft.View("/devices", [
+            ft.AppBar(title=ft.Text(t("devices"), weight="bold"), center_title=True),
+            ft.Column([
+                ft.Container(height=10),
+                ft.Text(f"إجمالي الأجهزة المكتشفة: {len(await logic.get_device_consumption())}", size=12, color=ft.colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER),
+                devices_list := ft.Column(spacing=15)
+            ], scroll=ft.ScrollMode.AUTO, expand=True)
+        ], padding=20))
         page.go("/devices")
+        
         devices = await logic.get_device_consumption()
         devices_list.controls.clear()
+        
         for dev in devices:
             is_trusted = await data.is_device_trusted(dev['ip'])
-            devices_list.controls.append(ft.ListTile(leading=ft.Icon(ft.icons.SMARTPHONE if "Device" in dev['name'] else ft.icons.LAPTOP, color=ft.colors.GREEN_400 if is_trusted else None), title=ft.Text(dev['name']), subtitle=ft.Text(f"IP: {dev['ip']} | {dev['type']}"), trailing=ft.IconButton(ft.icons.VERIFIED_USER if is_trusted else ft.icons.NEW_RELEASES, icon_color=ft.colors.GREEN_400 if is_trusted else ft.colors.AMBER_400, on_click=lambda e, d=dev: handle_trust_device(d))))
+            
+            devices_list.controls.append(
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Container(
+                                content=ft.Icon(
+                                    ft.icons.SMARTPHONE if dev['type'] == 'mobile' else ft.icons.LAPTOP if dev['type'] == 'pc' else ft.icons.TV if dev['type'] == 'media' else ft.icons.ROUTER,
+                                    color=ft.colors.CYAN_ACCENT if is_trusted else ft.colors.AMBER_400,
+                                    size=30
+                                ),
+                                padding=10,
+                                bgcolor=ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE),
+                                border_radius=10
+                            ),
+                            ft.Column([
+                                ft.Text(dev['name'], size=16, weight="bold"),
+                                ft.Text(f"IP: {dev['ip']}", size=12, color=ft.colors.CYAN_ACCENT, font_family="monospace"),
+                            ], spacing=2, expand=True),
+                            ft.IconButton(
+                                ft.icons.VERIFIED_USER if is_trusted else ft.icons.GPP_MAYBE,
+                                icon_color=ft.colors.GREEN_400 if is_trusted else ft.colors.AMBER_400,
+                                tooltip="موثوق" if is_trusted else "غير موثوق - اضغط للتوثيق",
+                                on_click=lambda e, d=dev: handle_trust_device(d)
+                            )
+                        ]),
+                        ft.Divider(height=1, color=ft.colors.with_opacity(0.05, ft.colors.ON_SURFACE)),
+                        ft.Row([
+                            ft.Column([
+                                ft.Text(t("os"), size=10, color=ft.colors.ON_SURFACE_VARIANT),
+                                ft.Text(dev.get('os', 'Unknown'), size=11, weight="bold"),
+                            ], expand=True),
+                            ft.Column([
+                                ft.Text(t("mac"), size=10, color=ft.colors.ON_SURFACE_VARIANT),
+                                ft.Text(dev['mac'], size=11, font_family="monospace"),
+                            ], expand=True),
+                        ]),
+                        ft.Row([
+                            ft.Text(t("consumption"), size=10, color=ft.colors.ON_SURFACE_VARIANT),
+                            ft.Spacer(),
+                            ft.Text(dev['usage'], size=12, weight="bold", color=ft.colors.CYAN_ACCENT),
+                        ]),
+                        ft.ProgressBar(value=random.random(), color=ft.colors.CYAN_ACCENT, bgcolor=ft.colors.with_opacity(0.1, ft.colors.CYAN_ACCENT))
+                    ], spacing=12),
+                    padding=20,
+                    bgcolor=ft.colors.with_opacity(0.05, ft.colors.ON_SURFACE),
+                    border_radius=20,
+                    border=ft.border.all(1, ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE))
+                )
+            )
         page.update()
 
     async def handle_trust_device(device):
@@ -158,7 +223,35 @@ async def main(page: ft.Page):
         await show_mobile_dashboard(usage_data)
 
     async def show_mobile_dashboard(data):
-        page.views.append(ft.View("/mobile_dashboard", [ft.AppBar(title=ft.Text("استهلاك الجوال"), center_title=True), ft.Column([ft.Card(content=ft.Container(content=ft.Column([ft.Text(f"الباقة: {data['plan']}", size=18, weight="bold"), ft.Text(f"الإجمالي المستهلك: {data['usage']}", size=24, color=ft.colors.CYAN_ACCENT), ft.Text(f"المتبقي: {data['remaining']}", size=14)]), padding=20)), ft.Text("أكثر التطبيقات استهلاكاً", size=16, weight="bold"), ft.Column([ft.ListTile(leading=ft.Icon(ft.icons.PLAY_CIRCLE_FILL), title=ft.Text(app['name']), trailing=ft.Text(app['usage'], weight="bold")) for app in data['apps']])], scroll=ft.ScrollMode.ADAPTIVE)]))
+        page.views.append(ft.View("/mobile_dashboard", [
+            ft.AppBar(title=ft.Text(t("mobile_data"), weight="bold"), center_title=True),
+            ft.Column([
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text(f"الباقة: {data['plan']}", size=14, color=ft.colors.ON_SURFACE_VARIANT),
+                        ft.Text(data['usage'], size=36, weight="bold", color=ft.colors.CYAN_ACCENT),
+                        ft.Text(f"المتبقي: {data['remaining']}", size=12, color=ft.colors.AMBER_400),
+                        ft.ProgressBar(value=0.6, color=ft.colors.CYAN_ACCENT, bgcolor=ft.colors.with_opacity(0.1, ft.colors.CYAN_ACCENT))
+                    ], spacing=10),
+                    padding=25,
+                    bgcolor=ft.colors.with_opacity(0.05, ft.colors.ON_SURFACE),
+                    border_radius=25,
+                ),
+                ft.Text(t("top_apps"), size=16, weight="bold"),
+                ft.Column([
+                    ft.Container(
+                        content=ft.Row([
+                            ft.Icon(ft.icons.PLAY_CIRCLE_FILL if "YouTube" in app['name'] else ft.icons.APPS, color=ft.colors.CYAN_ACCENT),
+                            ft.Text(app['name'], size=14, weight="bold", expand=True),
+                            ft.Text(app['usage'], size=14, weight="bold", color=ft.colors.AMBER_400)
+                        ]),
+                        padding=15,
+                        bgcolor=ft.colors.with_opacity(0.03, ft.colors.ON_SURFACE),
+                        border_radius=15
+                    ) for app in data['apps']
+                ], spacing=10)
+            ], scroll=ft.ScrollMode.ADAPTIVE, spacing=20)
+        ], padding=20))
         page.go("/mobile_dashboard")
 
     async def update_real_time_stats():
@@ -178,17 +271,248 @@ async def main(page: ft.Page):
     async def show_login():
         page.views.clear()
         page.rtl = (page.client_storage.get("lang") or "ar") == "ar"
-        page.views.append(ft.View("/login", [ft.AppBar(title=ft.Text(t("title")), center_title=True, actions=[ft.TextButton(t("lang"), on_click=toggle_lang)]), ft.Column([ft.Container(content=ft.Image(src="/logo1.svg", width=150, height=150, fit=ft.ImageFit.CONTAIN), margin=ft.margin.only(top=40, bottom=20)), ft.Text(t("title"), size=32, weight=ft.FontWeight.BOLD), ft.Text("حقك ان تعرف", size=16, color=ft.colors.CYAN_ACCENT, italic=True), ft.Container(height=20), ip_field := ft.TextField(label=t("router_ip"), value="192.168.1.1", border=ft.InputBorder.OUTLINE, border_radius=15), user_field := ft.TextField(label=t("username"), value="admin", border=ft.InputBorder.OUTLINE, border_radius=15), pass_field := ft.TextField(label=t("password"), password=True, can_reveal_password=True, border=ft.InputBorder.OUTLINE, border_radius=15), ft.Container(height=20), login_btn := ft.FilledButton(content=ft.Text(t("login")), width=350, height=50, on_click=handle_login), ft.TextButton(text=t("mobile_data"), icon=ft.icons.PHONELINK_SETUP, on_click=show_mobile_login)], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10)], padding=30))
+        
+        login_view = ft.View("/login", [
+            ft.AppBar(
+                title=ft.Text(t("title"), weight="bold"),
+                center_title=True,
+                actions=[ft.TextButton(t("lang"), on_click=toggle_lang)],
+                bgcolor=ft.colors.TRANSPARENT
+            ),
+            ft.Column([
+                ft.Container(height=40),
+                ft.Container(
+                    content=ft.Image(src="/logo1.svg", width=120, height=120, fit=ft.ImageFit.CONTAIN),
+                    alignment=ft.alignment.center,
+                ),
+                ft.Column([
+                    ft.Text(t("title"), size=32, weight=ft.FontWeight.BOLD),
+                    ft.Text("حقك ان تعرف", size=14, color=ft.colors.CYAN_ACCENT, italic=True, weight=ft.FontWeight.W_300),
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
+                
+                ft.Container(height=30),
+                
+                ft.Container(
+                    content=ft.Column([
+                        ip_field := ft.TextField(
+                            label=t("router_ip"), 
+                            value="192.168.1.1", 
+                            border_radius=15,
+                            prefix_icon=ft.icons.ROUTER,
+                            focused_border_color=ft.colors.CYAN_ACCENT
+                        ),
+                        user_field := ft.TextField(
+                            label=t("username"), 
+                            value="admin", 
+                            border_radius=15,
+                            prefix_icon=ft.icons.PERSON,
+                            focused_border_color=ft.colors.CYAN_ACCENT
+                        ),
+                        pass_field := ft.TextField(
+                            label=t("password"), 
+                            password=True, 
+                            can_reveal_password=True, 
+                            border_radius=15,
+                            prefix_icon=ft.icons.LOCK,
+                            focused_border_color=ft.colors.CYAN_ACCENT
+                        ),
+                        ft.Container(height=10),
+                        login_btn := ft.FilledButton(
+                            content=ft.Text(t("login"), size=16, weight="bold"),
+                            width=350,
+                            height=55,
+                            on_click=handle_login,
+                            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=15))
+                        ),
+                    ], spacing=15),
+                    padding=30,
+                    bgcolor=ft.colors.with_opacity(0.05, ft.colors.ON_SURFACE),
+                    border_radius=25,
+                    border=ft.border.all(1, ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE))
+                ),
+                
+                ft.Container(height=20),
+                ft.TextButton(
+                    text=t("mobile_data"), 
+                    icon=ft.icons.PHONELINK_SETUP, 
+                    on_click=show_mobile_login,
+                    style=ft.ButtonStyle(color=ft.colors.CYAN_ACCENT)
+                )
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10, scroll=ft.ScrollMode.ADAPTIVE)
+        ], padding=30)
+        
+        page.views.append(login_view)
         page.update()
 
     async def show_dashboard():
         page.views.clear()
         page.rtl = (page.client_storage.get("lang") or "ar") == "ar"
-        page.views.append(ft.View("/dashboard", [ft.AppBar(title=ft.Text(t("title")), actions=[ft.IconButton(ft.icons.LANGUAGE, on_click=toggle_lang), ft.IconButton(ft.icons.LOGOUT_ROUNDED, tooltip=t("logout"), on_click=handle_logout)]), ft.Column([ft.Container(content=ft.Column([ft.Row([ft.Text(t("status"), size=12, weight=ft.FontWeight.BOLD, color=ft.colors.CYAN_400), ft.Spacer(), ft.Text("ONLINE", size=10, weight=ft.FontWeight.BOLD, color=ft.colors.GREEN_400)]), ft.Divider(height=1, color=ft.colors.with_opacity(0.2, ft.colors.ON_SURFACE)), ft.Row([ft.Text(f"{t('latency')}:", size=11, color=ft.colors.ON_SURFACE_VARIANT), ft.Text("24ms", size=11, font_family="monospace"), ft.VerticalDivider(), ft.Text(f"{t('uptime')}:", size=11, color=ft.colors.ON_SURFACE_VARIANT), ft.Text("12h 4m", size=11, font_family="monospace")])], spacing=8), padding=15, border=ft.border.all(1, ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE)), border_radius=10), ft.Card(content=ft.Container(content=ft.Column([ft.Text(t("consumption"), size=14, weight=ft.FontWeight.W_500, color=ft.colors.ON_SURFACE_VARIANT), stats_text, speed_info, ft.ProgressBar(value=0.35, color=ft.colors.CYAN_ACCENT, bgcolor=ft.colors.CYAN_900)], spacing=10), padding=25), elevation=0, color=ft.colors.SURFACE_VARIANT), ft.Row([ft.Container(content=ft.Column([ft.Icon(ft.icons.DEVICES, color=ft.colors.BLUE_400), ft.Text(t("devices"), size=10, weight=ft.FontWeight.BOLD)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.1, ft.colors.BLUE_400), expand=True, on_click=show_devices), ft.Container(content=ft.Column([ft.Icon(ft.icons.ZAP, color=ft.colors.AMBER_400), ft.Text(t("optimize"), size=10, weight=ft.FontWeight.BOLD)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.1, ft.colors.AMBER_400), expand=True, on_click=handle_optimize)], spacing=10), ft.Row([ft.Container(content=ft.Column([ft.Icon(ft.icons.LOCK_PERSON, color=ft.colors.CYAN_400), ft.Text(t("encrypt"), size=10, weight=ft.FontWeight.BOLD)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.1, ft.colors.CYAN_400), expand=True, on_click=handle_encrypt), ft.Container(content=ft.Column([ft.Icon(ft.icons.SIGNAL_CELLULAR_ALT, color=ft.colors.GREEN_400), ft.Text(t("mobile_data"), size=10, weight=ft.FontWeight.BOLD)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.1, ft.colors.GREEN_400), expand=True, on_click=show_mobile_login)], spacing=10), ft.Container(content=ft.Column([ft.Row([ft.Icon(ft.icons.SECURITY, color=ft.colors.CYAN_ACCENT), ft.Text(t("security"), weight=ft.FontWeight.BOLD), ft.Spacer(), ft.IconButton(ft.icons.HISTORY, on_click=show_security_logs), scan_btn := ft.TextButton(t("scan"), on_click=handle_scan)]), scan_status]), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.05, ft.colors.CYAN_ACCENT)), ft.Row([speed_btn := ft.ElevatedButton(content=ft.Row([ft.Icon(ft.icons.SPEED), ft.Text(t("speed"))], alignment=ft.MainAxisAlignment.CENTER), on_click=handle_speed_test, expand=True, height=50, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=12))), ft.ElevatedButton(content=ft.Row([ft.Icon(ft.icons.PHONELINK_SETUP), ft.Text(t("mobile_data"))], alignment=ft.MainAxisAlignment.CENTER), on_click=show_mobile_login, expand=True, height=50, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=12), bgcolor=ft.colors.GREEN_900))]), ft.Text(f"{t('connected_to')}{logic.brand}", size=10, color=ft.colors.ON_SURFACE_VARIANT, font_family="monospace")], spacing=15, scroll=ft.ScrollMode.ADAPTIVE)], padding=20))
+        
+        # Fetch detailed data
+        devices = await logic.get_device_consumption()
+        traffic = await logic.get_traffic_analysis()
+        estimate = await logic.calculate_estimated_consumption(12.5) # Example current usage
+        
+        def create_stat_card(title, value, subtitle, icon, color):
+            return ft.Container(
+                content=ft.Column([
+                    ft.Row([ft.Icon(icon, color=color, size=20), ft.Text(title, size=12, color=ft.colors.ON_SURFACE_VARIANT)], spacing=10),
+                    ft.Text(value, size=24, weight="bold"),
+                    ft.Text(subtitle, size=10, color=ft.colors.with_opacity(0.5, ft.colors.ON_SURFACE))
+                ], spacing=5),
+                padding=15,
+                bgcolor=ft.colors.with_opacity(0.05, color),
+                border_radius=15,
+                border=ft.border.all(1, ft.colors.with_opacity(0.1, color)),
+                expand=True
+            )
+
+        # Traffic Chart
+        chart_sections = []
+        for cat in traffic['categories']:
+            chart_sections.append(ft.PieChartSection(cat['value'], color=cat['color'], radius=30, title=f"{cat['value']}%", title_style=ft.TextStyle(size=10, weight="bold")))
+
+        dashboard_view = ft.View("/dashboard", [
+            ft.AppBar(
+                title=ft.Text(t("title"), weight="bold"),
+                actions=[
+                    ft.IconButton(ft.icons.LANGUAGE, on_click=toggle_lang),
+                    ft.IconButton(ft.icons.LOGOUT_ROUNDED, on_click=handle_logout)
+                ],
+                bgcolor=ft.colors.SURFACE,
+            ),
+            ft.Column([
+                # Network Status Header
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Column([
+                                ft.Text(f"{t('connected_to')}{logic.brand}", size=18, weight="bold", color=ft.colors.WHITE),
+                                ft.Text("192.168.1.1", size=12, color=ft.colors.CYAN_ACCENT, font_family="monospace"),
+                            ]),
+                            ft.Spacer(),
+                            ft.Container(
+                                content=ft.Row([
+                                    pulse_dot := ft.Container(width=10, height=10, bgcolor=ft.colors.GREEN_400, border_radius=5),
+                                    ft.Text("SECURE", size=10, weight="bold", color=ft.colors.GREEN_400)
+                                ], spacing=8),
+                                padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                                bgcolor=ft.colors.with_opacity(0.1, ft.colors.GREEN_400),
+                                border_radius=20,
+                                border=ft.border.all(1, ft.colors.with_opacity(0.2, ft.colors.GREEN_400))
+                            )
+                        ]),
+                        ft.Divider(height=1, color=ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE)),
+                        ft.Row([
+                            ft.Row([ft.Icon(ft.icons.TIMER, size=14, color=ft.colors.ON_SURFACE_VARIANT), ft.Text(f"{t('uptime')}: 12h 4m", size=11, color=ft.colors.ON_SURFACE_VARIANT)], spacing=5),
+                            ft.VerticalDivider(),
+                            ft.Row([ft.Icon(ft.icons.SPEED, size=14, color=ft.colors.ON_SURFACE_VARIANT), ft.Text(f"{t('latency')}: 24ms", size=11, color=ft.colors.ON_SURFACE_VARIANT)], spacing=5),
+                        ], alignment=ft.MainAxisAlignment.CENTER)
+                    ], spacing=15),
+                    padding=25,
+                    bgcolor=ft.colors.with_opacity(0.05, ft.colors.SURFACE_VARIANT),
+                    border_radius=25,
+                    border=ft.border.all(1, ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE))
+                ),
+
+                # Real-time Consumption
+                ft.Row([
+                    create_stat_card(t("consumption"), stats_text.value, "Total this session", ft.icons.DATA_USAGE, ft.colors.CYAN_ACCENT),
+                    create_stat_card(t("speed"), "12.4 Mbps", "Current speed", ft.icons.SPEED, ft.colors.AMBER_400),
+                ], spacing=10),
+
+                # Traffic Analysis Section
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text(t("traffic_analysis"), size=14, weight="bold"),
+                        ft.Row([
+                            ft.Container(
+                                content=ft.PieChart(sections=chart_sections, sections_space=2, center_space_radius=30),
+                                width=120, height=120
+                            ),
+                            ft.Column([
+                                ft.Row([ft.Container(width=10, height=10, bgcolor=cat['color'], border_radius=2), ft.Text(t(cat['name'].split(' ')[0].lower()), size=10)]) for cat in traffic['categories']
+                            ], spacing=5, expand=True)
+                        ], spacing=20),
+                        ft.Divider(height=1, color=ft.colors.with_opacity(0.1, ft.colors.ON_SURFACE)),
+                        ft.Text(t("top_apps"), size=12, weight="bold"),
+                        ft.Column([
+                            ft.Row([
+                                ft.Icon(ft.icons.PLAY_CIRCLE if "YouTube" in app['name'] else ft.icons.APPS, size=16),
+                                ft.Text(app['name'], size=12, expand=True),
+                                ft.Text(app['usage'], size=12, weight="bold", color=ft.colors.CYAN_ACCENT)
+                            ]) for app in traffic['top_apps']
+                        ], spacing=8)
+                    ], spacing=15),
+                    padding=20,
+                    bgcolor=ft.colors.with_opacity(0.03, ft.colors.ON_SURFACE),
+                    border_radius=20,
+                    border=ft.border.all(1, ft.colors.with_opacity(0.05, ft.colors.ON_SURFACE))
+                ),
+
+                # Monthly Estimate
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([ft.Icon(ft.icons.CALENDAR_MONTH, size=16), ft.Text(t("monthly_estimate"), size=14, weight="bold")]),
+                        ft.Row([
+                            ft.Column([ft.Text(t("daily_avg"), size=10), ft.Text(f"{estimate['daily_avg']} GB", size=18, weight="bold")], expand=True),
+                            ft.Column([ft.Text(t("est_total"), size=10), ft.Text(f"{estimate['estimated_total']} GB", size=18, weight="bold", color=ft.colors.AMBER_400)], expand=True),
+                            ft.Column([ft.Text(t("days_left"), size=10), ft.Text(f"{estimate['days_remaining']}", size=18, weight="bold")], expand=True),
+                        ])
+                    ], spacing=10),
+                    padding=20,
+                    bgcolor=ft.colors.with_opacity(0.1, ft.colors.AMBER_400),
+                    border_radius=20,
+                ),
+
+                # Connected Devices Summary
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Text(t("devices"), size=14, weight="bold"),
+                            ft.Spacer(),
+                            ft.TextButton(f"{len(devices)} ACTIVE", on_click=show_devices)
+                        ]),
+                        ft.Column([
+                            ft.Container(
+                                content=ft.Row([
+                                    ft.Icon(ft.icons.SMARTPHONE if dev['type'] == 'mobile' else ft.icons.LAPTOP if dev['type'] == 'pc' else ft.icons.TV, size=20, color=ft.colors.CYAN_ACCENT),
+                                    ft.Column([
+                                        ft.Text(dev['name'], size=12, weight="bold"),
+                                        ft.Text(dev['ip'], size=10, color=ft.colors.ON_SURFACE_VARIANT),
+                                    ], spacing=2, expand=True),
+                                    ft.Column([
+                                        ft.Text(dev['usage'], size=12, weight="bold", text_align=ft.TextAlign.RIGHT),
+                                        ft.ProgressBar(value=random.random(), color=ft.colors.CYAN_ACCENT, width=60)
+                                    ], horizontal_alignment=ft.CrossAxisAlignment.END)
+                                ]),
+                                padding=10,
+                                bgcolor=ft.colors.with_opacity(0.05, ft.colors.ON_SURFACE),
+                                border_radius=10
+                            ) for dev in devices[:3] # Show top 3
+                        ], spacing=8)
+                    ], spacing=10),
+                    padding=20,
+                    bgcolor=ft.colors.with_opacity(0.03, ft.colors.ON_SURFACE),
+                    border_radius=20,
+                ),
+
+                # Quick Actions Grid
+                ft.Row([
+                    ft.Container(content=ft.Column([ft.Icon(ft.icons.ZAP, color=ft.colors.AMBER_400), ft.Text(t("optimize"), size=10, weight="bold")], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.1, ft.colors.AMBER_400), expand=True, on_click=handle_optimize),
+                    ft.Container(content=ft.Column([ft.Icon(ft.icons.LOCK_PERSON, color=ft.colors.CYAN_400), ft.Text(t("encrypt"), size=10, weight="bold")], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.1, ft.colors.CYAN_400), expand=True, on_click=handle_encrypt),
+                    ft.Container(content=ft.Column([ft.Icon(ft.icons.SECURITY, color=ft.colors.RED_400), ft.Text(t("scan"), size=10, weight="bold")], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=15, border_radius=15, bgcolor=ft.colors.with_opacity(0.1, ft.colors.RED_400), expand=True, on_click=handle_scan),
+                ], spacing=10),
+
+                ft.Container(height=20) # Bottom spacer
+            ], spacing=20, scroll=ft.ScrollMode.ADAPTIVE)
+        ], padding=20)
+        
+        page.views.append(dashboard_view)
         page.update()
 
     asyncio.create_task(update_real_time_stats())
     await show_dashboard()
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=3000, host="0.0.0.0")

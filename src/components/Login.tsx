@@ -11,15 +11,31 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ lang, onLogin }) => {
   const [loading, setLoading] = useState(false);
+  const [ip, setIp] = useState('192.168.1.1');
+  const [user, setUser] = useState('admin');
+  const [pass, setPass] = useState('');
   const cur = TRANSLATIONS[lang];
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/router/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip, user, password: pass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        onLogin();
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      alert("Connection failed. Please check your router IP.");
+    } finally {
       setLoading(false);
-      onLogin();
-    }, 1500);
+    }
   };
 
   return (
@@ -43,8 +59,9 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin }) => {
             <input 
               type="text" 
               placeholder="192.168.1.1"
+              value={ip}
+              onChange={(e) => setIp(e.target.value)}
               className="bg-transparent border-none outline-none py-3 text-sm w-full text-white placeholder:text-white/20"
-              defaultValue="192.168.1.1"
             />
           </div>
           <div className="glass-card p-1 flex items-center gap-3 px-4 focus-within:border-cyan-400/50 transition-colors">
@@ -52,8 +69,9 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin }) => {
             <input 
               type="text" 
               placeholder="admin"
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
               className="bg-transparent border-none outline-none py-3 text-sm w-full text-white placeholder:text-white/20"
-              defaultValue="admin"
             />
           </div>
           <div className="glass-card p-1 flex items-center gap-3 px-4 focus-within:border-cyan-400/50 transition-colors">
@@ -61,6 +79,8 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin }) => {
             <input 
               type="password" 
               placeholder="••••••••"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
               className="bg-transparent border-none outline-none py-3 text-sm w-full text-white placeholder:text-white/20"
             />
           </div>
