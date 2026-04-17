@@ -18,6 +18,9 @@ from core.routers.tplink import TPLinkDriver
 from core.routers.dlink import DLinkDriver
 from core.routers.nokia import NokiaDriver
 from core.routers.netgear import NetgearDriver
+from core.routers.asus import ASUSDriver
+from core.routers.linksys import LinksysDriver
+from core.routers.keenetic import KeeneticDriver
 
 # Scapy for deep network analysis
 try:
@@ -67,6 +70,15 @@ class LogicLayer:
                     elif any(x in html or x in server or x in title_text for x in ["netgear", "wnr", "wndr"]):
                         self.brand = "Netgear"
                         self.driver = NetgearDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["asus", "rt-ac", "rt-ax"]):
+                        self.brand = "ASUS"
+                        self.driver = ASUSDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["linksys", "smart wi-fi", "jnap"]):
+                        self.brand = "Linksys"
+                        self.driver = LinksysDriver(ip, user, password)
+                    elif any(x in html or x in server or x in title_text for x in ["keenetic", "kn-"]):
+                        self.brand = "Keenetic"
+                        self.driver = KeeneticDriver(ip, user, password)
                     else:
                         self.brand = "Generic"
                         self.driver = None

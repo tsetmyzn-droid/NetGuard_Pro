@@ -16,6 +16,11 @@ venv/
 ENV/
 .env
 
-# App Specific
-netguard_pro.db
-secret.key
+# Security
+.env
+*.pem
+*.key
+*.crt
+secrets/
+config/local.json
+build_logs/

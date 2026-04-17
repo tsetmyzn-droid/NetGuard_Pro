@@ -7,16 +7,25 @@
     "dev": "tsx server.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "tsc"
+    "lint": "tsc",
+    "security:check": "npm audit --audit-level=moderate",
+    "security:fix": "npm audit fix --force",
+    "dep:check": "npm outdated --long"
+  },
+  "overrides": {
+    "protobufjs": "7.5.5"
   },
   "dependencies": {
-    "@google/genai": "^1.49.0",
+    "@google/genai": "^1.50.1",
     "axios": "^1.15.0",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
+    "helmet": "^8.1.0",
     "lucide-react": "^0.454.0",
     "motion": "^11.11.11",
+    "protobufjs": "^7.5.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.8.1",

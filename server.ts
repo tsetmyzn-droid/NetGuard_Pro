@@ -4,6 +4,8 @@ import axios from "axios";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 
 async function startServer() {
   const app = express();
@@ -22,6 +24,21 @@ async function startServer() {
     fs.appendFileSync(SYSTEM_LOG, entry);
     console.log(entry.trim());
   };
+
+  // Security Headers
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP for easier preview compatibility
+    crossOriginEmbedderPolicy: false
+  }));
+
+  // Rate Limiting
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use("/api/", limiter);
 
   app.use(cors());
   app.use(express.json());
