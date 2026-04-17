@@ -25,6 +25,7 @@ interface SidebarProps {
   lang: Language;
   onToggleLang: () => void;
   onLogout: () => void;
+  isLoggedIn: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -34,16 +35,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onViewChange, 
   lang, 
   onToggleLang,
-  onLogout 
+  onLogout,
+  isLoggedIn
 }) => {
   const cur = TRANSLATIONS[lang];
 
-  const menuItems = [
+  const menuItems = isLoggedIn ? [
     { id: 'dashboard', icon: LayoutDashboard, label: cur.dashboard },
     { id: 'logs', icon: Shield, label: cur.threats },
     { id: 'build_logs', icon: Terminal, label: 'Build Logs' },
     { id: 'settings', icon: Settings, label: 'Settings' },
     { id: 'about', icon: Info, label: 'About' },
+  ] : [
+    { id: 'login', icon: Lock, label: 'Login' },
+    { id: 'build_logs', icon: Terminal, label: 'Build Logs' },
   ];
 
   return (
@@ -130,13 +135,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <span className="text-[10px] font-bold bg-white/5 px-2 py-1 rounded uppercase">{lang}</span>
               </button>
-              <button 
-                onClick={onLogout}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="text-sm">Logout</span>
-              </button>
+              {isLoggedIn && (
+                <button 
+                  onClick={onLogout}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="text-sm">Logout</span>
+                </button>
+              )}
             </div>
           </motion.div>
         </>

@@ -7,9 +7,10 @@ import { TRANSLATIONS } from '../constants';
 interface LoginProps {
   lang: Language;
   onLogin: () => void;
+  onViewLogs: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ lang, onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
   const [loading, setLoading] = useState(false);
   const [ip, setIp] = useState('192.168.1.1');
   const [user, setUser] = useState('admin');
@@ -100,6 +101,16 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin }) => {
             )}
           </button>
         </form>
+
+        <div className="pt-8 border-t border-white/5">
+          <button 
+            onClick={onViewLogs}
+            className="text-xs text-white/40 hover:text-cyan-400 transition-colors flex items-center justify-center gap-2 mx-auto"
+          >
+            <Shield className="w-4 h-4" />
+            View System Logs (Public)
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -39,8 +39,8 @@ function App() {
 
   const cur = TRANSLATIONS[lang];
 
-  if (!isLoggedIn) {
-    return <Login lang={lang} onLogin={handleLogin} />;
+  if (!isLoggedIn && view !== 'build_logs') {
+    return <Login lang={lang} onLogin={handleLogin} onViewLogs={() => setView('build_logs')} />;
   }
 
   return (
@@ -54,6 +54,7 @@ function App() {
         lang={lang}
         onToggleLang={toggleLang}
         onLogout={handleLogout}
+        isLoggedIn={isLoggedIn}
       />
 
       {/* Header */}
@@ -86,7 +87,7 @@ function App() {
       </main>
 
       {/* Navigation */}
-      <Navigation activeView={view} onViewChange={setView} />
+      <Navigation activeView={view} onViewChange={setView} isLoggedIn={isLoggedIn} />
 
       {/* Background Glows */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] pointer-events-none" />

@@ -3,28 +3,67 @@ import cors from "cors";
 import axios from "axios";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import fs from "fs";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const LOG_DIR = path.join(process.cwd(), 'build_logs');
+  const SYSTEM_LOG = path.join(LOG_DIR, 'system.log');
+
+  // Ensure log directory exists
+  if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR);
+  }
+
+  // Logger Utility
+  const logToSystem = (level: 'INFO' | 'ERROR' | 'WARN', message: string) => {
+    const entry = `[${new Date().toISOString()}] [${level}] ${message}\n`;
+    fs.appendFileSync(SYSTEM_LOG, entry);
+    console.log(entry.trim());
+  };
 
   app.use(cors());
   app.use(express.json());
+
+  // Logging Middleware - Captures every request from the preview system
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      logToSystem('INFO', `${req.method} ${req.path} - Status: ${res.statusCode} (${duration}ms)`);
+    });
+    next();
+  });
+
+  // API to fetch logs for the UI
+  app.get("/api/system/logs", (req, res) => {
+    try {
+      if (fs.existsSync(SYSTEM_LOG)) {
+        const logs = fs.readFileSync(SYSTEM_LOG, 'utf-8');
+        res.send(logs);
+      } else {
+        res.send("No logs found.");
+      }
+    } catch (error) {
+      res.status(500).send("Error reading logs");
+    }
+  });
 
   // --- Router Drivers (Node.js Implementation) ---
   
   // Huawei Driver Logic
   app.post("/api/router/login", async (req, res) => {
     const { ip, user, password } = req.body;
+    logToSystem('INFO', `Login attempt for IP: ${ip} by user: ${user}`);
     try {
-      // Simple detection and login simulation for now
-      // In a real scenario, we'd use axios to call the router API
       const response = await axios.get(`http://${ip}`, { timeout: 3000 }).catch(() => null);
       let brand = "Generic";
       if (response && response.data.toLowerCase().includes("huawei")) brand = "Huawei";
       
       res.json({ success: true, brand, message: `Connected to ${brand} Gateway` });
     } catch (error) {
+      logToSystem('ERROR', `Login failed for ${ip}: ${error}`);
       res.status(500).json({ success: false, message: "Connection failed" });
     }
   });
@@ -97,7 +136,13 @@ async function startServer() {
   // --- Vite Middleware ---
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        fs: {
+          strict: true,
+          allow: [process.cwd()]
+        }
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

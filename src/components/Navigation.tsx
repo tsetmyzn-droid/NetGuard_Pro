@@ -1,19 +1,26 @@
 import React from 'react';
-import { LayoutDashboard, Shield, Brain } from 'lucide-react';
+import { LayoutDashboard, Shield, Terminal, Lock } from 'lucide-react';
 import { View } from '../types';
 
 interface NavigationProps {
   activeView: View;
   onViewChange: (view: View) => void;
+  isLoggedIn: boolean;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange }) => {
+export const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, isLoggedIn }) => {
+  const items = isLoggedIn ? [
+    { id: 'dashboard', icon: LayoutDashboard },
+    { id: 'logs', icon: Shield },
+    { id: 'build_logs', icon: Terminal },
+  ] : [
+    { id: 'login', icon: Lock },
+    { id: 'build_logs', icon: Terminal },
+  ];
+
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-sm glass-card p-2 flex items-center justify-around z-50">
-      {[
-        { id: 'dashboard', icon: LayoutDashboard },
-        { id: 'logs', icon: Shield },
-      ].map((item) => (
+      {items.map((item) => (
         <button
           key={item.id}
           onClick={() => onViewChange(item.id as View)}
