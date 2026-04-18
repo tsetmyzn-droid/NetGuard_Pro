@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
-import { Menu, Shield, Zap, Bell } from 'lucide-react';
-import { Language, TRANSLATIONS } from './constants';
+import { Menu, Shield, Zap, Bell, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { BuildLogs } from './pages/BuildLogs';
+import { Devices } from './pages/Devices';
 import { Login } from './components/Login/Login';
+import { useTheme } from './lib/theme';
+import { useI18n } from './lib/i18n';
 
 function App() {
   const [view, setView] = useState('dashboard');
-  const [lang, setLang] = useState<Language>('ar');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  
+  const { theme, toggleTheme } = useTheme();
+  const { lang, setLanguage, t } = useI18n();
 
-  const cur = TRANSLATIONS[lang];
   const isRtl = lang === 'ar';
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn && view !== 'build_logs') {
     return (
       <Login 
         lang={lang} 
@@ -28,18 +31,18 @@ function App() {
   }
 
   const toggleLang = () => {
-    setLang(prev => prev === 'ar' ? 'en' : 'ar');
-  };
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setLanguage(lang === 'ar' ? 'en' : 'ar');
   };
 
   return (
     <div 
       dir={isRtl ? 'rtl' : 'ltr'}
-      className={`min-h-screen bg-[#060606] tech-grid text-white transition-colors selection:bg-cyan-500 selection:text-black ${theme === 'light' ? 'bg-slate-50 text-slate-900' : ''}`}
+      className={`min-h-screen tech-grid transition-colors selection:bg-cyan-500 selection:text-black ${theme === 'dark' ? 'bg-[#060606] text-white' : 'bg-slate-50 text-slate-900'}`}
     >
+      {/* Immersive Scanner Effect */}
+      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden opacity-20">
+        <div className="scanner-line" />
+      </div>
       
       {/* Sidebar Navigation */}
       <Sidebar 
@@ -56,42 +59,71 @@ function App() {
       />
 
       {/* Main Layout Wrapper */}
-      <div className={`transition-all duration-300 min-h-screen flex flex-col ${isRtl ? 'lg:mr-72' : 'lg:ml-72'}`}>
+      <div className={`transition-all duration-500 min-h-screen flex flex-col ${isRtl ? 'lg:mr-72' : 'lg:ml-72'}`}>
         
         {/* Top Header */}
-        <header className="px-4 md:px-8 py-6 flex items-center justify-between sticky top-0 bg-[#060606]/80 backdrop-blur-xl z-50 border-b border-white/5">
-          <div className="flex items-center gap-4">
+        <header className="px-6 md:px-10 py-8 flex items-center justify-between sticky top-0 bg-[#060606]/60 backdrop-blur-2xl z-50 border-b border-white/5">
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+              className="lg:hidden p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
             >
               <Menu className="w-5 h-5 text-cyan-400" />
             </button>
-            <div className="flex items-center gap-2">
-              <Shield className="w-6 h-6 text-cyan-400" />
-              <h1 className="text-xl font-black tracking-tighter leading-none">
-                NetGuard <span className="text-cyan-400">Pro</span>
-              </h1>
+            <div className="flex items-center gap-3 group cursor-default">
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 group-hover:scale-110 transition-transform duration-500">
+                <Shield className="w-7 h-7 text-cyan-400 glow-text" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black tracking-tighter leading-none font-display">
+                  {t('title').split(' ')[0]} <span className="text-cyan-400">{t('title').split(' ')[1]}</span>
+                </h1>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-cyan-400/60">Enterprise OS 1.0</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                <Zap className="w-3 h-3 text-cyan-400 animate-pulse" />
-                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-tighter">12.4 Mb/s</span>
+          <div className="flex items-center gap-6">
+             <div className="hidden md:flex items-center gap-4 px-4 py-2 rounded-2xl bg-white/[0.02] border border-white/5">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span className="text-xs font-black text-white uppercase tracking-tighter">12.4 <span className="opacity-40">Mb/s</span></span>
+                </div>
+                <div className="w-px h-4 bg-white/10" />
+                <div className="flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-xs font-black text-white uppercase tracking-tighter">99.9 <span className="opacity-40">%</span></span>
+                </div>
              </div>
-             <button className="p-2.5 rounded-xl bg-white/5 border border-white/10 relative hover:bg-white/10 transition-all">
-                <Bell className="w-5 h-5 text-white/60" />
-                <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+             <button className="p-3 rounded-2xl bg-white/5 border border-white/10 relative hover:bg-white/10 transition-all group overflow-hidden">
+                <Bell className="w-5 h-5 text-white/60 group-hover:text-cyan-400 transition-colors" />
+                <div className="absolute top-3 right-3 w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_12px_rgba(34,211,238,1)] border-2 border-[#060606]" />
              </button>
           </div>
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
-           {view === 'dashboard' && <Dashboard lang={lang} />}
-           {view === 'settings' && <Settings lang={lang} />}
-           {view === 'build_logs' && <BuildLogs lang={lang} />}
+        <main className="flex-1 p-6 md:p-12 max-w-7xl w-full mx-auto">
+           <div className="relative overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={view}
+                  initial={{ opacity: 0, x: isRtl ? 20 : -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: isRtl ? -20 : 20 }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
+                  className="w-full"
+                >
+                  {view === 'dashboard' && <Dashboard />}
+                  {view === 'devices' && <Devices />}
+                  {view === 'settings' && <Settings />}
+                  {view === 'build_logs' && <BuildLogs onViewChange={setView} isLoggedIn={isLoggedIn} />}
+                </motion.div>
+              </AnimatePresence>
+           </div>
         </main>
 
         <footer className="p-8 text-center text-[10px] font-bold text-white/10 uppercase tracking-[0.2em]">

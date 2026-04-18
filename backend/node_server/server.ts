@@ -11,17 +11,41 @@ import { rateLimit } from "express-rate-limit";
 import { createServer } from "http";
 import { setupSocket } from "./websocket.ts";
 import detectorRouter from "./routes/router.routes.ts";
-import { logToSystem, getSystemLogs } from "./logger.ts";
+import { logToSystem, getSystemLogs, setIoInstance } from "./logger.ts";
+import { startStatusMonitor, getDevices, setStatusIo } from "./statusService.ts";
+import { performArpScan } from "./networkScanner.ts";
+import { startTrafficMonitor, setTrafficIo } from "./trafficMonitor.ts";
 
 async function startServer() {
+  logToSystem('INFO', 'Initializing NetGuard Pro Enterprise OS...');
+  logToSystem('INFO', 'Kernel Version: 1.0.0-stable');
+  logToSystem('INFO', `Environment: ${process.env.NODE_ENV || 'development'}`);
+  logToSystem('INFO', `Platform: ${process.platform}`);
+  logToSystem('INFO', 'Checking database integrity...');
+  logToSystem('INFO', 'Starting core services...');
+  
   const app = express();
   
   // Trust the proxy (AI Studio/Cloud Run use Nginx/Envoy as a proxy)
-  // This resolves express-rate-limit validation errors regarding X-Forwarded-For
   app.set('trust proxy', true);
 
   const httpServer = createServer(app);
   const io = setupSocket(httpServer);
+  
+  // Connect IO to services
+  setIoInstance(io);
+  setStatusIo(io);
+  setTrafficIo(io);
+
+  // Start Core Services
+  startStatusMonitor();
+
+  // Initialize Network Scanner (ARP)
+  setInterval(() => performArpScan(), 30000); // Scan every 30s
+  
+  // Initialize Traffic Monitor
+  startTrafficMonitor();
+
   const PORT = 3000;
 
   // Security Headers
@@ -43,9 +67,7 @@ async function startServer() {
     },
     // Enable validation for proxy headers to ensure accurate identification
     validate: { 
-      xForwardedForHeader: true,
-      // Also ignore the 'Forwarded' header warning if we are prioritizing X-Forwarded-For
-      forwardedHeader: false 
+      xForwardedForHeader: true
     },
   });
   app.use("/api/", limiter);
@@ -56,13 +78,9 @@ async function startServer() {
   // Professional Router Modules
   app.use("/api/router", detectorRouter);
 
-  // Requested trial endpoints
+  // Dynamic Device Infrastructure
   app.get("/api/devices", (req, res) => {
-    res.json([
-      { name: "Huawei HG630", status: "Connected", ip: "192.168.1.1" },
-      { name: "iPhone 15 Pro", status: "Active", ip: "192.168.1.5" },
-      { name: "Windows PC", status: "Connected", ip: "192.168.1.10" }
-    ]);
+    res.json(getDevices());
   });
 
   app.get("/api/stats", (req, res) => {

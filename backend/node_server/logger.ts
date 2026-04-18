@@ -30,7 +30,9 @@ export const logToSystem = (level: 'INFO' | 'ERROR' | 'WARN', message: string) =
 
 export const getSystemLogs = () => {
   if (fs.existsSync(SYSTEM_LOG)) {
-    return fs.readFileSync(SYSTEM_LOG, 'utf-8');
+    const content = fs.readFileSync(SYSTEM_LOG, 'utf-8');
+    const lines = content.split('\n');
+    return lines.slice(-100).join('\n');
   }
   return "No logs recorded yet.";
 };

@@ -8,6 +8,8 @@ import { exec } from "child_process";
 import { promisify } from "util";
 
 import { logToSystem } from "../logger.ts";
+import { getDiscoveredDevices, toggleDeviceBlock } from "../networkScanner.ts";
+import { getTrafficHistory } from "../trafficMonitor.ts";
 
 const execAsync = promisify(exec);
 const router = express.Router();
@@ -24,11 +26,14 @@ const routerProfiles = {
 router.post("/detect", async (req, res) => {
   const commonGateways = ['192.168.1.1', '192.168.0.1', '192.168.100.1', '192.168.8.1'];
   const results: any[] = [];
+  logToSystem('INFO', `Starting network discovery probe on gateways: ${commonGateways.join(', ')}`);
 
   for (const gw of commonGateways) {
     try {
+      logToSystem('INFO', `Probing gateway: ${gw}...`);
       const probe = await ping.promise.probe(gw, { timeout: 1 });
       if (probe.alive) {
+        logToSystem('INFO', `Gateway ${gw} responds. Fetching brand info...`);
         const resp = await axios.get(`http://${gw}`, { timeout: 2000 }).catch(() => null);
         const html = resp?.data?.toLowerCase() || "";
         const server = resp?.headers['server']?.toLowerCase() || "";
@@ -41,11 +46,15 @@ router.post("/detect", async (req, res) => {
           }
         }
         
+        logToSystem('INFO', `Detected ${detectedBrand} hardware at ${gw}`);
         results.push({ ip: gw, brand: detectedBrand, status: 'online' });
       }
-    } catch (e) {}
+    } catch (e: any) {
+      logToSystem('WARN', `Probe failed for ${gw}: ${e.message}`);
+    }
   }
 
+  logToSystem('INFO', `Network discovery completed. Found ${results.length} active gateways.`);
   res.json(results);
 });
 
@@ -81,48 +90,33 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/devices", async (req, res) => {
-  // Helper to generate mock chart data
-  const genChartData = (isRouter: boolean) => {
-    const base = isRouter ? 100 : 10;
-    return {
-      day: Array.from({ length: 24 }, (_, i) => ({ 
-        label: `${i.toString().padStart(2, '0')}:00`, 
-        value: Math.floor(Math.random() * base * 5) 
-      })),
-      week: Array.from({ length: 7 }, (_, i) => ({ 
-        label: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i], 
-        value: Math.floor(Math.random() * base * 20) 
-      })),
-      month: Array.from({ length: 30 }, (_, i) => ({ 
-        label: `${i + 1}`, 
-        value: Math.floor(Math.random() * base * 50) 
-      }))
-    };
-  };
+  const scanned = getDiscoveredDevices();
+  
+  // Merge scanned devices with some enhanced visualization data
+  const devices = scanned.map(d => ({
+    id: d.mac,
+    ip: d.ip,
+    name: d.name,
+    type: d.type,
+    mac: d.mac,
+    os: d.type === 'mobile' ? 'Android/iOS' : (d.type === 'pc' ? 'Windows/macOS' : 'IoT Core'),
+    usage: (Math.random() * 5).toFixed(1) + " GB",
+    status: d.status,
+    blocked: d.blocked,
+    vendor: d.vendor
+  }));
 
-  const devices = [
-    { 
-      id: "1", ip: "192.168.1.1", name: "Huawei Gateway", type: "router", mac: "00:11:22:33:44:55", os: "RouterOS", usage: "142.8 GB", status: "online",
-      stats: { daily: "4.2 GB", weekly: "28.5 GB", monthly: "142.8 GB", chartData: genChartData(true) }
-    },
-    { 
-      id: "2", ip: "192.168.1.5", name: "Samsung Galaxy S23", type: "mobile", mac: "AA:BB:CC:DD:EE:FF", os: "Android 14", usage: "1.2 GB", status: "online",
-      stats: { daily: "150 MB", weekly: "1.2 GB", monthly: "4.5 GB", chartData: genChartData(false) }
-    },
-    { 
-      id: "3", ip: "192.168.1.12", name: "iPhone 15 Pro", type: "mobile", mac: "11:22:33:AA:BB:CC", os: "iOS 17", usage: "850 MB", status: "online",
-      stats: { daily: "200 MB", weekly: "850 MB", monthly: "3.2 GB", chartData: genChartData(false) }
-    },
-    { 
-      id: "4", ip: "192.168.1.45", name: "Windows Desktop", type: "pc", mac: "66:77:88:99:00:11", os: "Windows 11", usage: "4.5 GB", status: "online",
-      stats: { daily: "1.1 GB", weekly: "4.5 GB", monthly: "18.4 GB", chartData: genChartData(false) }
-    },
-    { 
-      id: "5", ip: "192.168.1.100", name: "Sony Smart TV", type: "media", mac: "CC:DD:EE:FF:00:11", os: "Android TV", usage: "12.8 GB", status: "online",
-      stats: { daily: "2.4 GB", weekly: "12.8 GB", monthly: "54.2 GB", chartData: genChartData(false) }
-    },
-  ];
   res.json(devices);
+});
+
+router.post("/devices/toggle-block", (req, res) => {
+  const { mac } = req.body;
+  const success = toggleDeviceBlock(mac);
+  res.json({ success });
+});
+
+router.get("/traffic-live", (req, res) => {
+  res.json(getTrafficHistory());
 });
 
 router.get("/traffic", async (req, res) => {

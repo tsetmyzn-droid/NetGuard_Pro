@@ -12,6 +12,7 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [ip, setIp] = useState('192.168.1.1');
   const [user, setUser] = useState('admin');
   const [pass, setPass] = useState('');
@@ -23,6 +24,19 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setStatus(lang === 'ar' ? 'جاري فحص الشبكة...' : 'Probing network...');
+    
+    // Status rotation for better UX
+    const statusIdx = { val: 0 };
+    const statuses = lang === 'ar' 
+      ? ['جاري فحص الشبكة...', 'محاولة الاتصال بالراوتر...', 'انتظار استجابة البوابة...', 'تحليل بروتوكول الأمان...']
+      : ['Probing network...', 'Attempting router handshake...', 'Waiting for gateway response...', 'Analyzing security protocol...'];
+    
+    const statusInterval = setInterval(() => {
+      statusIdx.val = (statusIdx.val + 1) % statuses.length;
+      setStatus(statuses[statusIdx.val]);
+    }, 2500);
+
     try {
       const res = await fetch('/api/router/login', {
         method: 'POST',
@@ -39,6 +53,8 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
       setError("Connection failed. The router could not be reached.");
     } finally {
       setLoading(false);
+      setStatus(null);
+      clearInterval(statusInterval);
     }
   };
 
@@ -47,42 +63,31 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
       className={`min-h-screen flex flex-col items-center justify-center p-6 bg-[#0a0a0a] tech-grid overflow-hidden relative ${isRtl ? 'rtl' : 'ltr'}`}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
-      {/* Decorative Circles from Image */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-700/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-purple-900/10 rounded-full blur-[100px] pointer-events-none" />
       
-      <div className="w-full max-w-sm space-y-8 text-center relative z-10">
+      <div className="w-full max-w-sm space-y-10 text-center relative z-10">
         <div className="flex flex-col items-center">
-          <div className="relative mb-12">
-            {/* Pulsing Outer Ring */}
+          <div className="relative mb-8 group">
+            {/* Pulsing Outer Ratios */}
             <motion.div 
-              animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-              transition={{ duration: 4, repeat: Infinity }}
-              className="absolute -inset-8 border border-cyan-400/20 rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="absolute -inset-12 border border-dashed border-cyan-400/10 rounded-full"
             />
-            {/* Device Icons Cluster */}
-            <div className="relative w-48 h-48 flex items-center justify-center">
-              <div className="absolute inset-0 bg-gradient-to-b from-cyan-400/20 to-transparent rounded-full shadow-[0_0_50px_rgba(34,211,238,0.2)] flex items-center justify-center border border-cyan-400/30">
-                <div className="relative w-full h-full">
-                   {/* Central Arrow */}
-                   <motion.div 
-                     initial={{ y: 20, opacity: 0 }}
-                     animate={{ y: 0, opacity: 1 }}
-                     className="absolute inset-0 flex items-center justify-center"
-                   >
-                     <div className="relative">
-                        <div className="w-24 h-24 border-4 border-white/80 rounded-full flex items-center justify-center">
-                           <Shield className="w-12 h-12 text-white" />
-                        </div>
-                        <div className={`absolute -top-4 left-1/2 -translate-x-1/2 bg-[#0a0a0a] px-2 ${isRtl ? 'rotate-180' : ''}`}>
-                           <ChevronRight className="w-8 h-8 text-white -rotate-90" />
-                        </div>
-                     </div>
-                   </motion.div>
-                   {/* Satellite Devices */}
-                   <Smartphone className={`absolute top-1/2 ${isRtl ? 'right-4' : 'left-4'} -translate-y-1/2 w-6 h-6 text-white/40`} />
-                   <Laptop className="absolute top-4 left-1/2 -translate-x-1/2 w-6 h-6 text-white/40" />
-                   <Globe className={`absolute top-1/2 ${isRtl ? 'left-4' : 'right-4'} -translate-y-1/2 w-6 h-6 text-white/40`} />
-                </div>
+            <motion.div 
+              animate={{ rotate: -360 }}
+              transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+              className="absolute -inset-6 border border-dotted border-white/5 rounded-full"
+            />
+            
+            {/* Main Terminal Icon */}
+            <div className="relative w-40 h-40 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/20 via-transparent to-purple-400/10 rounded-3xl rotate-12 group-hover:rotate-45 transition-transform duration-700 border border-white/10" />
+              <div className="absolute inset-0 bg-[#111] rounded-3xl border border-white/10 flex items-center justify-center overflow-hidden">
+                <Shield className="w-16 h-16 text-cyan-400 glow-text" />
+                <div className="scanner-line !h-[1px]" />
               </div>
             </div>
           </div>
@@ -91,12 +96,13 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
+            className="space-y-1"
           >
-            <h1 className="text-4xl font-black tracking-tighter text-white uppercase mb-1">
-              NetGuard Pro
+            <h1 className="text-5xl font-black tracking-tighter text-white uppercase font-display italic">
+              NetGuard <span className="text-cyan-400">Pro</span>
             </h1>
-            <p className="text-cyan-400 text-[10px] font-bold tracking-[0.3em] uppercase opacity-70 mb-8">
-              {cur.rightToKnow}
+            <p className="text-cyan-400/40 text-[9px] font-black tracking-[0.5em] uppercase">
+              Secure Gateway Protocol Alpha
             </p>
           </motion.div>
         </div>
@@ -110,69 +116,93 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
         >
           {error && (
             <motion.div 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex flex-col gap-2"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-wider flex flex-col gap-2 backdrop-blur-md"
             >
               <div className="flex items-center gap-2">
-                <Shield className="w-3 h-3" />
+                <Shield className="w-4 h-4" />
                 {error}
               </div>
               <button 
                 type="button"
                 onClick={onLogin}
-                className="text-[9px] uppercase tracking-tighter text-red-400/60 hover:text-red-400 underline decoration-red-400/20 underline-offset-4 text-start"
+                className="text-[9px] text-red-300 hover:text-white transition-colors underline decoration-red-500/30 underline-offset-4"
               >
-                {lang === 'ar' ? 'أو تابع باستخدام الوضع التجريبي (Mock Mode)' : 'Or continue with Mock Mode'}
+                {lang === 'ar' ? 'أو تابع باستخدام الوضع التجريبي (Mock Mode)' : 'Force Authorization (Demo Mode)'}
               </button>
             </motion.div>
           )}
 
-          <div className="glass-card p-1 flex items-center gap-3 px-4 focus-within:border-cyan-400/50 transition-colors">
-            <Globe className="w-5 h-5 text-white/30 shrink-0" />
-            <input 
-              type="text" 
-              placeholder={cur.routerIp || "192.168.1.1"}
-              value={ip}
-              onChange={(e) => setIp(e.target.value)}
-              className="bg-transparent border-none outline-none py-3 text-sm w-full text-white placeholder:text-white/20"
-            />
-          </div>
-          <div className="glass-card p-1 flex items-center gap-3 px-4 focus-within:border-cyan-400/50 transition-colors">
-            <Shield className="w-5 h-5 text-white/30 shrink-0" />
-            <input 
-              type="text" 
-              placeholder={cur.username || "admin"}
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
-              className="bg-transparent border-none outline-none py-3 text-sm w-full text-white placeholder:text-white/20"
-            />
-          </div>
-          <div className="glass-card p-1 flex items-center gap-3 px-4 focus-within:border-cyan-400/50 transition-colors">
-            <Lock className="w-5 h-5 text-white/30 shrink-0" />
-            <input 
-              type="password" 
-              placeholder={cur.password || "••••••••"}
-              value={pass}
-              onChange={(e) => setPass(e.target.value)}
-              className="bg-transparent border-none outline-none py-3 text-sm w-full text-white placeholder:text-white/20"
-            />
+          <div className="space-y-4">
+            <div className="glass-card bg-white/5 flex items-center gap-4 px-6 focus-within:border-cyan-500/50 transition-all">
+              <Globe className="w-5 h-5 text-cyan-400 group-focus-within:animate-pulse" />
+              <div className="flex-1 text-right py-4">
+                <label className="block text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Gateway IP</label>
+                <input 
+                  type="text" 
+                  placeholder="192.168.1.1"
+                  value={ip}
+                  onChange={(e) => setIp(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm w-full text-white placeholder:text-white/10 font-bold"
+                />
+              </div>
+            </div>
+            
+            <div className="glass-card bg-white/5 flex items-center gap-4 px-6 focus-within:border-cyan-500/50 transition-all">
+              <Shield className="w-5 h-5 text-cyan-400" />
+              <div className="flex-1 text-right py-4">
+                <label className="block text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Authentication ID</label>
+                <input 
+                  type="text" 
+                  placeholder="admin"
+                  value={user}
+                  onChange={(e) => setUser(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm w-full text-white placeholder:text-white/10 font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="glass-card bg-white/5 flex items-center gap-4 px-6 focus-within:border-cyan-500/50 transition-all">
+              <Lock className="w-5 h-5 text-cyan-400" />
+              <div className="flex-1 text-right py-4">
+                <label className="block text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Pass-Key</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••"
+                  value={pass}
+                  onChange={(e) => setPass(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm w-full text-white placeholder:text-white/10 font-bold"
+                />
+              </div>
+            </div>
           </div>
 
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-            ) : (
-              <>
-                {cur.login}
-                <ChevronRight className={`w-5 h-5 transition-transform ${isRtl ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
-              </>
-            )}
-          </button>
+          <div className="space-y-3 pt-4">
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-5 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 group disabled:opacity-80 relative overflow-hidden active:scale-95"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              {loading ? (
+                <>
+                  <div className="w-6 h-6 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">{status}</span>
+                </>
+              ) : (
+                <span className="uppercase tracking-[0.2em] text-xs px-8">Authenticate Session</span>
+              )}
+            </button>
+
+            <button 
+              type="button"
+              onClick={onLogin}
+              className="w-full bg-white/5 hover:bg-white/10 text-white/40 font-black py-4 rounded-2xl transition-all border border-white/10 text-[10px] uppercase tracking-[0.2em] hover:text-white"
+            >
+              {lang === 'ar' ? 'تخطي والبدء بالوضع التجريبي' : 'Initialize Bypass Mode'}
+            </button>
+          </div>
         </motion.form>
 
         <div className="pt-8 border-t border-white/5">
