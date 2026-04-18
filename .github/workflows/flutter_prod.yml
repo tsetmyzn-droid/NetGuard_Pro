@@ -1,0 +1,49 @@
+name: Flutter Build (APK & EXE)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: mobile
+      - name: Build APK
+        run: flutter build apk --release
+        working-directory: mobile
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Enable windows build
+        run: flutter config --enable-windows-desktop
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: mobile
+      - name: Build Windows
+        run: flutter build windows --release
+        working-directory: mobile
+      - name: Upload Windows EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-exe
+          path: mobile/build/windows/runner/Release/

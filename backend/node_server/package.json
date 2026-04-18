@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "start": "node --experimental-strip-types server.ts"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "cors": "^2.8.6",
+    "socket.io": "^4.8.1",
+    "helmet": "^8.1.0",
+    "express-rate-limit": "^7.5.0",
+    "axios": "^1.7.9",
+    "tsx": "^4.19.2",
+    "path": "latest",
+    "ping": "^1.0.0",
+    "network": "^0.7.0",
+    "node-arp": "^1.0.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2"
+  }
+}

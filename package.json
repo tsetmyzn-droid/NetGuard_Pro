@@ -1,47 +1,38 @@
 {
-  "name": "netguard-pro-preview",
+  "name": "netguard-pro-enterprise",
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend/node_server",
+    "desktop",
+    "mobile"
+  ],
   "scripts": {
-    "dev": "tsx server.ts",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "tsc",
-    "security:check": "npm audit --audit-level=moderate",
-    "security:fix": "npm audit fix --force",
-    "dep:check": "npm outdated --long"
-  },
-  "overrides": {
-    "protobufjs": "7.5.5"
+    "dev": "tsx backend/node_server/server.ts",
+    "build": "npm run build -w frontend",
+    "lint": "npm run lint -w frontend",
+    "preview": "npm run preview -w frontend",
+    "start": "tsx backend/node_server/server.ts"
   },
   "dependencies": {
-    "@google/genai": "^1.50.1",
-    "axios": "^1.15.0",
-    "clsx": "^2.1.1",
+    "axios": "^1.7.9",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.3.2",
+    "express-rate-limit": "^7.1.5",
     "helmet": "^8.1.0",
-    "lucide-react": "^0.454.0",
-    "motion": "^11.11.11",
-    "protobufjs": "^7.5.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "recharts": "^3.8.1",
-    "tailwind-merge": "^2.5.4"
+    "network": "^0.7.0",
+    "node-arp": "^1.0.6",
+    "path": "latest",
+    "ping": "^1.0.0",
+    "socket.io": "^4.8.1",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.3",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.14",
-    "tsx": "^4.21.0",
-    "typescript": "^5.6.3",
-    "vite": "^6.4.2"
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
   }
 }

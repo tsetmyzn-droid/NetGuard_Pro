@@ -1,5 +1,5 @@
 {
-  "name": "NetGuard Pro | حقك ان تعرف",
-  "description": "تطبيق احترافي (Python/Flet) لمراقبة استهلاك الإنترنت والتحكم في أمن الشبكة والراوتر. كود حقيقي، معلومات دقيقة، وحماية شاملة.",
+  "name": "NetGuard Pro Enterprise",
+  "description": "Enterprise-grade network monitoring and router management system. Real-time traffic analysis, automated threat detection, and multi-vendor router support.",
   "requestFramePermissions": []
 }
