@@ -2,7 +2,7 @@ import hashlib
 import re
 import asyncio
 import random
-from .base import BaseRouter
+from backend.python_core.routers.base import BaseRouter
 
 class HuaweiDriver(BaseRouter):
     """
@@ -70,7 +70,8 @@ class HuaweiDriver(BaseRouter):
 
             return False
         except Exception as e:
-            print(f"Huawei Login Error: {e}")
+            import sys
+            sys.stderr.write(f"Huawei Login Error: {e}\n")
             return False
 
     def _hash_password(self, password):
@@ -107,7 +108,8 @@ class HuaweiDriver(BaseRouter):
                     })
             return devices
         except Exception as e:
-            print(f"Huawei Device Fetch Error: {e}")
+            import sys
+            sys.stderr.write(f"Huawei Device Fetch Error: {e}\n")
             return []
 
     def _guess_device_type(self, name):

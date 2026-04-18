@@ -1,7 +1,7 @@
 import hashlib
 import re
 import asyncio
-from .base import BaseRouter
+from backend.python_core.routers.base import BaseRouter
 
 class ASUSDriver(BaseRouter):
     """

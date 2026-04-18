@@ -2,10 +2,10 @@ import argparse
 import json
 import asyncio
 from typing import List, Dict, Any
-from .routers.huawei import HuaweiDriver
-from .routers.asus import ASUSDriver
-from .routers.tplink import TPLinkDriver
-from .routers.zte import ZTEDriver
+from backend.python_core.routers.huawei import HuaweiDriver
+from backend.python_core.routers.asus import ASUSDriver
+from backend.python_core.routers.tplink import TPLinkDriver
+from backend.python_core.routers.zte import ZTEDriver
 # Add other drivers as needed
 
 class RouterDetector:
@@ -35,7 +35,8 @@ class RouterDetector:
                     "stats": stats
                 }
             else:
-                return {"success": False, "message": "Login failed"}
+                error_msg = driver.last_error if hasattr(driver, 'last_error') and driver.last_error else "Login failed or router unreachable"
+                return {"success": False, "message": error_msg}
         except Exception as e:
             return {"success": False, "message": str(e)}
         finally:

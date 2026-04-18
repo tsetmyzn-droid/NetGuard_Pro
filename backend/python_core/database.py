@@ -58,7 +58,8 @@ class DataLayer:
                 ''')
                 conn.commit()
         except Exception as e:
-            print(f"Database initialization error: {e}")
+            import sys
+            sys.stderr.write(f"Database initialization error: {e}\n")
 
     def encrypt(self, data: str) -> str:
         if not data: return ""

@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
-import { logToSystem } from "./logger.ts";
+import { logToSystem, setIoInstance } from "./logger.ts";
 
 export function setupSocket(server: HttpServer) {
   const io = new Server(server, {
@@ -9,6 +9,8 @@ export function setupSocket(server: HttpServer) {
       methods: ["GET", "POST"]
     }
   });
+
+  setIoInstance(io);
 
   io.on("connection", (socket) => {
     logToSystem('INFO', `Client connected to real-time bridge: ${socket.id}`);

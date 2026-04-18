@@ -8,10 +8,20 @@ if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR);
 }
 
+let ioInstance: any = null;
+
+export const setIoInstance = (io: any) => {
+  ioInstance = io;
+};
+
 export const logToSystem = (level: 'INFO' | 'ERROR' | 'WARN', message: string) => {
   const entry = `[${new Date().toISOString()}] [${level}] ${message}\n`;
   try {
     fs.appendFileSync(SYSTEM_LOG, entry);
+    // Broadcast to clients in real-time
+    if (ioInstance) {
+      ioInstance.emit('system:log', { level, message, timestamp: new Date().toISOString() });
+    }
   } catch (err) {
     console.error("Failed to write to system log:", err);
   }

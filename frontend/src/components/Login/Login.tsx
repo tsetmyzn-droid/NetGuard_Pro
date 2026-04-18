@@ -15,12 +15,14 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
   const [ip, setIp] = useState('192.168.1.1');
   const [user, setUser] = useState('admin');
   const [pass, setPass] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const cur = TRANSLATIONS[lang];
   const isRtl = lang === 'ar';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/router/login', {
         method: 'POST',
@@ -31,10 +33,10 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
       if (data.success) {
         onLogin();
       } else {
-        alert(data.message);
+        setError(data.message);
       }
-    } catch (error) {
-      alert("Connection failed. Please check your router IP.");
+    } catch (error: any) {
+      setError("Connection failed. The router could not be reached.");
     } finally {
       setLoading(false);
     }
@@ -106,6 +108,26 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
           onSubmit={handleLogin} 
           className="space-y-4"
         >
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex flex-col gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="w-3 h-3" />
+                {error}
+              </div>
+              <button 
+                type="button"
+                onClick={onLogin}
+                className="text-[9px] uppercase tracking-tighter text-red-400/60 hover:text-red-400 underline decoration-red-400/20 underline-offset-4 text-start"
+              >
+                {lang === 'ar' ? 'أو تابع باستخدام الوضع التجريبي (Mock Mode)' : 'Or continue with Mock Mode'}
+              </button>
+            </motion.div>
+          )}
+
           <div className="glass-card p-1 flex items-center gap-3 px-4 focus-within:border-cyan-400/50 transition-colors">
             <Globe className="w-5 h-5 text-white/30 shrink-0" />
             <input 

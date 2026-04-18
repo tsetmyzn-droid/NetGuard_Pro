@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Terminal, Activity, FileText } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Terminal, Activity, FileText, AlertCircle, X } from 'lucide-react';
 import { TRANSLATIONS, Language } from '../constants';
+import { io } from 'socket.io-client';
 
 interface BuildLogsProps {
   lang: Language;
@@ -10,9 +11,12 @@ interface BuildLogsProps {
 export const BuildLogs: React.FC<BuildLogsProps> = ({ lang }) => {
   const [systemLogs, setSystemLogs] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const logEndRef = useRef<HTMLDivElement>(null);
   const cur = TRANSLATIONS[lang];
 
   useEffect(() => {
+    // Initial fetch
     const fetchLogs = async () => {
       try {
         const res = await fetch('/api/system/logs');
@@ -25,16 +29,68 @@ export const BuildLogs: React.FC<BuildLogsProps> = ({ lang }) => {
       }
     };
     fetchLogs();
-    const interval = setInterval(fetchLogs, 5000); 
-    return () => clearInterval(interval);
+
+    // Socket implementation
+    const socket = io();
+    
+    socket.on('system:log', (log) => {
+      const entry = `[${log.timestamp}] [${log.level}] ${log.message}\n`;
+      setSystemLogs(prev => prev + entry);
+      
+      // Error Notification
+      if (log.level === 'ERROR') {
+        const id = Date.now();
+        setNotifications(prev => [...prev, { id, message: log.message }]);
+        setTimeout(() => {
+          setNotifications(prev => prev.filter(n => n.id !== id));
+        }, 5000);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [systemLogs]);
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-6 relative"
     >
+      {/* Toast Notifications */}
+      <div className="fixed top-24 right-8 z-[100] flex flex-col gap-3 max-w-xs w-full">
+        <AnimatePresence>
+          {notifications.map(n => (
+            <motion.div
+              key={n.id}
+              initial={{ opacity: 0, x: 50, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+              className="p-4 rounded-2xl bg-red-500/90 backdrop-blur-md text-white shadow-2xl border border-white/20 flex gap-4 items-start"
+            >
+              <div className="p-2 rounded-xl bg-white/20">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">System Error</div>
+                <div className="text-xs font-bold leading-relaxed">{n.message}</div>
+              </div>
+              <button 
+                onClick={() => setNotifications(prev => prev.filter(notif => notif.id !== n.id))}
+                className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20">
@@ -53,10 +109,14 @@ export const BuildLogs: React.FC<BuildLogsProps> = ({ lang }) => {
             <Activity className="w-4 h-4 text-cyan-400" />
             <div className="text-xs font-bold">system.log</div>
           </div>
-          <div className="text-[10px] text-white/20 uppercase tracking-widest">Real-time Stream</div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            <div className="text-[10px] text-white/20 uppercase tracking-widest">Real-time Stream</div>
+          </div>
         </div>
-        <div className="p-4 bg-black/60 font-mono text-[10px] leading-relaxed text-cyan-400/80 h-96 overflow-y-auto whitespace-pre-wrap">
+        <div className="p-4 bg-black/60 font-mono text-[10px] leading-relaxed text-cyan-400/80 h-[500px] overflow-y-auto whitespace-pre-wrap">
           {loading ? cur.loading : systemLogs || "No logs recorded yet."}
+          <div ref={logEndRef} />
         </div>
       </div>
 
@@ -67,8 +127,8 @@ export const BuildLogs: React.FC<BuildLogsProps> = ({ lang }) => {
         </div>
         <p className="text-xs text-white/60 leading-relaxed">
           {lang === 'ar' ? 
-            'يقوم هذا السجل بالتقاط كل تفاعل بين نظام معاينة Google وخلفية التطبيق. في حالة حدوث خطأ، سيتم تسجيله هنا مع طابع زمني ومستوى خطأ للتحليل الفوري.' : 
-            'This log captures every interaction between the Google Preview System and the application backend. If an error occurs, it will be recorded here with a timestamp and error level for immediate analysis.'}
+            'يقوم هذا السجل بالتقاط كل تفاعل في الوقت الفعلي. ستتلقى إشعاراً مرئياً فور حدوث استثناء أو خطأ تقني.' : 
+            'This log captures every interaction in real-time. You will receive a visual notification immediately when an exception or technical error occurs.'}
         </p>
       </div>
     </motion.div>

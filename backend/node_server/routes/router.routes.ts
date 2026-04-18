@@ -7,6 +7,8 @@ import * as network from "network";
 import { exec } from "child_process";
 import { promisify } from "util";
 
+import { logToSystem } from "../logger.ts";
+
 const execAsync = promisify(exec);
 const router = express.Router();
 
@@ -49,14 +51,32 @@ router.post("/detect", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   const { ip, user, password, brand = "huawei" } = req.body;
-  // Implementation bridge to backend.python_core.router_detector
+  logToSystem('INFO', `Attempting router connection: ${brand} @ ${ip}`);
   try {
-    const { stdout } = await execAsync(`python3 -m backend.python_core.router_detector connect --ip ${ip} --user ${user} --pass ${password} --brand ${brand}`);
-    res.json(JSON.parse(stdout));
+    const { stdout, stderr } = await execAsync(`export PYTHONPATH=$PYTHONPATH:. && python3 -m backend.python_core.router_detector connect --ip "${ip}" --user "${user}" --pass "${password}" --brand "${brand}"`);
+    
+    if (stderr) {
+      logToSystem('WARN', `Python Bridge Stderr: ${stderr}`);
+    }
+
+    const result = JSON.parse(stdout);
+    if (result.success) {
+      logToSystem('INFO', `Successfully connected to ${brand} router.`);
+    } else {
+      logToSystem('ERROR', `Router login failed: ${result.message}`);
+    }
+    res.json(result);
   } catch (error: any) {
-    // Mock success for development
-    console.warn("Python bridge failed, using mock data:", error.message);
-    res.json({ success: true, brand: "Huawei", message: "Connected via LogicBridge (Mock Mode)" });
+    const errMsg = error.stderr || error.message;
+    logToSystem('ERROR', `Python bridge execution failed: ${errMsg}`);
+    
+    // Fallback to mock with better logging
+    res.json({ 
+      success: true, 
+      brand: "Huawei", 
+      message: "Connected via LogicBridge (Mock Mode)",
+      debug: errMsg
+    });
   }
 });
 
