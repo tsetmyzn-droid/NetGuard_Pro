@@ -28,6 +28,10 @@ async def main(page: ft.Page):
 
     data = DataLayer()
     logic = LogicLayer(data)
+    
+    # Load initial settings
+    logic.brand = await data.get_setting("router_brand") or "Unknown"
+    logic.model = await data.get_setting("router_model") or "Standard Route"
 
     def t(key):
         lang = page.client_storage.get("lang") or "ar"
@@ -271,6 +275,46 @@ async def main(page: ft.Page):
     async def show_login():
         page.views.clear()
         page.rtl = (page.client_storage.get("lang") or "ar") == "ar"
+
+        ip_field = ft.TextField(
+            label=t("router_ip"), 
+            value="192.168.1.1", 
+            border_radius=15,
+            prefix_icon=ft.icons.ROUTER,
+            focused_border_color=ft.colors.CYAN_ACCENT
+        )
+
+        async def handle_auto_detect(e):
+            detect_btn.text = t("detecting")
+            detect_btn.disabled = True
+            page.update()
+            
+            info = await logic.auto_detect_router()
+            if info["brand"] != "Unknown":
+                ip_field.value = info["ip"]
+                page.snack_bar = ft.SnackBar(
+                    ft.Text(t("detection_success").format(brand=info["brand"], model=info["model"])),
+                    bgcolor=ft.colors.GREEN_700
+                )
+            else:
+                page.snack_bar = ft.SnackBar(
+                    ft.Text(t("detection_failed")),
+                    bgcolor=ft.colors.RED_700
+                )
+            
+            detect_btn.text = t("auto_detect")
+            detect_btn.disabled = False
+            page.snack_bar.open = True
+            page.update()
+
+        detect_btn = ft.OutlinedButton(
+            text=t("auto_detect"),
+            icon=ft.icons.SEARCH,
+            on_click=handle_auto_detect,
+            width=350,
+            height=55,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=15))
+        )
         
         login_view = ft.View("/login", [
             ft.AppBar(
@@ -294,13 +338,8 @@ async def main(page: ft.Page):
                 
                 ft.Container(
                     content=ft.Column([
-                        ip_field := ft.TextField(
-                            label=t("router_ip"), 
-                            value="192.168.1.1", 
-                            border_radius=15,
-                            prefix_icon=ft.icons.ROUTER,
-                            focused_border_color=ft.colors.CYAN_ACCENT
-                        ),
+                        ip_field,
+                        detect_btn,
                         user_field := ft.TextField(
                             label=t("username"), 
                             value="admin", 
@@ -388,7 +427,7 @@ async def main(page: ft.Page):
                         ft.Row([
                             ft.Column([
                                 ft.Text(f"{t('connected_to')}{logic.brand}", size=18, weight="bold", color=ft.colors.WHITE),
-                                ft.Text("192.168.1.1", size=12, color=ft.colors.CYAN_ACCENT, font_family="monospace"),
+                                ft.Text(logic.model, size=12, color=ft.colors.CYAN_ACCENT, font_family="monospace"),
                             ]),
                             ft.Spacer(),
                             ft.Container(

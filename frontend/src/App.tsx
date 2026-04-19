@@ -1,4 +1,16 @@
-import React, { useState } from 'react';
+/**
+ * ============================================================================
+ * NetGuard Pro - المكون الرئيسي (Main Application Container)
+ * ============================================================================
+ * 
+ * 🛡️ تصميم المعمارية: Scalable Container
+ * المسؤول عن:
+ * 1. إدارة حالة الجلسة (Session Management) عبر SecureStorage
+ * 2. التنقل بين الصفحات (State-based Routing)
+ * 3. الحفاظ على المكونات الأصلية (Dashboard, Devices, Settings, Logs)
+ * ============================================================================
+ */
+import React, { useState, useEffect } from 'react';
 import { Menu, Shield, Zap, Bell, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sidebar } from './components/Layout/Sidebar';
@@ -6,13 +18,16 @@ import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { BuildLogs } from './pages/BuildLogs';
 import { Devices } from './pages/Devices';
+import { Router } from './pages/Router';
 import { Login } from './components/Login/Login';
+import { About } from './components/About/About';
 import { useTheme } from './lib/theme';
 import { useI18n } from './lib/i18n';
+import { SecureStorage } from './services/storage';
 
 function App() {
-  const [view, setView] = useState('dashboard');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [view, setView] = useState(() => SecureStorage.getItem('last_view') || 'dashboard');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!SecureStorage.getItem('session_token'));
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const { theme, toggleTheme } = useTheme();
@@ -20,31 +35,48 @@ function App() {
 
   const isRtl = lang === 'ar';
 
-  if (!isLoggedIn && view !== 'build_logs') {
-    return (
-      <Login 
-        lang={lang} 
-        onLogin={() => setIsLoggedIn(true)} 
-        onViewLogs={() => setView('build_logs')} 
-      />
-    );
-  }
+  // حفظ الحالة الأخيرة للرؤية لضمان استمرارية التجربة
+  useEffect(() => {
+    SecureStorage.setItem('last_view', view);
+  }, [view]);
+
+  // معالجة تسجيل الدخول الآمن
+  const handleLoginSuccess = () => {
+    SecureStorage.setItem('session_token', 'secure_session_' + Date.now());
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    SecureStorage.removeItem('session_token');
+    setIsLoggedIn(false);
+  };
 
   const toggleLang = () => {
     setLanguage(lang === 'ar' ? 'en' : 'ar');
   };
+
+  // شاشة الدخول (Login) محصنة بالمنطق الأصلي
+  if (!isLoggedIn && view !== 'build_logs') {
+    return (
+      <Login 
+        lang={lang} 
+        onLogin={handleLoginSuccess} 
+        onViewLogs={() => setView('build_logs')} 
+      />
+    );
+  }
 
   return (
     <div 
       dir={isRtl ? 'rtl' : 'ltr'}
       className={`min-h-screen tech-grid transition-colors selection:bg-cyan-500 selection:text-black ${theme === 'dark' ? 'bg-[#060606] text-white' : 'bg-slate-50 text-slate-900'}`}
     >
-      {/* Immersive Scanner Effect */}
+      {/* Immersive Scanner Effect - المحافظة على الهوية البصرية الأصلية */}
       <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden opacity-20">
         <div className="scanner-line" />
       </div>
       
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation - منع الحذف والحفاظ على الوظائف الأصلية */}
       <Sidebar 
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -52,7 +84,7 @@ function App() {
         onViewChange={setView}
         lang={lang}
         onToggleLang={toggleLang}
-        onLogout={() => setIsLoggedIn(false)}
+        onLogout={handleLogout}
         isLoggedIn={isLoggedIn}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -61,7 +93,7 @@ function App() {
       {/* Main Layout Wrapper */}
       <div className={`transition-all duration-500 min-h-screen flex flex-col ${isRtl ? 'lg:mr-72' : 'lg:ml-72'}`}>
         
-        {/* Top Header */}
+        {/* Top Header - المحافظة على التصميم الأصلي */}
         <header className="px-6 md:px-10 py-8 flex items-center justify-between sticky top-0 bg-[#060606]/60 backdrop-blur-2xl z-50 border-b border-white/5">
           <div className="flex items-center gap-6">
             <button 
@@ -70,7 +102,10 @@ function App() {
             >
               <Menu className="w-5 h-5 text-cyan-400" />
             </button>
-            <div className="flex items-center gap-3 group cursor-default">
+            <div 
+              className="flex items-center gap-3 group cursor-pointer"
+              onClick={() => setView('about')}
+            >
               <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 group-hover:scale-110 transition-transform duration-500">
                 <Shield className="w-7 h-7 text-cyan-400 glow-text" />
               </div>
@@ -105,7 +140,7 @@ function App() {
           </div>
         </header>
 
-        {/* Dynamic Route Content */}
+        {/* Dynamic Route Content - استيعاب كافة الصفحات الأصلية */}
         <main className="flex-1 p-6 md:p-12 max-w-7xl w-full mx-auto">
            <div className="relative overflow-hidden">
               <AnimatePresence mode="wait">
@@ -119,7 +154,9 @@ function App() {
                 >
                   {view === 'dashboard' && <Dashboard />}
                   {view === 'devices' && <Devices />}
+                  {view === 'router' && <Router />}
                   {view === 'settings' && <Settings />}
+                  {view === 'about' && <About />}
                   {view === 'build_logs' && <BuildLogs onViewChange={setView} isLoggedIn={isLoggedIn} />}
                 </motion.div>
               </AnimatePresence>
@@ -127,7 +164,7 @@ function App() {
         </main>
 
         <footer className="p-8 text-center text-[10px] font-bold text-white/10 uppercase tracking-[0.2em]">
-           NetGuard Enterprise Protection System &copy; 2026
+           NetGuard Pro Enterprise Protection System &copy; 2026
         </footer>
       </div>
 

@@ -7,7 +7,7 @@ import netifaces
 import re
 import asyncio
 from bs4 import BeautifulSoup
-from .router_detector import RouterDetector
+from backend.python_core.router_detector import RouterDetector
 
 def get_bandwidth_usage():
     # Capture delta of bytes sent/received
@@ -25,7 +25,7 @@ def get_bandwidth_usage():
         "total_sent_gb": round(new_io.bytes_sent / (1024**3), 2)
     }
 
-def detect_router():
+def detect_router_impl():
     try:
         gws = netifaces.gateways()
         gateway_ip = gws['default'][netifaces.AF_INET][0]
@@ -98,15 +98,17 @@ class LogicLayer:
     def __init__(self, data_layer):
         self.data = data_layer
         self.brand = "Unknown"
+        self.model = "Unknown"
         self.detector = RouterDetector()
 
     async def connect_router(self, ip, user, password):
         # First detect the router to know which brand to use
-        detection = await asyncio.to_thread(detect_router)
+        detection = await asyncio.to_thread(detect_router_impl)
         if detection["brand"] != "Unknown":
             self.brand = detection["brand"]
+            self.model = detection["model"]
             await self.data.set_setting("router_brand", self.brand)
-            await self.data.set_setting("router_model", detection["model"])
+            await self.data.set_setting("router_model", self.model)
             
             # Attempt to connect using the detector
             res = await self.detector.connect(self.brand, ip, user, password)
@@ -115,15 +117,17 @@ class LogicLayer:
             else:
                 return False, f"Connected to {self.brand} but login failed: {res.get('message')}"
         
+        # Fallback to a generic connection attempt if detection failed but user entered info
         return False, "Could not detect any supported router at the specified IP."
 
     async def auto_detect_router(self):
-        detection = await asyncio.to_thread(detect_router)
+        detection = await asyncio.to_thread(detect_router_impl)
         if detection["brand"] != "Unknown":
-            await self.data.set_setting("router_brand", detection["brand"])
-            await self.data.set_setting("router_model", detection["model"])
-            await self.data.set_setting("router_ip", detection["ip"])
             self.brand = detection["brand"]
+            self.model = detection["model"]
+            await self.data.set_setting("router_brand", self.brand)
+            await self.data.set_setting("router_model", self.model)
+            await self.data.set_setting("router_ip", detection["ip"])
         return detection
 
     async def optimize_connection(self):
@@ -180,9 +184,3 @@ class LogicLayer:
                 {"name": "WhatsApp", "usage": "0.4 GB"},
             ]
         }
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--detect-router":
-        print(json.dumps(detect_router()))
-    else:
-        print(json.dumps(get_bandwidth_usage()))

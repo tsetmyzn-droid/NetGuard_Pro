@@ -1,5 +1,6 @@
 {
-  "name": "NetGuard Pro Enterprise",
+  "name": "NetGuard Pro ",
   "description": "Enterprise-grade network monitoring and router management system. Real-time traffic analysis, automated threat detection, and multi-vendor router support.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

@@ -39,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'devices', label: cur.devices, icon: Smartphone },
     { id: 'router', label: cur.router, icon: Cpu },
     { id: 'settings', label: cur.settings, icon: Settings },
+    { id: 'about', label: lang === 'ar' ? 'حول النظام' : 'About System', icon: Globe },
     { id: 'build_logs', label: cur.logs, icon: Terminal },
   ];
 

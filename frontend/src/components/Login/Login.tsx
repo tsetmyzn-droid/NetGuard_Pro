@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Globe, Shield, Lock, ChevronRight, Smartphone, Laptop } from 'lucide-react';
+import { Globe, Shield, Lock, ChevronRight, Smartphone, Laptop, RefreshCw } from 'lucide-react';
 import { Language } from '../../types/index';
 import { TRANSLATIONS } from '../../constants';
 
@@ -14,9 +14,30 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [ip, setIp] = useState('192.168.1.1');
+  const [detecting, setDetecting] = useState(false);
   const [user, setUser] = useState('admin');
   const [pass, setPass] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const handleAutoDetect = async () => {
+    setDetecting(true);
+    setStatus(lang === 'ar' ? 'جاري البحث عن أجهزة الراوتر...' : 'Scanning for router hardware...');
+    try {
+      const res = await fetch('/api/router/detect', { method: 'POST' });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setIp(data[0].ip);
+        setStatus(lang === 'ar' ? `تم اكتشاف: ${data[0].brand}` : `Hardware found: ${data[0].brand}`);
+        setTimeout(() => setStatus(null), 2000);
+      } else {
+        setError(lang === 'ar' ? 'لم يتم العثور على أجهزة نشطة' : 'No active hardware detected');
+      }
+    } catch (e) {
+      setError("Detection probe failed.");
+    } finally {
+      setDetecting(false);
+    }
+  };
   const cur = TRANSLATIONS[lang];
   const isRtl = lang === 'ar';
 
@@ -147,6 +168,15 @@ export const Login: React.FC<LoginProps> = ({ lang, onLogin, onViewLogs }) => {
                   className="bg-transparent border-none outline-none text-sm w-full text-white placeholder:text-white/10 font-bold"
                 />
               </div>
+              <button
+                type="button"
+                onClick={handleAutoDetect}
+                disabled={detecting}
+                className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-all active:scale-95 disabled:opacity-50"
+                title="Auto Detect"
+              >
+                <RefreshCw className={`w-4 h-4 ${detecting ? 'animate-spin' : ''}`} />
+              </button>
             </div>
             
             <div className="glass-card bg-white/5 flex items-center gap-4 px-6 focus-within:border-cyan-500/50 transition-all">
