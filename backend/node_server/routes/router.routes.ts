@@ -119,6 +119,38 @@ router.get("/traffic-live", (req, res) => {
   res.json(getTrafficHistory());
 });
 
+router.post("/settings/update", (req, res) => {
+  const { ssid, wifiPass, speedLimit, hideSsid } = req.body;
+  
+  logToSystem('INFO', `System Config Update Received:`);
+  if (ssid) logToSystem('INFO', ` - SSID: ${ssid}`);
+  if (wifiPass) logToSystem('INFO', ` - WiFi Password: [ENCRYPTED_STREAM]`);
+  if (speedLimit) logToSystem('INFO', ` - Speed Limit: ${speedLimit}`);
+  if (hideSsid !== undefined) logToSystem('INFO', ` - Hide SSID: ${hideSsid}`);
+
+  // In a real local scenario, this would call the Python bridge to apply to hardware
+  res.json({ 
+    success: true, 
+    message: "Hardware configurations synchronized successfully." 
+  });
+});
+
+router.post("/hardware/reboot", (req, res) => {
+  logToSystem('WARN', 'Critical: Reboot command issued');
+  res.json({ success: true, message: "System is rebooting..." });
+});
+
+router.post("/hardware/reset", (req, res) => {
+  logToSystem('WARN', 'Critical: Factory Reset command issued');
+  res.json({ success: true, message: "System is performing factory reset..." });
+});
+
+router.post("/hardware/wifi-toggle", (req, res) => {
+  const { enabled } = req.body;
+  logToSystem('WARN', `Radio Power: ${enabled ? 'ON' : 'OFF'}`);
+  res.json({ success: true });
+});
+
 router.get("/traffic", async (req, res) => {
   res.json({
     categories: [

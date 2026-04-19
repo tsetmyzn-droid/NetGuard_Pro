@@ -1,6 +1,6 @@
 import CryptoJS from 'crypto-js';
 
-const SECRET_KEY = process.env.ENCRYPTION_SECRET || 'netguard-pro-enterprise-backend-key';
+const SECRET_KEY = process.env.ENCRYPTION_SECRET || 'netguard-pro-enterprise-default-key';
 
 export const encrypt = (text: string): string => {
   return CryptoJS.AES.encrypt(text, SECRET_KEY).toString();

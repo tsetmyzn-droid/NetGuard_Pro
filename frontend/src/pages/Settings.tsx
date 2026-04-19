@@ -4,18 +4,70 @@ import { Settings as SettingsIcon, Globe, Moon, Shield, Save, Lock, Sun, Wifi, W
 import { useI18n } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
 import { encrypt } from '../lib/encryption';
+import { toast } from 'react-hot-toast';
 
 export const Settings: React.FC = () => {
   const { lang, setLanguage, t } = useI18n();
   const { theme, toggleTheme } = useTheme();
   const [speedLimit, setSpeedLimit] = React.useState('unlimited');
   const [wifiPass, setWifiPass] = React.useState('');
+  const [ssid, setSsid] = React.useState('NetGuard_Pro_5GHz');
+  const [hideSsid, setHideSsid] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
 
-  const handleSave = () => {
-    // Commit configurations with encryption
-    const encryptedPass = encrypt(wifiPass);
-    console.log('Committing configurations. Encrypted WiFi pass:', encryptedPass);
-    // In real app, this would be an API call
+  const handleHardwareAction = async (action: string, payload?: any) => {
+    const loadingToast = toast.loading(lang === 'ar' ? 'جاري تنفيذ العملية...' : 'Executing operation...');
+    try {
+      const endpoint = action === 'reboot' ? '/api/router/hardware/reboot' : 
+                       action === 'reset' ? '/api/router/hardware/reset' : 
+                       '/api/router/hardware/wifi-toggle';
+      
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {})
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || (lang === 'ar' ? 'تم التنفيذ بنجاح' : 'Executed successfully'), { id: loadingToast });
+      } else {
+        throw new Error();
+      }
+    } catch (e) {
+      toast.error(lang === 'ar' ? 'فشل في تنفيذ العملية' : 'Operation failed', { id: loadingToast });
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const loadingToast = toast.loading(lang === 'ar' ? 'جاري مزامنة الإعدادات...' : 'Synchronizing hardware settings...');
+    
+    try {
+      // Commit configurations with encryption
+      const encryptedPass = encrypt(wifiPass);
+      
+      const res = await fetch('/api/router/settings/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ssid,
+          wifiPass: encryptedPass,
+          speedLimit,
+          hideSsid
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(lang === 'ar' ? 'تم حفظ التغييرات بنجاح' : 'Configurations synced successfully', { id: loadingToast });
+      } else {
+        throw new Error("Sync failed");
+      }
+    } catch (error) {
+       toast.error(lang === 'ar' ? 'فشل في مزامنة البيانات' : 'Hardware sync failed', { id: loadingToast });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -55,6 +107,8 @@ export const Settings: React.FC = () => {
                   <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-2">{t('ssid')}</label>
                   <input 
                     type="text" 
+                    value={ssid}
+                    onChange={(e) => setSsid(e.target.value)}
                     placeholder="NetGuard_Pro_5GHz"
                     className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-sm text-white outline-none focus:border-cyan-500/50 transition-all font-bold"
                   />
@@ -76,8 +130,11 @@ export const Settings: React.FC = () => {
                    <EyeOff className="w-5 h-5 text-white/20" />
                    <span className="text-xs font-bold text-white/60">{t('hideSsid')}</span>
                 </div>
-                <button className="w-12 h-6 rounded-full bg-white/5 border border-white/10 relative">
-                   <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white/20" />
+                <button 
+                  onClick={() => setHideSsid(!hideSsid)}
+                  className={`w-12 h-6 rounded-full border transition-all relative ${hideSsid ? 'bg-cyan-500/20 border-cyan-500' : 'bg-white/5 border-white/10'}`}
+                >
+                   <div className={`absolute top-1 w-4 h-4 rounded-full transition-all ${hideSsid ? 'right-1 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'left-1 bg-white/20'}`} />
                 </button>
               </div>
             </section>
@@ -132,15 +189,24 @@ export const Settings: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-3 hover:bg-white/5 transition-all group">
+                <button 
+                  onClick={() => handleHardwareAction('reboot')}
+                  className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-3 hover:bg-white/5 transition-all group"
+                >
                    <RotateCcw className="w-5 h-5 text-white/40 group-hover:text-cyan-400 group-hover:rotate-[-45deg] transition-all" />
                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t('reboot')}</span>
                 </button>
-                <button className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-3 hover:bg-white/5 transition-all group">
+                <button 
+                  onClick={() => handleHardwareAction('reset')}
+                  className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-3 hover:bg-white/5 transition-all group"
+                >
                    <Shield className="w-5 h-5 text-white/40 group-hover:text-red-400 transition-all" />
                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t('reset')}</span>
                 </button>
-                <button className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-3 hover:bg-white/5 transition-all group">
+                <button 
+                  onClick={() => handleHardwareAction('wifi-toggle', { enabled: false })}
+                  className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-3 hover:bg-white/5 transition-all group"
+                >
                    <WifiOff className="w-5 h-5 text-white/40 group-hover:text-purple-400 transition-all" />
                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t('wifiOff')}</span>
                 </button>
@@ -237,10 +303,15 @@ export const Settings: React.FC = () => {
             <div className="pt-6">
               <button 
                 onClick={handleSave}
-                className="w-full py-6 rounded-2xl bg-cyan-500 text-black font-black flex items-center justify-center gap-3 hover:bg-cyan-400 hover:scale-[1.01] active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(34,211,238,0.2)]"
+                disabled={saving}
+                className={`w-full py-6 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-[0_0_30px_rgba(34,211,238,0.2)] ${
+                  saving ? 'bg-white/5 text-white/20 cursor-wait' : 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-[1.01] active:scale-[0.98]'
+                }`}
               >
-                <Save className="w-6 h-6" />
-                <span className="uppercase tracking-[0.2em] text-xs">Commit Configurations</span>
+                <Save className={`w-6 h-6 ${saving ? 'animate-pulse' : ''}`} />
+                <span className="uppercase tracking-[0.2em] text-xs">
+                  {saving ? 'Synchronizing Kernels...' : 'Commit Configurations'}
+                </span>
               </button>
             </div>
           </div>
