@@ -63,11 +63,8 @@ async function startServer() {
   // --- Vite Middleware (Development) ---
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      root: process.cwd(),
-      mode: 'development',
       server: { middlewareMode: true },
       appType: "spa",
-      optimizeDeps: { disabled: true }, // Disable to avoid OOM or conversion errors
     });
     app.use(vite.middlewares);
   } else {
