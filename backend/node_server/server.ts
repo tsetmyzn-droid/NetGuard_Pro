@@ -30,7 +30,7 @@ async function startServer() {
 
   startStatusMonitor();
   setInterval(() => performArpScan(), 30000);
-  startTrafficMonitor();
+  // startTrafficMonitor(); // Managed by socket connections now
 
   app.use(helmet({
     contentSecurityPolicy: false,
@@ -54,11 +54,20 @@ async function startServer() {
   app.get("/api/system/logs", (req, res) => res.send(getSystemLogs()));
   app.get("/api/stats", (req, res) => res.json({ download: "12.4 Mb/s", upload: "2.1 Mb/s", ping: "14 ms" }));
 
+  // Efficiency Audit: Traffic Monitor control
+  io.on('connection', (socket) => {
+    logToSystem('INFO', `Client connected: ${socket.id}`);
+    startTrafficMonitor(); // Ensure running when a client connects
+  });
+
   // --- Vite Middleware (Development) ---
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
+      root: process.cwd(),
+      mode: 'development',
       server: { middlewareMode: true },
       appType: "spa",
+      optimizeDeps: { disabled: true }, // Disable to avoid OOM or conversion errors
     });
     app.use(vite.middlewares);
   } else {

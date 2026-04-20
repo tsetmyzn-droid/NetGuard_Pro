@@ -52,7 +52,11 @@ export function generateLiveTraffic() {
   }
 }
 
+let isMonitorRunning = false;
+
 export function startTrafficMonitor() {
+  if (isMonitorRunning) return;
+  isMonitorRunning = true;
   logToSystem('INFO', 'Starting BPF Packet Interceptor service...');
   setInterval(generateLiveTraffic, 800);
 }

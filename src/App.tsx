@@ -19,7 +19,10 @@ function cn(...inputs: ClassValue[]) {
 // --- App Component ---
 export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return localStorage.getItem('theme') as 'dark' | 'light' || 'dark';
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') as 'dark' | 'light' || 'dark';
+    }
+    return 'dark';
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +65,6 @@ function LoginScreen({ onLogin, theme, toggleTheme, isLoading, setIsLoading, err
     setIsLoading(true);
     setError(null);
     
-    // Simulate real connection
     setTimeout(() => {
       if (credentials.pass.length > 0) {
         onLogin();
@@ -75,14 +77,12 @@ function LoginScreen({ onLogin, theme, toggleTheme, isLoading, setIsLoading, err
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden technical-grid p-6">
-      {/* Glow Effect */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
       
-      {/* Theme Toggle in Login */}
       <div className="absolute top-8 left-8">
         <button 
           onClick={toggleTheme}
-          className="p-3 rounded-xl glass hover:border-cyan-500/50 transition-all text-cyan-500"
+          className="p-3 rounded-xl glass hover:border-cyan-500/50 transition-all text-cyan-500 cursor-pointer"
         >
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
@@ -133,23 +133,6 @@ function LoginScreen({ onLogin, theme, toggleTheme, isLoading, setIsLoading, err
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)] ml-1">Router Protocol</label>
-              <div className="relative">
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-dim)]">
-                  <ChevronDown size={16} />
-                </div>
-                <select 
-                  className="w-full appearance-none pl-4 pr-12 py-4 rounded-2xl bg-black/5 border border-[var(--line)] focus:border-cyan-500 focus:outline-none transition-all font-bold text-sm"
-                  onChange={(e) => setCredentials({...credentials, type: e.target.value})}
-                >
-                  <option value="ZTE">ZTE (Standard)</option>
-                  <option value="HUAWEI">HUAWEI (Technical)</option>
-                  <option value="TP-LINK">TP-LINK (Pro)</option>
-                </select>
-              </div>
-            </div>
-
             <AnimatePresence>
               {error && (
                 <motion.div 
@@ -167,7 +150,7 @@ function LoginScreen({ onLogin, theme, toggleTheme, isLoading, setIsLoading, err
             <button 
               disabled={isLoading}
               className={cn(
-                "w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all",
+                "w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer",
                 "bg-cyan-500 text-black hover:shadow-[0_0_30px_rgba(6,182,212,0.3)] active:scale-95",
                 isLoading && "opacity-70 cursor-not-allowed"
               )}
@@ -176,10 +159,6 @@ function LoginScreen({ onLogin, theme, toggleTheme, isLoading, setIsLoading, err
             </button>
           </form>
         </div>
-
-        <p className="mt-12 text-center text-[10px] font-bold text-[var(--text-dim)] tracking-[0.2em] uppercase">
-          Authorized Access Only • Security-Audit Active
-        </p>
       </motion.div>
     </div>
   );
@@ -201,7 +180,6 @@ function Dashboard({ theme, toggleTheme, onLogout }: any) {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-      {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-[var(--line)]">
         <div className="max-w-7xl mx-auto p-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -212,11 +190,11 @@ function Dashboard({ theme, toggleTheme, onLogout }: any) {
           <div className="flex items-center gap-4">
             <button 
               onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-black/5 transition-all text-cyan-500"
+              className="p-2 rounded-lg hover:bg-black/5 transition-all text-cyan-500 cursor-pointer"
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <button onClick={onLogout} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all">
+            <button onClick={onLogout} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer">
               <LogOut size={20} />
             </button>
           </div>
@@ -224,13 +202,11 @@ function Dashboard({ theme, toggleTheme, onLogout }: any) {
       </header>
 
       <main className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Stats Row */}
         <div className="grid grid-cols-2 gap-4">
           <StatCard label="DOWNLOAD" value={`${traffic.down} Mb/s`} icon={<DownloadCloud className="text-cyan-500" />} color="cyan" />
           <StatCard label="UPLOAD" value={`${traffic.up} Mb/s`} icon={<UploadCloud className="text-purple-500" />} color="purple" />
         </div>
 
-        {/* Quick Actions */}
         <section className="flex justify-between gap-4">
           <QuickAction icon={<Zap />} label="فحص سريع" color="yellow" />
           <QuickAction icon={<ShieldAlert />} label="تأمين النطاق" color="red" />
@@ -238,7 +214,6 @@ function Dashboard({ theme, toggleTheme, onLogout }: any) {
           <QuickAction icon={<Settings />} label="الضبط" color="gray" />
         </section>
 
-        {/* Gateway Info */}
         <div className="glass p-6 rounded-3xl flex items-center gap-6">
           <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500">
             <Database size={24} />
@@ -253,7 +228,6 @@ function Dashboard({ theme, toggleTheme, onLogout }: any) {
           </div>
         </div>
 
-        {/* Device List Header */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-black text-xl tracking-tight">Devices Discovered</h2>
@@ -267,25 +241,11 @@ function Dashboard({ theme, toggleTheme, onLogout }: any) {
             <DeviceItem name="Unknown Guest" type="unknown" mac="99:88:77:66:55:44" status="offline" />
           </div>
         </section>
-
-        {/* Logs Preview */}
-        <div className="glass p-6 rounded-3xl space-y-4">
-          <div className="flex items-center gap-2 text-[var(--text-dim)]">
-            <ScrollText size={16} />
-            <span className="text-xs font-black uppercase tracking-widest">Security Audit Trail</span>
-          </div>
-          <div className="space-y-3 mono text-[10px] opacity-70">
-            <p className="flex justify-between"><span>[20:45:01] LOGIN_SUCCESS: ADMIN</span> <span className="opacity-40">10s ago</span></p>
-            <p className="flex justify-between text-cyan-500"><span>[20:46:12] DEVICE_JOIN: iPhone_15</span> <span className="opacity-40">2m ago</span></p>
-            <p className="flex justify-between text-red-500"><span>[20:48:30] BLOCKED: MAC_99:88...</span> <span className="opacity-40">Now</span></p>
-          </div>
-        </div>
       </main>
     </div>
   );
 }
 
-// --- UI Components ---
 function StatCard({ label, value, icon, color }: any) {
   return (
     <div className={cn(
@@ -299,10 +259,6 @@ function StatCard({ label, value, icon, color }: any) {
         </div>
         <div className="text-2xl font-black mono tracking-tighter">{value}</div>
       </div>
-      <div className={cn(
-        "absolute -right-4 -bottom-4 w-20 h-20 opacity-5 blur-2xl rounded-full",
-        color === 'cyan' ? 'bg-cyan-500' : 'bg-purple-500'
-      )} />
     </div>
   );
 }
@@ -316,7 +272,7 @@ function QuickAction({ icon, label, color }: any) {
   };
 
   return (
-    <button className="flex flex-col items-center gap-3 flex-1 group">
+    <button className="flex flex-col items-center gap-3 flex-1 group cursor-pointer">
       <div className={cn(
         "w-full aspect-square rounded-2xl flex items-center justify-center transition-all group-active:scale-90",
         colorMap[color] || 'bg-gray-500'
@@ -329,26 +285,17 @@ function QuickAction({ icon, label, color }: any) {
 }
 
 function DeviceItem({ name, type, mac, status }: any) {
-  const getIcon = () => {
-    switch(type) {
-      case 'phone': return <Smartphone size={20} />;
-      case 'tv': return <Tv size={20} />;
-      case 'pc': return <Monitor size={20} />;
-      default: return <Laptop size={20} />;
-    }
-  };
-
   return (
     <div className="glass p-4 rounded-2xl flex items-center gap-4 group hover:border-cyan-500/50 transition-all cursor-pointer">
       <div className="w-12 h-12 rounded-xl bg-black/5 flex items-center justify-center text-[var(--text-dim)] group-hover:text-cyan-500 transition-colors">
-        {getIcon()}
+        {type === 'phone' ? <Smartphone size={20} /> : type === 'tv' ? <Tv size={20} /> : <Laptop size={20} />}
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="font-bold text-sm truncate">{name}</h4>
         <p className="text-[10px] mono text-[var(--text-dim)] uppercase">{mac}</p>
       </div>
       <button className={cn(
-        "p-2 rounded-xl transition-all",
+        "p-2 rounded-xl transition-all cursor-pointer",
         status === 'online' ? "text-cyan-500/40 hover:text-red-500" : "text-red-500"
       )}>
         {status === 'online' ? <Unlock size={18} /> : <LockIcon size={18} />}

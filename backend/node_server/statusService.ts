@@ -59,7 +59,11 @@ export async function checkDeviceStatus() {
   }
 }
 
+let isMonitorRunning = false;
+
 export function startStatusMonitor() {
+  if (isMonitorRunning) return;
+  isMonitorRunning = true;
   logToSystem('INFO', 'Starting real-time network node monitor...');
   // Initial check
   checkDeviceStatus();

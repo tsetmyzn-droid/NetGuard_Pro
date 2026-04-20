@@ -1,6 +1,6 @@
 {
-  "name": "NetGuard Pro Native",
-  "description": "Native enterprise-grade network monitoring and router management system. Built with Flutter for performance and security. Supports ZTE, Huawei, and TP-Link with real-time API integration.",
+  "name": "NetGuard Pro Enterprise",
+  "description": "النظام السيادي لإدارة وتأمين الراوترات (ZTE, Huawei, TP-Link). واجهة تفاعلية، مراقبة مرور حية، سجلات أمان متطورة، وتحصين كامل من الثغرات الأمنية.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

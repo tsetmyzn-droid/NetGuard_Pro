@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
 import '../providers/device_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/log_provider.dart';
+import 'logs_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -14,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final deviceState = ref.watch(deviceProvider);
     final themeMode = ref.watch(themeProvider);
+    final logsState = ref.watch(securityLogsProvider);
     final isDark = themeMode == ThemeMode.dark;
 
     return Scaffold(
@@ -36,7 +39,7 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // 🛡️ Quick Actions
-                  _buildQuickActions(context)
+                  _buildQuickActions(context, logsState)
                       .animate()
                       .fadeIn(delay: 200.ms)
                       .shimmer(duration: 2.seconds, color: Colors.cyan.withOpacity(0.1)),
@@ -181,34 +184,65 @@ class DashboardScreen extends ConsumerWidget {
     });
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, AsyncValue<List<SecurityLog>> logsState) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _quickActionBtn(LucideIcons.zap, 'فحص سريع', Colors.yellowAccent),
         _quickActionBtn(LucideIcons.shieldAlert, 'تأمين الشبكة', Colors.redAccent),
-        _quickActionBtn(LucideIcons.history, 'السجلات', Colors.blueAccent),
+        _quickActionBtn(
+          LucideIcons.history, 
+          'السجلات', 
+          Colors.blueAccent,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LogsScreen())),
+          badge: logsState.when(
+            data: (logs) => logs.length.toString(),
+            loading: () => null,
+            error: (_, __) => '!',
+          ),
+        ),
         _quickActionBtn(LucideIcons.settings, 'الإعدادات', Colors.grey),
       ],
     );
   }
 
-  Widget _quickActionBtn(IconData icon, String label, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.2)),
+  Widget _quickActionBtn(IconData icon, String label, Color color, {VoidCallback? onTap, String? badge}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withOpacity(0.2)),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              if (badge != null)
+                Positioned(
+                  top: -5,
+                  right: -5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(badge, style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+            ],
           ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-      ],
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        ],
+      ),
     );
   }
 
