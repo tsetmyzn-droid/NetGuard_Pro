@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/models/router_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -20,9 +21,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final themeMode = ref.watch(themeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Background Gradient Glow
@@ -41,6 +45,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
              .blur(begin: const Offset(50, 50), end: const Offset(100, 100)),
           ),
           
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: IconButton(
+                  icon: Icon(isDark ? LucideIcons.sun : LucideIcons.moon, color: Colors.cyan),
+                  onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+                ),
+              ),
+            ),
+          ),
+
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -55,13 +72,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   
                   const SizedBox(height: 24),
                   
-                  const Text(
+                  Text(
                     'NETGUARD PRO',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 4,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
                   ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
                   
@@ -81,20 +98,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F0F0F),
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      border: Border.all(color: Colors.cyan.withOpacity(0.1)),
+                      boxShadow: isDark ? [] : [
+                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, spreadRadius: 0)
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildInputField(
+                          context: context,
                           controller: _ipController,
                           label: 'GATEWAY IP',
                           icon: LucideIcons.network,
                         ),
                         const SizedBox(height: 20),
                         _buildInputField(
+                          context: context,
                           controller: _passController,
                           label: 'ADMIN PASSWORD',
                           icon: LucideIcons.lock,
@@ -103,7 +125,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 20),
                         
                         // Router Type Selection
-                        _buildTypeDropdown(),
+                        _buildTypeDropdown(context),
                         
                         const SizedBox(height: 32),
                         
@@ -130,9 +152,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0),
                   
                   const SizedBox(height: 40),
-                  const Text(
+                  Text(
                     'AUTHORIZED ACCESS ONLY',
-                    style: TextStyle(color: Colors.white12, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                    style: TextStyle(
+                      color: isDark ? Colors.white12 : Colors.black26, 
+                      fontSize: 10, 
+                      fontWeight: FontWeight.bold, 
+                      letterSpacing: 1
+                    ),
                   ),
                 ],
               ),
@@ -144,26 +171,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildInputField({
+    required BuildContext context,
     required TextEditingController controller,
     required String label,
     required IconData icon,
     bool isPassword = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        Text(label, style: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           obscureText: isPassword,
-          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 15, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, size: 18, color: Colors.cyan.withOpacity(0.5)),
             filled: true,
-            fillColor: Colors.black.withOpacity(0.3),
+            fillColor: isDark ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.1),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.cyan.withOpacity(0.1))),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.cyan)),
           ),
         ),
@@ -171,32 +200,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildTypeDropdown() {
+  Widget _buildTypeDropdown(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ROUTER PROTOCOL', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        Text('ROUTER PROTOCOL', style: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
+            color: isDark ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: Colors.cyan.withOpacity(0.1)),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<RouterType>(
               value: _selectedType,
               isExpanded: true,
-              icon: const Icon(LucideIcons.chevronDown, size: 16, color: Colors.white38),
-              dropdownColor: const Color(0xFF111111),
+              icon: const Icon(LucideIcons.chevronDown, size: 16, color: Colors.cyan),
+              dropdownColor: isDark ? const Color(0xFF111111) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               items: RouterType.values.where((e) => e != RouterType.unknown).map((type) {
                 return DropdownMenuItem(
                   value: type,
                   child: Text(
                     type.toString().split('.').last.toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 );
               }).toList(),
@@ -207,6 +237,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ],
     );
   }
+
+  Widget _buildErrorSection(String error) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(LucideIcons.alertTriangle, color: Colors.redAccent, size: 16),
+          const SizedBox(width: 12),
+          Expanded(child: Text(error, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
+        ],
+      ),
+    ).animate().shake();
+  }
+
+  void _handleLogin() async {
+    final success = await ref.read(authProvider.notifier).login(
+      _ipController.text,
+      _passController.text,
+      _selectedType,
+    );
+    
+    if (!success && mounted) {
+      Feedback.forTap(context);
+    }
+  }
+}
 
   Widget _buildErrorSection(String error) {
     return Container(

@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
 import '../providers/device_provider.dart';
+import '../providers/theme_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -12,12 +13,14 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final deviceState = ref.watch(deviceProvider);
+    final themeMode = ref.watch(themeProvider);
+    final isDark = themeMode == ThemeMode.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          _buildSliverAppBar(context, ref),
+          _buildSliverAppBar(context, ref, isDark),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -41,7 +44,7 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 32),
 
                   // 📶 Gateway Details
-                  _buildGatewaySection(authState.router?.ip ?? 'N/A', authState.router?.type.name ?? 'GENERIC')
+                  _buildGatewaySection(context, authState.router?.ip ?? 'N/A', authState.router?.type.name ?? 'GENERIC')
                       .animate()
                       .fadeIn(delay: 400.ms),
 
@@ -65,7 +68,7 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 40),
                   
                   // 📜 System Logs (Feature Showcase)
-                  _buildSystemLogsSection()
+                  _buildSystemLogsSection(context)
                       .animate()
                       .fadeIn(delay: 800.ms),
                   
@@ -79,12 +82,12 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, WidgetRef ref) {
+  Widget _buildSliverAppBar(BuildContext context, WidgetRef ref, bool isDark) {
     return SliverAppBar(
       expandedHeight: 120,
       floating: false,
       pinned: true,
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
         titlePadding: const EdgeInsets.only(right: 16, bottom: 16),
@@ -95,13 +98,17 @@ class DashboardScreen extends ConsumerWidget {
             const Text(
               'NETGUARD PRO',
               style: TextStyle(
-                color: Colors.white,
+                color: null, // Respect theme
                 fontWeight: FontWeight.w900,
                 fontSize: 16,
                 letterSpacing: 1.2,
               ),
             ),
             const Spacer(),
+            IconButton(
+              icon: Icon(isDark ? LucideIcons.sun : LucideIcons.moon, color: Colors.cyan, size: 18),
+              onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+            ),
             IconButton(
               icon: const Icon(LucideIcons.logOut, color: Colors.redAccent, size: 18),
               onPressed: () => ref.read(authProvider.notifier).logout(),
@@ -137,34 +144,41 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _statusCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(color: color.withOpacity(0.02), blurRadius: 20, spreadRadius: -5),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: TextStyle(color: color.withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              Icon(icon, color: color, size: 16),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'monospace'),
-          ),
-        ],
-      ),
-    );
+    return Builder(builder: (context) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: color.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? color.withOpacity(0.02) : Colors.black.withOpacity(0.05), 
+              blurRadius: 20, 
+              spreadRadius: -5
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label, style: TextStyle(color: color.withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                Icon(icon, color: color, size: 16),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'monospace'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildQuickActions(BuildContext context) {
@@ -193,18 +207,20 @@ class DashboardScreen extends ConsumerWidget {
           child: Icon(icon, color: color, size: 24),
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.white54)),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
       ],
     );
   }
 
-  Widget _buildGatewaySection(String ip, String brand) {
+  Widget _buildGatewaySection(BuildContext context, String ip, String brand) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
+        color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.cyan.withOpacity(0.1)),
+        boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -226,7 +242,7 @@ class DashboardScreen extends ConsumerWidget {
           const Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('STATUS', style: TextStyle(color: Colors.white24, fontSize: 8)),
+              Text('STATUS', style: TextStyle(color: Colors.grey, fontSize: 8)),
               Text('ONLINE', style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
@@ -242,36 +258,40 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(width: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)),
-          child: Text('$count', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          decoration: BoxDecoration(color: Colors.cyan.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          child: Text('$count', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.cyan)),
         ),
       ],
     );
   }
 
   Widget _buildModernDeviceTile(BuildContext context, WidgetRef ref, dynamic device) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onlineColor = isDark ? Colors.white : Colors.black87;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
+        color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: device.isOnline ? Colors.white.withOpacity(0.03) : Colors.redAccent.withOpacity(0.1)),
+        border: Border.all(color: device.isOnline ? Colors.cyan.withOpacity(0.05) : Colors.redAccent.withOpacity(0.2)),
+        boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
       ),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(14)),
-            child: Icon(_getDeviceIcon(device.deviceType), color: device.isOnline ? Colors.white70 : Colors.redAccent, size: 20),
+            decoration: BoxDecoration(color: Colors.cyan.withOpacity(0.05), borderRadius: BorderRadius.circular(14)),
+            child: Icon(_getDeviceIcon(device.deviceType), color: device.isOnline ? Colors.cyan : Colors.redAccent, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(device.name, style: TextStyle(color: device.isOnline ? Colors.white : Colors.white38, fontWeight: FontWeight.bold)),
-                Text(device.mac, style: const TextStyle(color: Colors.white24, fontSize: 10, fontFamily: 'monospace')),
+                Text(device.name, style: TextStyle(color: device.isOnline ? onlineColor : Colors.grey, fontWeight: FontWeight.bold)),
+                Text(device.mac, style: const TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'monospace')),
               ],
             ),
           ),
@@ -291,7 +311,6 @@ class DashboardScreen extends ConsumerWidget {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF111111),
           title: const Text('تأكيد الحظر'),
           content: Text('هل تريد حظر جهاز ${device.name} من الوصول للإنترنت؟'),
           actions: [
@@ -310,13 +329,14 @@ class DashboardScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildSystemLogsSection() {
+  Widget _buildSystemLogsSection(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
+        color: isDark ? const Color(0xFF111111) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.02)),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,7 +345,7 @@ class DashboardScreen extends ConsumerWidget {
             children: [
               Icon(LucideIcons.scrollText, color: Colors.grey, size: 16),
               SizedBox(width: 8),
-              Text('سجلات الأمان (Audit Trail)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70)),
+              Text('سجلات الأمان (Audit Trail)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
             ],
           ),
           const SizedBox(height: 16),
@@ -342,10 +362,10 @@ class DashboardScreen extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         children: [
-          Text(time, style: const TextStyle(fontSize: 9, color: Colors.white24, fontFamily: 'monospace')),
+          Text(time, style: const TextStyle(fontSize: 9, color: Colors.grey, fontFamily: 'monospace')),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(msg, style: TextStyle(fontSize: 11, color: isWarning ? Colors.orangeAccent.withOpacity(0.7) : Colors.white54)),
+            child: Text(msg, style: TextStyle(fontSize: 11, color: isWarning ? Colors.orangeAccent : Colors.grey)),
           ),
         ],
       ),
@@ -353,7 +373,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState() {
-    return const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('لا يوجد أجهزة مكتشفة', style: TextStyle(color: Colors.white10))));
+    return const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('لا يوجد أجهزة مكتشفة', style: TextStyle(color: Colors.grey))));
   }
 
   IconData _getDeviceIcon(String? type) {

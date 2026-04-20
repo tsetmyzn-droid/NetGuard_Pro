@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'presentation/providers/auth_provider.dart';
+import 'presentation/providers/theme_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/dashboard_screen.dart';
 
@@ -21,14 +22,17 @@ void main() async {
   );
 }
 
-class NetGuardProApp extends StatelessWidget {
+class NetGuardProApp extends ConsumerWidget {
   const NetGuardProApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       title: 'NetGuard Pro',
       debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -39,7 +43,23 @@ class NetGuardProApp extends StatelessWidget {
         Locale('en', 'US'),
       ],
       locale: const Locale('ar', 'AE'),
+      
+      // 🌓 Light Theme
       theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.cyan,
+          brightness: Brightness.light,
+          primary: Colors.cyan[700]!,
+          surface: Colors.white,
+        ),
+        textTheme: GoogleFonts.cairoTextTheme(ThemeData.light().textTheme),
+      ),
+
+      // 🌙 Dark Theme (NetGuard Default)
+      darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF060606),
@@ -51,6 +71,7 @@ class NetGuardProApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme),
       ),
+      
       home: const AuthWrapper(),
     );
   }

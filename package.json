@@ -11,7 +11,11 @@
     "lodash": "^4.17.21",
     "minimatch": "^9.0.0",
     "glob": "^10.3.10",
-    "undici": "^6.13.0"
+    "undici": "^6.13.0",
+    "braces": "^3.0.3",
+    "cross-spawn": "^7.0.5",
+    "cookie": "^0.7.0",
+    "path-to-regexp": "^6.3.0"
   },
   "scripts": {
     "dev": "tsx backend/node_server/server.ts",
@@ -20,14 +24,23 @@
     "start": "tsx backend/node_server/server.ts"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.0.0",
     "axios": "^1.7.9",
+    "clsx": "^2.1.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^7.1.5",
+    "framer-motion": "^12.38.0",
     "helmet": "^8.1.0",
     "lodash": "^4.17.21",
+    "lucide-react": "^1.8.0",
     "path": "latest",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.3",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2"
   },
   "devDependencies": {
