@@ -1,151 +1,112 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'presentation/providers/auth_provider.dart';
+import 'presentation/screens/login_screen.dart';
+import 'presentation/screens/dashboard_screen.dart';
 
-void main() {
-  runApp(NetGuardApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Hive.initFlutter();
+  await Hive.openBox('settings');
+  await Hive.openBox('auth_cache');
+
+  runApp(
+    const ProviderScope(
+      child: NetGuardProApp(),
+    ),
+  );
 }
 
-class NetGuardApp extends StatelessWidget {
+class NetGuardProApp extends StatelessWidget {
+  const NetGuardProApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'NetGuard Pro',
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ar', 'AE'), 
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('ar', 'AE'),
       theme: ThemeData(
+        useMaterial3: true,
         brightness: Brightness.dark,
-        primaryColor: Colors.cyan,
-        scaffoldBackgroundColor: Color(0xFF060606),
+        scaffoldBackgroundColor: const Color(0xFF060606),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.cyan,
+          brightness: Brightness.dark,
+          primary: Colors.cyan,
+          surface: const Color(0xFF111111),
+        ),
+        textTheme: GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme),
       ),
-      home: DashboardPage(),
+      home: const AuthWrapper(),
     );
   }
 }
 
-class DashboardPage extends StatefulWidget {
+class AuthWrapper extends ConsumerStatefulWidget {
+  const AuthWrapper({super.key});
+
   @override
-  _DashboardPageState createState() => _DashboardPageState();
+  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
-  List devices = [];
-  Map stats = {"download": "0", "upload": "0", "ping": "0"};
-  bool isLoading = true;
-
+class _AuthWrapperState extends ConsumerState<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    fetchData();
-  }
-
-  Future<void> fetchData() async {
-    try {
-      // Note: Using port 3000 as configured in the project
-      final deviceRes = await http.get(Uri.parse('http://localhost:3000/api/devices'));
-      final statsRes = await http.get(Uri.parse('http://localhost:3000/api/stats'));
-
-      if (deviceRes.statusCode == 200 && statsRes.statusCode == 200) {
-        setState(() {
-          devices = json.decode(deviceRes.body);
-          stats = json.decode(statsRes.body);
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      print("Error fetching data: $e");
-      setState(() => isLoading = false);
-    }
+    Future.microtask(() => ref.read(authProvider.notifier).checkSession());
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('NetGuard Pro', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(icon: Icon(Icons.refresh), onPressed: fetchData),
-        ],
-      ),
-      body: isLoading 
-        ? Center(child: CircularProgressIndicator(color: Colors.cyan))
-        : Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Stats Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem("Download", stats["download"], Icons.download, Colors.green),
-                    _buildStatItem("Upload", stats["upload"], Icons.upload, Colors.blue),
-                    _buildStatItem("Ping", stats["ping"], Icons.timer, Colors.orange),
-                  ],
-                ),
-                SizedBox(height: 32),
-                Text("Connected Devices", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                SizedBox(height: 16),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: devices.length,
-                    itemBuilder: (context, index) {
-                      final device = devices[index];
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 12),
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.1)),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.cyan.withOpacity(0.1),
-                              child: Icon(Icons.devices, color: Colors.cyan),
-                            ),
-                            SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(device["name"], style: TextStyle(fontWeight: FontWeight.bold)),
-                                  Text(device["ip"], style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                device["status"], 
-                                style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-    );
-  }
+    final authState = ref.watch(authProvider);
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 20),
-        SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.white38, fontSize: 10)),
-      ],
+    if (authState.isLoading && authState.router == null) {
+      return const InitialSplash();
+    }
+
+    if (authState.router != null) {
+      return const DashboardScreen();
+    }
+
+    return const LoginScreen();
+  }
+}
+
+class InitialSplash extends StatelessWidget {
+  const InitialSplash({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shield_outlined, size: 80, color: Colors.cyan),
+            SizedBox(height: 24),
+            Text(
+              'NETGUARD PRO',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 4),
+            ),
+            SizedBox(height: 10),
+            CircularProgressIndicator(strokeWidth: 2, color: Colors.cyan),
+          ],
+        ),
+      ),
     );
   }
 }

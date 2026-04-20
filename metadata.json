@@ -1,6 +1,6 @@
 {
-  "name": "NetGuard Pro ",
-  "description": "Enterprise-grade network monitoring and router management system. Real-time traffic analysis, automated threat detection, and multi-vendor router support.",
+  "name": "NetGuard Pro Native",
+  "description": "Native enterprise-grade network monitoring and router management system. Built with Flutter for performance and security. Supports ZTE, Huawei, and TP-Link with real-time API integration.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

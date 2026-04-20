@@ -4,39 +4,30 @@
   "version": "1.0.0",
   "type": "module",
   "workspaces": [
-    "frontend",
     "backend/node_server",
-    "desktop",
     "mobile"
   ],
+  "overrides": {
+    "lodash": "^4.17.21",
+    "minimatch": "^9.0.0",
+    "glob": "^10.3.10",
+    "undici": "^6.13.0"
+  },
   "scripts": {
     "dev": "tsx backend/node_server/server.ts",
-    "build": "npm run build -w frontend",
-    "lint": "npm run lint -w frontend",
-    "preview": "npm run preview -w frontend",
+    "build": "echo 'Native System Build Placeholder'",
+    "lint": "echo 'Native System Lint Placeholder'",
     "start": "tsx backend/node_server/server.ts"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.99.1",
     "axios": "^1.7.9",
     "cors": "^2.8.6",
-    "crypto-js": "^4.2.0",
     "express": "^5.2.1",
     "express-rate-limit": "^7.1.5",
     "helmet": "^8.1.0",
-    "i18next": "^26.0.6",
     "lodash": "^4.17.21",
-    "minimatch": "^9.0.0",
-    "network": "^0.7.0",
-    "node-arp": "^1.0.6",
     "path": "latest",
-    "ping": "^1.0.0",
-    "react-hot-toast": "^2.6.0",
-    "react-i18next": "^17.0.4",
-    "react-router-dom": "^7.14.1",
-    "recharts": "^2.13.0",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.3",
     "tsx": "^4.19.2"
   },
   "devDependencies": {
