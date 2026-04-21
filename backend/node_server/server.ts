@@ -1,84 +1,40 @@
-console.log("Starting NetGuard Pro Server...");
 import express from "express";
 import cors from "cors";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import { spawn } from "child_process";
 import path from "path";
-import fs from "fs";
-import helmet from "helmet";
-import { rateLimit } from "express-rate-limit";
-import { createServer } from "http";
-import { createServer as createViteServer } from "vite";
 
-import { setupSocket } from "./websocket.ts";
-import detectorRouter from "./routes/router.routes.ts";
-import { logToSystem, getSystemLogs, setIoInstance } from "./logger.ts";
-import { startStatusMonitor, getDevices, setStatusIo } from "./statusService.ts";
-import { performArpScan } from "./networkScanner.ts";
-import { startTrafficMonitor, setTrafficIo } from "./trafficMonitor.ts";
+const app = express();
+const PORT = 3000;
+const PYTHON_PORT = 8000;
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
-  
-  app.set('trust proxy', true);
+// --- 🚀 تشغيل نواة البايثون (Python Kernel) في الخلفية ---
+const pythonProcess = spawn("python3", ["backend/python_server/main.py"], {
+    stdio: "inherit",
+    env: { ...process.env, PYTHONUNBUFFERED: "1" }
+});
 
-  const httpServer = createServer(app);
-  const io = setupSocket(httpServer);
-  
-  setIoInstance(io);
-  setStatusIo(io);
-  setTrafficIo(io);
+pythonProcess.on("error", (err) => {
+    console.error("[CRITICAL] Failed to start Python Kernel:", err);
+});
 
-  startStatusMonitor();
-  setInterval(() => performArpScan(), 30000);
-  // startTrafficMonitor(); // Managed by socket connections now
+// --- 🛡️ الوكيل الشفاف (Transparent Proxy) ---
+// هذا الجزء لا يحتوي على أي "منطق برمجي"، فقط يمرر الطلبات للبايثون
+app.use(cors());
 
-  app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
-  }));
+app.use("/api", createProxyMiddleware({
+    target: `http://127.0.0.1:${PYTHON_PORT}`,
+    changeOrigin: true,
+    logLevel: "debug"
+}));
 
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 1000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || req.ip || 'anonymous',
-  });
+// تمرير الصفحة الرئيسية (Bridge) من البايثون أيضاً
+app.get("*all", createProxyMiddleware({
+    target: `http://127.0.0.1:${PYTHON_PORT}`,
+    changeOrigin: true
+}));
 
-  app.use(cors());
-  app.use(express.json());
-
-  // API Routes
-  app.use("/api/router", detectorRouter);
-  app.get("/api/devices", (req, res) => res.json(getDevices()));
-  app.get("/api/system/logs", (req, res) => res.send(getSystemLogs()));
-  app.get("/api/stats", (req, res) => res.json({ download: "12.4 Mb/s", upload: "2.1 Mb/s", ping: "14 ms" }));
-
-  // Efficiency Audit: Traffic Monitor control
-  io.on('connection', (socket) => {
-    logToSystem('INFO', `Client connected: ${socket.id}`);
-    startTrafficMonitor(); // Ensure running when a client connects
-  });
-
-  // --- Vite Middleware (Development) ---
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
-      app.get("*", (req, res) => res.sendFile(path.join(distPath, "index.html")));
-    }
-  }
-
-  httpServer.listen(PORT, "0.0.0.0", () => {
-    logToSystem('INFO', `NetGuard Pro Kernel Operational on port ${PORT}`);
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
-
-startServer();
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[DEPLOYMENT BRIDGE] Operating on Port ${PORT}`);
+    console.log(`[LOGIC SOURCE] Forwarding all traffic to Python on Port ${PYTHON_PORT}`);
+});

@@ -1,4 +1,4 @@
-enum RouterType { huawei, zte, tplink, unknown }
+enum RouterType { huawei, zte, tplink, python, unknown }
 
 class RouterModel {
   final String ip;

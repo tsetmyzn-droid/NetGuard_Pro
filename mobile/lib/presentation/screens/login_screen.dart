@@ -16,7 +16,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _ipController = TextEditingController(text: '192.168.1.1');
   final _passController = TextEditingController();
-  RouterType _selectedType = RouterType.zte;
+  RouterType _selectedType = RouterType.python;
 
   @override
   Widget build(BuildContext context) {
@@ -237,38 +237,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ],
     );
   }
-
-  Widget _buildErrorSection(String error) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          const Icon(LucideIcons.alertTriangle, color: Colors.redAccent, size: 16),
-          const SizedBox(width: 12),
-          Expanded(child: Text(error, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
-        ],
-      ),
-    ).animate().shake();
-  }
-
-  void _handleLogin() async {
-    final success = await ref.read(authProvider.notifier).login(
-      _ipController.text,
-      _passController.text,
-      _selectedType,
-    );
-    
-    if (!success && mounted) {
-      Feedback.forTap(context);
-    }
-  }
-}
 
   Widget _buildErrorSection(String error) {
     return Container(

@@ -4,6 +4,7 @@ import '../plugins/base_router_plugin.dart';
 import '../plugins/zte_router_plugin.dart';
 import '../plugins/huawei_router_plugin.dart';
 import '../plugins/tp_link_router_plugin.dart';
+import '../plugins/python_engine_plugin.dart';
 
 class AuthRepository {
   final SecureCredentialService _secureService = SecureCredentialService();
@@ -13,6 +14,7 @@ class AuthRepository {
     RouterType.zte: ZteRouterPlugin(),
     RouterType.huawei: HuaweiRouterPlugin(),
     RouterType.tplink: TPLinkRouterPlugin(),
+    RouterType.python: PythonEnginePlugin(),
   };
 
   BaseRouterPlugin? _activePlugin;
@@ -42,13 +44,19 @@ class AuthRepository {
 
     final password = await _secureService.getPassword(ip);
     
-    // سنفترض ZTE كنوع افتراضي حالياً لاختبار الجلسة
-    return RouterModel(
+    // سنفترض Python كنوع افتراضي حالياً لاختبار الجلسة
+    final auth = RouterModel(
       ip: ip,
       password: password ?? '',
-      type: RouterType.zte,
+      type: RouterType.python,
       isConnected: true,
     );
+    
+    // تفعيل الـ Plugin تلقائياً للجلسة المستعادة
+    _activePlugin = _plugins[RouterType.python];
+    await _activePlugin?.login(ip, password ?? '');
+    
+    return auth;
   }
 
   BaseRouterPlugin? get activePlugin => _activePlugin;
