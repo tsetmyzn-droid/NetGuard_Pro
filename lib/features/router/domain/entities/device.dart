@@ -4,6 +4,9 @@ class Device {
   final String ip;
   final String status;
   final String type;
+  final String connectionType; // '2.4G', '5G', 'Ethernet'
+  final bool isBlocked;
+  final int? signalStrength; // 0-100
 
   Device({
     required this.name,
@@ -11,6 +14,9 @@ class Device {
     required this.ip,
     required this.status,
     this.type = 'other',
+    this.connectionType = 'Unknown',
+    this.isBlocked = false,
+    this.signalStrength,
   });
 
   factory Device.fromMap(Map<String, dynamic> map) {
@@ -20,6 +26,9 @@ class Device {
       ip: map['ip'] ?? '',
       status: map['status'] ?? 'offline',
       type: map['type'] ?? 'other',
+      connectionType: map['connectionType'] ?? 'Unknown',
+      isBlocked: map['isBlocked'] ?? false,
+      signalStrength: map['signalStrength'],
     );
   }
 }

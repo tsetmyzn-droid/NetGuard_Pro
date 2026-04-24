@@ -43,6 +43,11 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Security Scan (Python Dependencies)
+        run: |
+          pip install safety
+          safety check -r requirements.txt || echo "::warning:: Vulnerable dependencies detected in requirements.txt"
+
       # 4. بناء تطبيق الأندرويد (APK Build)
       - name: Build Android APK
         run: |

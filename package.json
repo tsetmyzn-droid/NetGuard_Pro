@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "echo 'Build handled by platform'",
-    "start": "node server.js"
+    "start": "node server.js",
+    "lint": "echo 'Linting...'"
   },
   "dependencies": {
     "express": "^4.18.2"

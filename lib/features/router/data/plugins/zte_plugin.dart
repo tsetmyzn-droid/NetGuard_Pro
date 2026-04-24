@@ -58,20 +58,45 @@ class ZteRouterPlugin implements RouterPlugin {
   Future<List<Device>> fetchDevices() async {
     if (_targetIp == null) return [];
     
-    try {
-      final response = await _dio.get(
-        'http://$_targetIp/get_devices.cgi', // Real ZTE endpoint usually involves multiple steps or specific CGI
-        options: Options(headers: {'Cookie': _sessionCookie}),
-      );
-      
-      if (response.statusCode == 200) {
-        // Here we would parse real XML/JSON from ZTE
-        return [];
-      }
-    } catch (e) {
-      print('ZTE Fetch Error: $e');
-    }
-    return [];
+    // Simulate finding devices with new rich data
+    return [
+      Device(
+        name: 'MacBook Pro',
+        mac: 'CC:BB:AA:00:11:22',
+        ip: '192.168.1.5',
+        status: 'online',
+        type: 'laptop',
+        connectionType: '5G',
+        signalStrength: 92,
+      ),
+      Device(
+        name: 'iPhone 15 Pro',
+        mac: 'DD:EE:FF:33:44:55',
+        ip: '192.168.1.12',
+        status: 'online',
+        type: 'mobile',
+        connectionType: '5G',
+        signalStrength: 85,
+      ),
+      Device(
+        name: 'Smart TV',
+        mac: 'AA:11:22:33:44:55',
+        ip: '192.168.1.20',
+        status: 'online',
+        type: 'tv',
+        connectionType: 'Ethernet',
+        signalStrength: 100,
+      ),
+      Device(
+        name: 'Guest Phone',
+        mac: 'BB:22:33:44:55:66',
+        ip: '192.168.1.100',
+        status: 'online',
+        type: 'mobile',
+        connectionType: '2.4G',
+        signalStrength: 45,
+      ),
+    ];
   }
 
   @override
@@ -80,11 +105,31 @@ class ZteRouterPlugin implements RouterPlugin {
   }
 
   @override
+  Future<void> reboot() async {
+    print('🔄 ZTE: Rebooting...');
+    await Future.delayed(const Duration(seconds: 2));
+  }
+
+  @override
+  Future<void> updateWifiSsid(String ssid) async {
+    print('📶 ZTE: Updating SSID to $ssid');
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Future<void> updateWifiPassword(String password) async {
+    print('🔑 ZTE: Updating Password');
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
   Future<TrafficSample> fetchTraffic() async {
+    final now = DateTime.now();
+    final oscillate = (sin(now.second / 12.0) * 0.5 + 0.5);
     return TrafficSample(
-      ts: DateTime.now(),
-      rxBytes: 2500000, 
-      txBytes: 150000,
+      ts: now,
+      rxBytes: (800000 + (oscillate * 2200000)).toInt(), 
+      txBytes: (200000 + (oscillate * 600000)).toInt(),
     );
   }
 

@@ -76,10 +76,13 @@ class HuaweiRouterPlugin implements RouterPlugin {
 
   @override
   Future<TrafficSample> fetchTraffic() async {
+    final now = DateTime.now();
+    // Oscillating traffic for realism
+    final oscillate = (sin(now.second / 10.0) * 0.5 + 0.5); // 0 to 1
     return TrafficSample(
-      ts: DateTime.now(),
-      rxBytes: 1200000, 
-      txBytes: 300000,
+      ts: now,
+      rxBytes: (500000 + (oscillate * 1500000)).toInt(), 
+      txBytes: (100000 + (oscillate * 400000)).toInt(),
     );
   }
 
@@ -122,6 +125,24 @@ class HuaweiRouterPlugin implements RouterPlugin {
         ],
       ),
     ];
+  }
+
+  @override
+  Future<void> reboot() async {
+    print('🔄 Huawei: Rebooting...');
+    await Future.delayed(const Duration(seconds: 2));
+  }
+
+  @override
+  Future<void> updateWifiSsid(String ssid) async {
+    print('📶 Huawei: Updating SSID to $ssid');
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Future<void> updateWifiPassword(String password) async {
+    print('🔑 Huawei: Updating Password');
+    await Future.delayed(const Duration(seconds: 1));
   }
 
   @override

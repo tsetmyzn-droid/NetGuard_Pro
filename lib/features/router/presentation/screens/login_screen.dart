@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../features/router/presentation/providers/router_provider.dart';
-import '../features/router/presentation/screens/dashboard_screen.dart';
+import '../providers/router_provider.dart';
+import 'dashboard_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -70,27 +70,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     const bool isPreview = true; // In AI Studio, we can assume preview for development
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050A0F),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(LucideIcons.shieldCheck, size: 80, color: Colors.cyan)
-                .animate()
-                .scale(duration: 600.ms, curve: Curves.backOut)
-                .shimmer(delay: 1.seconds),
-              const SizedBox(height: 16),
-              const Text(
-                'NetGuard Pro',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+      backgroundColor: const Color(0xFF02060A),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topRight,
+            radius: 1.5,
+            colors: [
+              Colors.cyan.withOpacity(0.05),
+              const Color(0xFF02060A),
+            ],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.cyan.withOpacity(0.05),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.cyan.withOpacity(0.1)),
+                  ),
+                  child: const Icon(LucideIcons.shieldCheck, size: 60, color: Colors.cyan),
+                )
+                  .animate()
+                  .scale(duration: 600.ms, curve: Curves.backOut)
+                  .shimmer(delay: 1.seconds),
+                const SizedBox(height: 24),
+                const Text(
+                  'NetGuard Pro',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
               const Text(
                 'حماية وإدارة شبكتك بذكاء',
                 style: TextStyle(color: Colors.white38, fontSize: 14),

@@ -51,10 +51,10 @@ class UsageNotifier extends StateNotifier<UsageState> {
     state = state.copyWith(isTracking: true);
     
     // Initial fetch
-    _fetchUsage();
+    fetchUsage();
     
     // Polling every 5 seconds
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchUsage());
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => fetchUsage());
   }
 
   void stopTracking() {
@@ -62,7 +62,7 @@ class UsageNotifier extends StateNotifier<UsageState> {
     state = state.copyWith(isTracking: false);
   }
 
-  Future<void> _fetchUsage() async {
+  Future<void> fetchUsage() async {
     final total = await _repository.getLatestTotalUsage();
     final devices = await _repository.getLatestDevicesUsage();
     

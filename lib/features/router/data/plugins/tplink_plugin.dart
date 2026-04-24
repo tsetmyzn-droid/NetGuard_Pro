@@ -62,10 +62,12 @@ class TPLinkRouterPlugin implements RouterPlugin {
 
   @override
   Future<TrafficSample> fetchTraffic() async {
+    final now = DateTime.now();
+    final oscillate = (cos(now.second / 8.0) * 0.4 + 0.6); // 0.2 to 1.0
     return TrafficSample(
-      ts: DateTime.now(),
-      rxBytes: 3800000, 
-      txBytes: 1100000,
+      ts: now,
+      rxBytes: (1500000 + (oscillate * 3000000)).toInt(), 
+      txBytes: (300000 + (oscillate * 800000)).toInt(),
     );
   }
 
@@ -84,6 +86,24 @@ class TPLinkRouterPlugin implements RouterPlugin {
       DeviceUsage(mac: 'TP:LK:01:02:03', rxBytes: 15 * 1024 * 1024 * 1024, txBytes: 3 * 1024 * 1024 * 1024, ts: DateTime.now()),
       DeviceUsage(mac: 'TP:LK:FF:EE:DD', rxBytes: 8 * 1024 * 1024 * 1024, txBytes: 1200 * 1024 * 1024, ts: DateTime.now()),
     ];
+  }
+
+  @override
+  Future<void> reboot() async {
+    print('🔄 TP-Link: Rebooting...');
+    await Future.delayed(const Duration(seconds: 2));
+  }
+
+  @override
+  Future<void> updateWifiSsid(String ssid) async {
+    print('📶 TP-Link: Updating SSID to $ssid');
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Future<void> updateWifiPassword(String password) async {
+    print('🔑 TP-Link: Updating Password');
+    await Future.delayed(const Duration(seconds: 1));
   }
 
   @override

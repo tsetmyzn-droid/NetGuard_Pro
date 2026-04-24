@@ -12,5 +12,11 @@ abstract class RouterPlugin {
   Future<UsageSample?> fetchTotalUsage();
   Future<List<DeviceUsage>?> fetchDevicesUsage();
   Future<List<SystemLog>> fetchLogs();
+  
+  // Optional operations
+  Future<void> reboot() async => throw UnimplementedError('Reboot not supported by this plugin');
+  Future<void> updateWifiSsid(String ssid) async => throw UnimplementedError('Update SSID not supported by this plugin');
+  Future<void> updateWifiPassword(String password) async => throw UnimplementedError('Update Password not supported by this plugin');
+
   bool canHandle(Map<String, dynamic> fingerprint);
 }
