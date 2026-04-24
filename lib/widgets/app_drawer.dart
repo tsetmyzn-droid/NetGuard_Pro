@@ -4,6 +4,7 @@ import '../features/router/presentation/screens/dashboard_screen.dart';
 import '../features/usage/presentation/screens/usage_screen.dart';
 import '../features/router/presentation/screens/system_logs_screen.dart';
 import '../features/speed/presentation/screens/speed_screen.dart';
+import '../features/router/presentation/screens/traffic_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final String currentRoute;
@@ -34,6 +35,7 @@ class AppDrawer extends StatelessWidget {
           ),
           _drawerItem(context, 'الرئيسية', LucideIcons.home, '/dashboard'),
           _drawerItem(context, 'الاستهلاك', LucideIcons.barChart3, '/usage'),
+          _drawerItem(context, 'سجل الأمان', LucideIcons.shieldAlert, '/traffic'),
           _drawerItem(context, 'اختبار السرعة', LucideIcons.zap, '/speed'),
           _drawerItem(context, 'سجلات النظام', LucideIcons.history, '/logs'),
           const Spacer(),
@@ -65,10 +67,20 @@ class AppDrawer extends StatelessWidget {
         // Navigation Logic
         Widget screen;
         switch (route) {
-          case '/usage': screen = const UsageScreen(); break;
-          case '/logs': screen = const SystemLogsScreen(); break;
-          case '/speed': screen = const SpeedScreen(); break;
-          default: screen = const DashboardScreen();
+          case '/usage':
+            screen = const UsageScreen();
+            break;
+          case '/logs':
+            screen = const SystemLogsScreen();
+            break;
+          case '/speed':
+            screen = const SpeedScreen();
+            break;
+          case '/traffic':
+            screen = const TrafficScreen();
+            break;
+          default:
+            screen = const DashboardScreen();
         }
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => screen));
       },

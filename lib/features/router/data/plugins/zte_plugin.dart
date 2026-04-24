@@ -45,14 +45,12 @@ class ZteRouterPlugin implements RouterPlugin {
         final cookies = response.headers[HttpHeaders.setCookieHeader];
         if (cookies != null && cookies.isNotEmpty) {
           _sessionCookie = cookies.first.split(';').first;
-        } else if (response.statusCode != 200) {
-          throw Exception('Session cookie missing');
         }
       } else {
         throw Exception('Login failed with status ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('ZTE Connection Error: $e');
+      throw Exception('ZTE Login Error: $e');
     }
   }
 
@@ -60,12 +58,20 @@ class ZteRouterPlugin implements RouterPlugin {
   Future<List<Device>> fetchDevices() async {
     if (_targetIp == null) return [];
     
-    // بيانات تجريبية (Mock Data) للاختبار الأولي للـ UI
-    final rawDevices = [
-      {'name': 'هاتف ذكي Apple', 'mac': 'AA:BB:CC:DD', 'ip': '192.168.1.5', 'status': 'online'},
-      {'name': 'لابتوب Dell', 'mac': '11:22:33:44', 'ip': '192.168.1.10', 'status': 'offline'},
-    ];
-    return rawDevices.map((d) => Device.fromMap(d)).toList();
+    try {
+      final response = await _dio.get(
+        'http://$_targetIp/get_devices.cgi', // Real ZTE endpoint usually involves multiple steps or specific CGI
+        options: Options(headers: {'Cookie': _sessionCookie}),
+      );
+      
+      if (response.statusCode == 200) {
+        // Here we would parse real XML/JSON from ZTE
+        return [];
+      }
+    } catch (e) {
+      print('ZTE Fetch Error: $e');
+    }
+    return [];
   }
 
   @override
@@ -93,7 +99,4 @@ class ZteRouterPlugin implements RouterPlugin {
 
   @override
   Future<List<SystemLog>> fetchLogs() async => [];
-
-  @override
-  Future<void> login(String ip, String password) async {}
 }

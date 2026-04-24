@@ -19,32 +19,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login({bool isDemo = false}) async {
-    setState(() => _isLoading = true);
-    try {
-      if (isDemo) {
-        // Simulating demo login
-        await Future.delayed(const Duration(seconds: 1));
-      } else {
-        await ref.read(routerRepositoryProvider).login(
-          _ipController.text,
-          _passwordController.text,
-        );
-      }
-      
+    if (!isDemo && (_ipController.text.isEmpty || _usernameController.text.isEmpty || _passwordController.text.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الرجاء إدخال جميع البيانات المطلوبة')),
+      );
+      return;
+    }
+
+    if (isDemo) {
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const DashboardScreen()),
         );
       }
-    } catch (e) {
+      return;
+    }
+
+    final success = await ref.read(routerProvider.notifier).login(
+      _ipController.text,
+      _usernameController.text,
+      _passwordController.text,
+    );
+    
+    if (success) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل تسجيل الدخول: $e')),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    } else {
+      final error = ref.read(routerProvider).error;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text('فشل الاتصال: $error'),
+          ),
+        );
+      }
     }
   }
 
@@ -105,14 +119,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : () => _login(),
+                  onPressed: ref.watch(routerProvider).isLoading ? null : () => _login(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.cyan,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: _isLoading 
+                  child: ref.watch(routerProvider).isLoading 
                     ? const CircularProgressIndicator(color: Colors.black)
                     : const Text('تسجيل الدخول', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),

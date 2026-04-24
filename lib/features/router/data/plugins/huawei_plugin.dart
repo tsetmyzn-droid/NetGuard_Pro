@@ -126,17 +126,6 @@ class HuaweiRouterPlugin implements RouterPlugin {
 
   @override
   Future<List<SystemLog>> fetchLogs() async {
-    return [
-      SystemLog(ts: DateTime.now().subtract(const Duration(minutes: 5)), message: 'Huawei Plugin: Detected potential signal interference', level: LogLevel.warning),
-      SystemLog(ts: DateTime.now().subtract(const Duration(minutes: 10)), message: 'Huawei Plugin: System health check passed', level: LogLevel.info),
-    ];
-  }
-
-  @override
-  Future<void> login(String ip, String password) async {
-    _targetIp = ip;
-    // Mock login success
-    _sessionCookie = 'mock_cookie';
-    _csrfToken = 'mock_token';
+    return [];
   }
 }

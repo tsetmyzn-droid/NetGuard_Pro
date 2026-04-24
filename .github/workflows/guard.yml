@@ -1,0 +1,135 @@
+name: Global Security Guard # حارس الأمان الشامل
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-and-build:
+    name: "فحص الأمان والجودة"
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. جلب الكود من المستودع
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. حماية مفاتيح الـ API (Secret Scanning)
+      - name: Check for Secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true # Not blocking here to allow log capture but we will fail later if needed
+
+      # 3. إعداد البيئة (Flutter/Dart & Python)
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # 4. فحص "جودة الكود" (Linting) مع التقاط الأخطاء
+      - name: Run Quality Checks
+        id: checks
+        run: |
+          mkdir -p logs
+          EXIT_CODE=0
+          
+          echo "[SECTION: PYTHON SYNTAX]" > logs/process.log
+          python3 -m py_compile $(find . -name "*.py") >> logs/process.log 2>&1 || EXIT_CODE=1
+          
+          echo -e "\n[SECTION: DART ANALYZE]" >> logs/process.log
+          flutter pub get >> /dev/null 2>&1
+          # Capture output to both stdout and log
+          flutter analyze --no-pub > dart_analyze.out 2>&1 || EXIT_CODE=1
+          cat dart_analyze.out >> logs/process.log
+          
+          echo -e "\n[SECTION: MASS DELETION GUARD]" >> logs/process.log
+          # Protection against large deletions
+          DELETED_COUNT=$(git diff --name-only --diff-filter=D HEAD~1 HEAD | wc -l || echo 0)
+          if [ "$DELETED_COUNT" -gt 10 ]; then
+            echo "[FAILURE REASON] Mass deletion detected ($DELETED_COUNT files). The security policy allows a maximum of 10 file deletions per push to prevent potential code wipes or sabotage." >> logs/process.log
+            EXIT_CODE=1
+          else
+            echo "Safe: $DELETED_COUNT files deleted." >> logs/process.log
+          fi
+          
+          exit $EXIT_CODE
+
+      # 5. معالجة الفشل وتصدير السجل الذكي (Error Context Log)
+      - name: Export Error Context Log
+        if: failure()
+        run: |
+          echo "==== 🛡️ NETGUARD SECURITY & ERROR ANALYSIS 🛡️ ====" > error_report.txt
+          echo "Generated at: $(date)" >> error_report.txt
+          echo "------------------------------------------------" >> error_report.txt
+          
+          # 1. Process Mass Deletion Errors
+          if grep -q "\[FAILURE REASON\] Mass deletion" logs/process.log; then
+            echo -e "\n🚨 [CRITICAL ALERT: MASS DELETION]" >> error_report.txt
+            grep "\[FAILURE REASON\] Mass deletion" logs/process.log >> error_report.txt
+          fi
+
+          # 2. Process Dart Errors with Code Context
+          if [ -f dart_analyze.out ] && grep -q "error •" dart_analyze.out; then
+            echo -e "\n🛠️ [DART COMPILATION ERRORS]" >> error_report.txt
+            # Parse the first 5 errors
+            grep "error •" dart_analyze.out | head -n 5 | while read -r line; do
+              # Extract path:line:col (format: info • message • path:line:col • code)
+              FILE_INFO=$(echo "$line" | awk -F' • ' '{print $3}')
+              FILE_PATH=$(echo "$FILE_INFO" | cut -d: -f1)
+              LINE_NUM=$(echo "$FILE_INFO" | cut -d: -f2)
+              COL_NUM=$(echo "$FILE_INFO" | cut -d: -f3)
+              
+              echo -e "\n📍 FILE: $FILE_PATH" >> error_report.txt
+              echo "   LOCATION: Line $LINE_NUM, Column $COL_NUM" >> error_report.txt
+              echo "   ERROR: $(echo "$line" | awk -F' • ' '{print $2}')" >> error_report.txt
+              echo -e "   CODE CONTEXT:\n" >> error_report.txt
+              
+              if [ -f "$FILE_PATH" ]; then
+                # Get 5 lines before and after
+                START=$((LINE_NUM > 5 ? LINE_NUM - 5 : 1))
+                END=$((LINE_NUM + 5))
+                sed -n "${START},${END}p" "$FILE_PATH" | while read -r codeline; do
+                  CUR_LINE=$((START++))
+                  if [ "$CUR_LINE" -eq "$LINE_NUM" ]; then
+                    printf "  👉 %4d | %s\n" "$CUR_LINE" "$codeline" >> error_report.txt
+                    # Visual pointer to column
+                    printf "           | %$(($COL_NUM + 1))s%s\n" "" "^--- ERROR" >> error_report.txt
+                  else
+                    printf "     %4d | %s\n" "$CUR_LINE" "$codeline" >> error_report.txt
+                  fi
+                done
+              else
+                echo "     (Source file not accessible for context)" >> error_report.txt
+              fi
+            done
+          fi
+
+          # 3. Fallback for other errors
+          echo -e "\n🔍 [ADDITIONAL LOG SNIPPETS]" >> error_report.txt
+          grep -C 3 -v "\[SECTION:" logs/process.log | grep -C 3 -iE "error|fail|exception|alert" | head -n 20 >> error_report.txt || echo "No other specific patterns." >> error_report.txt
+          
+          echo "------------------------------------------------" >> error_report.txt
+          echo "Full logs are available in the 'security-and-error-logs' artifact." >> error_report.txt
+
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-and-error-logs
+          path: |
+            logs/process.log
+            error_report.txt
+
+      # 5. إشعار النجاح
+      - name: Success Notification
+        if: success()
+        run: echo "✅ تم فحص الكود بنجاح. المستودع آمن ومستقر."

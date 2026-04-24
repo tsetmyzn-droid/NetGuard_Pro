@@ -98,9 +98,11 @@ class DashboardScreen extends ConsumerWidget {
       floating: false,
       pinned: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      leading: IconButton(
-        icon: const Icon(LucideIcons.menu, color: Colors.cyan),
-        onPressed: () => Scaffold.of(context).openDrawer(),
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(LucideIcons.menu, color: Colors.cyan),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
       ),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
