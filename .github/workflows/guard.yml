@@ -20,11 +20,19 @@ jobs:
       # 2. حماية مفاتيح الـ API (Secret Scanning)
       - name: Check for Secrets
         uses: gitleaks/gitleaks-action@v2
+        with:
+          report-path: gitleaks-report.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true # Not blocking here to allow log capture but we will fail later if needed
 
-      # 3. إعداد البيئة (Flutter/Dart & Python)
+      # 3. إعداد البيئة (Flutter/Dart, Java & Python)
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -35,90 +43,147 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 4. فحص "جودة الكود" (Linting) مع التقاط الأخطاء
+      # 4. بناء تطبيق الأندرويد (APK Build)
+      - name: Build Android APK
+        run: |
+          mkdir -p logs
+          echo "[SECTION: ANDROID BUILD]" >> logs/process.log
+          flutter build apk --release >> logs/process.log 2>&1 || {
+            echo "APK_BUILD_FAILED=true" >> $GITHUB_ENV
+            echo "Build failed. Check Android logs below." >> logs/process.log
+          }
+
+      # 5. فحص "جودة الكود" والأمان (Linting & Security)
       - name: Run Quality Checks
         id: checks
         run: |
-          mkdir -p logs
           EXIT_CODE=0
           
-          echo "[SECTION: PYTHON SYNTAX]" > logs/process.log
-          python3 -m py_compile $(find . -name "*.py") >> logs/process.log 2>&1 || EXIT_CODE=1
+          echo -e "\n[SECTION: PYTHON SYNTAX]" >> logs/process.log
+          PY_FILES=$(find . -name "*.py" -not -path "*/.*")
+          if [ -n "$PY_FILES" ]; then
+            python3 -m py_compile $PY_FILES >> logs/process.log 2>&1 || EXIT_CODE=1
+          else
+            echo "No python files found. Skipping scan." >> logs/process.log
+          fi
           
           echo -e "\n[SECTION: DART ANALYZE]" >> logs/process.log
-          flutter pub get >> /dev/null 2>&1
-          # Capture output to both stdout and log
-          flutter analyze --no-pub > dart_analyze.out 2>&1 || EXIT_CODE=1
+          flutter pub get >> logs/process.log 2>&1
+          flutter analyze --no-pub > dart_analyze.out 2>&1 || {
+            EXIT_CODE=1
+            echo "Dart analysis issues detected." >> logs/process.log
+          }
           cat dart_analyze.out >> logs/process.log
           
           echo -e "\n[SECTION: MASS DELETION GUARD]" >> logs/process.log
-          # Protection against large deletions
+          # Check for mass deletions in the last commit
           DELETED_COUNT=$(git diff --name-only --diff-filter=D HEAD~1 HEAD | wc -l || echo 0)
           if [ "$DELETED_COUNT" -gt 10 ]; then
-            echo "[FAILURE REASON] Mass deletion detected ($DELETED_COUNT files). The security policy allows a maximum of 10 file deletions per push to prevent potential code wipes or sabotage." >> logs/process.log
+            echo "[FAILURE REASON] Mass deletion detected ($DELETED_COUNT files). Security policy blocks deletions > 10 files to prevent accidental or malicious code removal." >> logs/process.log
             EXIT_CODE=1
-          else
-            echo "Safe: $DELETED_COUNT files deleted." >> logs/process.log
+          fi
+          
+          if [ "$APK_BUILD_FAILED" == "true" ]; then
+            EXIT_CODE=1
           fi
           
           exit $EXIT_CODE
 
-      # 5. معالجة الفشل وتصدير السجل الذكي (Error Context Log)
+      - name: Upload APK
+        if: always() && env.APK_BUILD_FAILED != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      # 6. معالجة الفشل وتصدير السجل الذكي (Error Context Log)
       - name: Export Error Context Log
-        if: failure()
+        if: always()
         run: |
+          # Only run if there was an actual failure in any preceding step
+          if [ "${{ job.status }}" == "success" ]; then exit 0; fi
+          
           echo "==== 🛡️ NETGUARD SECURITY & ERROR ANALYSIS 🛡️ ====" > error_report.txt
           echo "Generated at: $(date)" >> error_report.txt
           echo "------------------------------------------------" >> error_report.txt
           
+          if [ "$APK_BUILD_FAILED" == "true" ]; then
+            echo -e "\n❌ [CRITICAL: APK BUILD FAILED]" >> error_report.txt
+            echo "The Flutter android build failed. Check logs/process.log for compilation errors." >> error_report.txt
+          fi
+          
           # 1. Process Mass Deletion Errors
           if grep -q "\[FAILURE REASON\] Mass deletion" logs/process.log; then
-            echo -e "\n🚨 [CRITICAL ALERT: MASS DELETION]" >> error_report.txt
-            grep "\[FAILURE REASON\] Mass deletion" logs/process.log >> error_report.txt
+            echo -e "\n🚨 [SECURITY ALERT: MASS DELETION]" >> error_report.txt
+            grep "\[FAILURE REASON\] Mass deletion" logs/process.log | sed 's/\[FAILURE REASON\] //' >> error_report.txt
+            echo "Action: Please verify if this deletion was intentional. Security policy blocks deletions > 10 files to prevent sabotage." >> error_report.txt
           fi
 
           # 2. Process Dart Errors with Code Context
-          if [ -f dart_analyze.out ] && grep -q "error •" dart_analyze.out; then
-            echo -e "\n🛠️ [DART COMPILATION ERRORS]" >> error_report.txt
-            # Parse the first 5 errors
-            grep "error •" dart_analyze.out | head -n 5 | while read -r line; do
+          if [ -f dart_analyze.out ] && grep -qE "error •|warning •" dart_analyze.out; then
+            echo -e "\n🛠️ [DART ANALYZE ISSUES]" >> error_report.txt
+            # Process all errors/warnings found
+            grep -E "error •|warning •" dart_analyze.out | while read -r line; do
               # Extract path:line:col (format: info • message • path:line:col • code)
+              # Using a more robust regex-based extraction
+              MSG=$(echo "$line" | awk -F' • ' '{print $2}')
               FILE_INFO=$(echo "$line" | awk -F' • ' '{print $3}')
+              TYPE=$(echo "$line" | awk -F' • ' '{print $1}' | xargs)
+              
               FILE_PATH=$(echo "$FILE_INFO" | cut -d: -f1)
               LINE_NUM=$(echo "$FILE_INFO" | cut -d: -f2)
               COL_NUM=$(echo "$FILE_INFO" | cut -d: -f3)
               
-              echo -e "\n📍 FILE: $FILE_PATH" >> error_report.txt
-              echo "   LOCATION: Line $LINE_NUM, Column $COL_NUM" >> error_report.txt
-              echo "   ERROR: $(echo "$line" | awk -F' • ' '{print $2}')" >> error_report.txt
-              echo -e "   CODE CONTEXT:\n" >> error_report.txt
+              echo -e "\n[${TYPE^^}] $MSG" >> error_report.txt
+              echo "   Location: $FILE_PATH (Line $LINE_NUM, Col $COL_NUM)" >> error_report.txt
               
               if [ -f "$FILE_PATH" ]; then
+                echo "   Context:" >> error_report.txt
                 # Get 5 lines before and after
                 START=$((LINE_NUM > 5 ? LINE_NUM - 5 : 1))
                 END=$((LINE_NUM + 5))
-                sed -n "${START},${END}p" "$FILE_PATH" | while read -r codeline; do
-                  CUR_LINE=$((START++))
-                  if [ "$CUR_LINE" -eq "$LINE_NUM" ]; then
-                    printf "  👉 %4d | %s\n" "$CUR_LINE" "$codeline" >> error_report.txt
-                    # Visual pointer to column
-                    printf "           | %$(($COL_NUM + 1))s%s\n" "" "^--- ERROR" >> error_report.txt
+                
+                # Use a counter to track the current line while reading
+                LINE_COUNTER=$START
+                sed -n "${START},${END}p" "$FILE_PATH" | while IFS= read -r codeline; do
+                  if [ "$LINE_COUNTER" -eq "$LINE_NUM" ]; then
+                    printf "    👉 %4d | %s\n" "$LINE_COUNTER" "$codeline" >> error_report.txt
+                    # Visual pointer to column (adjusting for the prefix length)
+                    POINTER_SPACE=$((COL_NUM + 10))
+                    printf "%${POINTER_SPACE}s%s\n" "" "^--- ERROR" >> error_report.txt
                   else
-                    printf "     %4d | %s\n" "$CUR_LINE" "$codeline" >> error_report.txt
+                    printf "       %4d | %s\n" "$LINE_COUNTER" "$codeline" >> error_report.txt
                   fi
+                  LINE_COUNTER=$((LINE_COUNTER + 1))
                 done
               else
-                echo "     (Source file not accessible for context)" >> error_report.txt
+                echo "   (Source code snippet not available)" >> error_report.txt
               fi
             done
           fi
 
-          # 3. Fallback for other errors
-          echo -e "\n🔍 [ADDITIONAL LOG SNIPPETS]" >> error_report.txt
-          grep -C 3 -v "\[SECTION:" logs/process.log | grep -C 3 -iE "error|fail|exception|alert" | head -n 20 >> error_report.txt || echo "No other specific patterns." >> error_report.txt
+          # 3. Process Python Errors
+          if grep -q "SECTION: PYTHON SYNTAX" logs/process.log && grep -A 30 "SECTION: PYTHON SYNTAX" logs/process.log | grep -iE "SyntaxError|File \""; then
+             echo -e "\n🐍 [PYTHON SYNTAX ERRORS]" >> error_report.txt
+             grep -A 30 "SECTION: PYTHON SYNTAX" logs/process.log | grep -v "SECTION:" | head -n 30 >> error_report.txt
+          fi
+
+          # 5. Process Gitleaks Security Detections
+          if [ -f gitleaks-report.json ]; then
+            DETECTIONS=$(grep -c "id" gitleaks-report.json || echo 0)
+            if [ "$DETECTIONS" -gt 0 ]; then
+               echo -e "\n🔑 [API KEYS / SECRETS DETECTED]" >> error_report.txt
+               echo "Security scan found $DETECTIONS potential secrets committed to the repository." >> error_report.txt
+               echo "Action: Revoke these keys immediately and remove them from git history using BFG or git-filter-repo." >> error_report.txt
+            fi
+          fi
           
-          echo "------------------------------------------------" >> error_report.txt
-          echo "Full logs are available in the 'security-and-error-logs' artifact." >> error_report.txt
+          # 6. Fallback for other errors
+          echo -e "\n🔍 [MISC LOGS]" >> error_report.txt
+          grep -iE "error|fail|exception|alert" logs/process.log | grep -v "SECTION:" | head -n 10 >> error_report.txt || echo "No other specific patterns." >> error_report.txt
+          
+          echo -e "\n------------------------------------------------" >> error_report.txt
+          echo "Full logs are archived in GitHub Actions Artifacts." >> error_report.txt
 
       - name: Upload Logs on Failure
         if: failure()
@@ -129,7 +194,7 @@ jobs:
             logs/process.log
             error_report.txt
 
-      # 5. إشعار النجاح
+      # 7. إشعار النجاح
       - name: Success Notification
         if: success()
-        run: echo "✅ تم فحص الكود بنجاح. المستودع آمن ومستقر."
+        run: echo "✅ تم فحص الكود وبناء النسخة APK بنجاح."
