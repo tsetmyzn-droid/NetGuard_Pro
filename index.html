@@ -1,82 +1,644 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NetGuard Pro - Python/Dart Unified Engine</title>
+    <title>NetGuard Pro | Native Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #050505; color: #e0e0e0; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(10px); border: 1px solid #1a1a1a; }
-        .accent-text { color: #00ffff; text-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
-        .scan-line { position: absolute; left: 0; right: 0; height: 1px; background: #00ffff; box-shadow: 0 0 10px #00ffff; animation: scan 3s linear infinite; pointer-events: none; }
+        :root {
+            --bg-color: #050a0f;
+            --card-bg: #0d1218;
+            --accent-cyan: #00f2ff;
+            --accent-purple: #bc13fe;
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'IBM Plex Sans Arabic', sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Cyberpunk Effects */
+        .glass-card {
+            background: rgba(13, 18, 24, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 242, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+        }
+
+        .glow-cyan { text-shadow: 0 0 10px rgba(0, 242, 255, 0.5); }
+        .glow-purple { text-shadow: 0 0 10px rgba(188, 19, 254, 0.5); }
+
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-active {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .pulse-soft {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .sidebar-item.active {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--accent-cyan);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-6">
-    <div class="scan-line"></div>
-    
-    <div class="max-w-4xl w-full space-y-8 animate__animated animate__fadeIn">
-        <div class="text-center">
-            <div class="inline-flex p-4 rounded-3xl bg-cyan-500/10 border border-cyan-500/20 mb-6">
-                <span class="text-6xl">🛡️</span>
-            </div>
-            <h1 class="text-5xl font-black tracking-tighter uppercase mb-2">NetGuard <span class="text-cyan-500">Pro</span></h1>
-            <p class="text-cyan-500/50 font-bold tracking-[0.3em] text-xs">PYTHON & DART UNIFIED ENGINE</p>
-        </div>
+<body class="antialiased">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass p-8 rounded-[32px] space-y-4">
-                <h2 class="text-sm font-black text-white/40 uppercase tracking-widest">System Architecture</h2>
-                <ul class="space-y-3">
-                    <li class="flex items-center gap-3">
-                        <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
-                        <span class="text-sm font-bold">Backend: <span class="mono text-cyan-500">Python 3.x (Flask Kernel)</span></span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        <span class="text-sm font-bold">Mobile: <span class="mono text-blue-400">Dart 3.x (Flutter Native)</span></span>
-                    </li>
-                    <li class="flex items-center gap-3 text-green-500">
-                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                        <span class="text-sm font-bold">Node.js/JS: [CLEARED & REMOVED]</span>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="glass p-8 rounded-[32px] space-y-4">
-                <h2 class="text-sm font-black text-white/40 uppercase tracking-widest">Active Services (Python)</h2>
-                <div id="service-list" class="space-y-3 mono text-xs">
-                    <div class="flex justify-between"><span>> ARP SCANNER</span> <span class="text-green-500">ACTIVE</span></div>
-                    <div class="flex justify-between"><span>> TRAFFIC LOGIC</span> <span class="text-green-500">RUNNING</span></div>
-                    <div class="flex justify-between"><span>> SECURITY AUDIT</span> <span class="text-green-500">OPERATIONAL</span></div>
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-[#050a0f] transition-all duration-500">
+        <div class="w-full max-w-md text-center">
+            <div class="mb-12">
+                <div class="w-24 h-24 bg-cyan-500/10 rounded-3xl mx-auto flex items-center justify-center text-cyan-400 text-4xl mb-6 border border-cyan-500/20">
+                    <i class="fas fa-shield-alt"></i>
                 </div>
+                <h1 class="text-4xl font-bold tracking-tighter mb-2">NetGuard Pro</h1>
+                <p class="text-slate-500">حماية وإدارة شبكتك بذكاء</p>
             </div>
-        </div>
+            
+            <div class="space-y-4 mb-8">
+                <input type="text" placeholder="عنوان IP للراوتر (البوابة)" value="192.168.1.1" class="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 outline-none focus:border-cyan-500 transition-colors text-right">
+                <input type="text" placeholder="اسم المستخدم" value="admin" class="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 outline-none focus:border-cyan-500 transition-colors text-right">
+                <input type="password" placeholder="كلمة مرور الراوتر" class="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 outline-none focus:border-cyan-500 transition-colors text-right">
+            </div>
 
-        <div class="glass p-6 rounded-[24px] text-center border-dashed border-cyan-500/30">
-            <p class="text-sm text-gray-400 italic">"هذا المشروع الآن يعمل بالكامل بلغات Python للخلفية و Dart للواجهات، تم تحويل جميع الوظائف السابقة وضمان استقرار النواة."</p>
-        </div>
-
-        <div class="text-center text-[10px] mono text-gray-600 uppercase tracking-widest">
-            Ready for Flutter Web Deployment
+            <button onclick="login()" class="w-full h-14 bg-cyan-500 text-black font-bold rounded-2xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+                تسجيل الدخول
+            </button>
+            
+            <button onclick="login(true)" class="w-full h-14 mt-4 bg-white/5 border border-white/10 text-cyan-400 font-bold rounded-2xl hover:bg-white/10 transition-all">
+                تسجيل الدخول التجريبي للمعاينة
+            </button>
         </div>
     </div>
 
+    <!-- Top Navigation -->
+    <nav class="fixed top-0 left-0 right-0 h-16 glass-card border-t-0 border-x-0 rounded-none z-50 flex items-center px-6 justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                <i class="fas fa-shield-alt text-white text-sm"></i>
+            </div>
+            <span class="font-bold tracking-wider text-lg uppercase glow-cyan hidden md:block">NetGuard Pro</span>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
+                <span class="w-2 h-2 bg-green-500 rounded-full pulse-soft"></span>
+                <span class="text-[10px] font-bold text-green-500 tracking-tighter">ENGINE ACTIVE</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-400 font-mono">192.168.1.1</span>
+                <button class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-cog text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar (Desktop/Mobile) -->
+    <aside id="sidebar" class="fixed right-0 top-0 bottom-0 w-64 bg-slate-950/90 backdrop-blur-2xl border-l border-white/5 z-[400] lg:translate-x-0 translate-x-full transition-transform duration-300 ease-in-out p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-10">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+                    <i class="fas fa-shield-alt text-white text-lg"></i>
+                </div>
+                <span class="font-black tracking-tighter text-xl">NETGUARD <span class="text-cyan-400">PRO</span></span>
+            </div>
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white p-2">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <nav class="space-y-2">
+            <div class="sidebar-item active p-4 rounded-2xl flex items-center gap-4 cursor-pointer transition-all">
+                <i class="fas fa-chart-line w-5 text-lg"></i>
+                <span class="text-sm font-bold">الاستهلاك</span>
+            </div>
+            <div class="sidebar-item p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all text-slate-400">
+                <i class="fas fa-laptop w-5 text-lg"></i>
+                <span class="text-sm font-bold">الأجهزة النشطة</span>
+            </div>
+            <div class="sidebar-item p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all text-slate-400">
+                <i class="fas fa-bolt w-5 text-lg"></i>
+                <span class="text-sm font-bold">اختبار السرعة</span>
+            </div>
+            <div class="sidebar-item p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all text-slate-400">
+                <i class="fas fa-history w-5 text-lg"></i>
+                <span class="text-sm font-bold">سجلات النظام</span>
+            </div>
+        </nav>
+
+        <div class="absolute bottom-8 left-6 right-6">
+            <div class="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold">AD</div>
+                    <div>
+                        <p class="text-[10px] font-bold text-white">Administrator</p>
+                        <p class="text-[8px] text-slate-500 uppercase tracking-widest">Platinum Plan</p>
+                    </div>
+                </div>
+                <button class="w-full py-2 bg-red-500/10 text-red-400 text-[10px] font-bold rounded-lg hover:bg-red-500/20 transition-all">
+                    تسجيل الخروج
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Overlay Background -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[350] hidden lg:hidden"></div>
+
+    <!-- Main Content -->
+    <main class="pt-6 pb-12 lg:pr-72 transition-all">
+        <div class="max-w-6xl mx-auto px-6">
+            
+            <header class="flex justify-between items-center mb-10">
+                <div class="flex items-center gap-3 lg:hidden">
+                    <button onclick="toggleSidebar()" class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <span class="font-black tracking-tighter">NETGUARD</span>
+                </div>
+                <div class="flex-1 lg:block hidden">
+                    <h2 class="text-xl font-black">تحليل الاستهلاك العام</h2>
+                </div>
+                <div class="flex gap-4">
+                    <div class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer">
+                        <i class="fas fa-calendar-day text-xs text-slate-500"></i>
+                        <span class="text-xs font-bold">آخر 24 ساعة</span>
+                        <i class="fas fa-chevron-down text-[10px] text-slate-700"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Usage Histogram -->
+            <div class="glass-card p-6 mb-10 overflow-hidden relative">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-xs font-bold text-slate-400">توزيع الاستهلاك عبر الزمن (Histogram)</p>
+                    <span class="text-[8px] bg-cyan-400/20 text-cyan-400 px-2 rounded font-bold animate-pulse">MONITORING</span>
+                </div>
+                <div class="h-44 flex items-end gap-1 px-2 mb-4">
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[30%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[45%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[20%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[60%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[80%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[55%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[40%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[70%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[90%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[65%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[85%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[40%]"></div>
+                    <div class="flex-1 bg-cyan-400/20 rounded-t-sm h-[30%]"></div>
+                    <div class="flex-1 bg-cyan-400 rounded-t-sm h-[50%] animate-pulse"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-600 font-mono">
+                    <span>ثلاثاء ٢٤ أبريل</span>
+                    <span>اليوم، ٢:١٩ ص</span>
+                    <span>الأربعاء ٢٥ أبريل</span>
+                </div>
+            </div>
+
+            <!-- GlassWire Centered Dash -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-10 mb-20 bg-white/[0.02] p-10 rounded-[40px] border border-white/5">
+                <div class="text-center order-2 md:order-1">
+                    <i class="fas fa-arrow-down text-blue-400 text-2xl mb-4"></i>
+                    <h4 class="text-2xl font-black font-mono tracking-tighter" id="dl-rate">12.5</h4>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">GigaBytes</p>
+                    <span class="text-[8px] text-blue-400/50 uppercase font-black">Download</span>
+                </div>
+
+                <div class="relative order-1 md:order-2">
+                    <div class="w-48 h-48 rounded-full border-8 border-white/5 flex flex-col items-center justify-center relative">
+                        <div class="absolute inset-0 rounded-full border-8 border-transparent border-t-cyan-500 border-r-cyan-500 shadow-[inset_0_0_20px_rgba(6,182,212,0.2)]"></div>
+                        <span class="text-4xl font-black tracking-tighter">17.2</span>
+                        <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">Total GB</span>
+                    </div>
+                </div>
+
+                <div class="text-center order-3">
+                    <i class="fas fa-arrow-up text-purple-400 text-2xl mb-4"></i>
+                    <h4 class="text-2xl font-black font-mono tracking-tighter" id="ul-rate">4.7</h4>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">GigaBytes</p>
+                    <span class="text-[8px] text-purple-400/50 uppercase font-black">Upload</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-12">
+                <!-- App Consumption (Progress Bars) -->
+                <div>
+                    <div class="flex justify-between items-end mb-8">
+                        <div>
+                            <h3 class="text-lg font-bold">الاستهلاك حسب التطبيقات</h3>
+                            <p class="text-xs text-slate-500">تحليل المحتوى والبيانات</p>
+                        </div>
+                        <i class="fas fa-expand-alt text-slate-700 cursor-pointer"></i>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-500/20 group-hover:scale-110 transition-transform">
+                                    <i class="fab fa-youtube text-2xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-baseline mb-1">
+                                        <h4 class="font-bold">YouTube</h4>
+                                        <span class="font-mono font-bold text-sm">8.42 GB</span>
+                                    </div>
+                                    <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-cyan-400 rounded-full" style="width: 85%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
+                                    <i class="fab fa-facebook text-2xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-baseline mb-1">
+                                        <h4 class="font-bold">Facebook</h4>
+                                        <span class="font-mono font-bold text-sm">4.15 GB</span>
+                                    </div>
+                                    <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-cyan-400 rounded-full" style="width: 45%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="w-12 h-12 bg-yellow-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-yellow-500/20 group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-gamepad text-2xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-baseline mb-1">
+                                        <h4 class="font-bold">Gaming Services</h4>
+                                        <span class="font-mono font-bold text-sm">8.2 GB</span>
+                                    </div>
+                                    <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-cyan-400 rounded-full" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Breakdown -->
+                <div>
+                    <div class="flex justify-between items-end mb-8">
+                        <div>
+                            <h3 class="text-lg font-bold">استهلاك الأجهزة</h3>
+                            <p class="text-xs text-slate-500">توزيع البيانات على الشبكة</p>
+                        </div>
+                        <i class="fas fa-plus-circle text-cyan-400 cursor-pointer"></i>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-white/[0.03] rounded-3xl border border-white/5 hover:bg-white/[0.06] transition-colors cursor-pointer group" onclick="showDeviceDetail('MacBook Pro', 'CC:BB:AA:00:11:22')">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                                    <i class="fas fa-laptop text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold">MacBook Pro</h4>
+                                    <p class="text-[10px] font-mono text-slate-500">192.168.1.5</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-mono font-bold">12.5 GB</span>
+                                <i class="fas fa-chevron-left text-[10px] text-slate-700 mr-2"></i>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-white/[0.03] rounded-3xl border border-white/5 hover:bg-white/[0.06] transition-colors cursor-pointer group" onclick="showDeviceDetail('iPhone 15 Pro', 'DD:EE:FF:33:44:55')">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                    <i class="fas fa-mobile-alt text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold">iPhone 15 Pro</h4>
+                                    <p class="text-[10px] font-mono text-slate-500">192.168.1.12</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-mono font-bold">4.2 GB</span>
+                                <i class="fas fa-chevron-left text-[10px] text-slate-700 mr-2"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+                <!-- Device Detail Modal -->
+                <div id="device-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] hidden flex items-center justify-center p-6">
+                    <div class="glass-card w-full max-w-lg p-8 relative overflow-hidden">
+                        <button onclick="hideDeviceDetail()" class="absolute top-6 left-6 text-slate-500 hover:text-white transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        
+                        <div class="flex items-center gap-6 mb-8 mt-4">
+                            <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 text-2xl">
+                                <i class="fas fa-laptop"></i>
+                            </div>
+                            <div>
+                                <h2 id="modal-device-name" class="text-xl font-bold">Device Name</h2>
+                                <p id="modal-device-mac" class="text-xs font-mono text-slate-500">MAC ADDRESS</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-8">
+                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="text-[10px] text-slate-500 uppercase font-bold block mb-1">التحميل (24 ساعة)</span>
+                                <span id="modal-dl" class="text-xl font-mono font-bold text-cyan-400">0.0 GB</span>
+                            </div>
+                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <span class="text-[10px] text-slate-500 uppercase font-bold block mb-1">الرفع (24 ساعة)</span>
+                                <span id="modal-ul" class="text-xl font-mono font-bold text-purple-400">0.0 GB</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">تاريخ النشاط</h3>
+                            <div class="space-y-3 max-h-48 overflow-y-auto pr-2" id="modal-history">
+                                <!-- History items will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side Panel -->
+                <div class="space-y-6">
+                    <div class="glass-card p-6 bg-cyan-950/5">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">أحداث النظام</h3>
+                            <span class="w-2 h-2 bg-cyan-500 rounded-full animate-ping"></span>
+                        </div>
+                        <div class="space-y-4 font-mono text-[10px] text-right" id="log-list">
+                            <div class="flex gap-2 text-cyan-400/80 justify-end">
+                                <span class="text-white">Admin Login Successful</span>
+                                <span>[20:10]</span>
+                            </div>
+                            <div class="flex gap-2 text-cyan-400/80 justify-end">
+                                <span class="text-white">New Node Detected: PS5</span>
+                                <span>[20:12]</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">أدوات التحكم</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-2xl hover:bg-cyan-500/10 hover:text-cyan-400 transition-all border border-white/5">
+                                <i class="fas fa-sync-alt text-lg"></i>
+                                <span class="text-[10px] font-bold">إعادة التشغيل</span>
+                            </button>
+                            <button class="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-2xl hover:bg-purple-500/10 hover:text-purple-400 transition-all border border-white/5">
+                                <i class="fas fa-wifi text-lg"></i>
+                                <span class="text-[10px] font-bold">الإعدادات</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Usage Module Section -->
+            <div class="mt-8">
+                <div class="glass-card p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-xl font-bold">سجل الاستهلاك الزمني</h2>
+                            <p class="text-sm text-slate-500">تحليل تراكم البيانات لآخر 24 ساعة</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex items-center gap-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-400 text-[10px] font-bold">
+                                <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full"></span>
+                                Total: 62.4 GB
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <!-- Usage List -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-4">
+                                <span class="w-12 text-xs font-mono text-slate-500">14:00</span>
+                                <div class="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-500/40" style="width: 85%"></div>
+                                </div>
+                                <span class="text-xs font-mono">1.2 GB</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="w-12 text-xs font-mono text-slate-500">13:00</span>
+                                <div class="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-500/40" style="width: 45%"></div>
+                                </div>
+                                <span class="text-xs font-mono">0.6 GB</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="w-12 text-xs font-mono text-slate-500">12:00</span>
+                                <div class="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-500/40" style="width: 65%"></div>
+                                </div>
+                                <span class="text-xs font-mono">0.9 GB</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="w-12 text-xs font-mono text-slate-500">11:00</span>
+                                <div class="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
+                                    <div class="h-full bg-cyan-500/40" style="width: 30%"></div>
+                                </div>
+                                <span class="text-xs font-mono">0.4 GB</span>
+                            </div>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="flex flex-col gap-6 p-8 bg-white/5 rounded-3xl border border-white/5">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">الاستهلاك حسب المحتوى</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                        <span class="text-xs">Social Media</span>
+                                    </div>
+                                    <span class="text-xs font-mono">12.4 GB</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                                        <span class="text-xs">Streaming</span>
+                                    </div>
+                                    <span class="text-xs font-mono">35.8 GB</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                                        <span class="text-xs">Gaming</span>
+                                    </div>
+                                    <span class="text-xs font-mono text-yellow-500">8.2 GB</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                        <span class="text-xs">Productivity</span>
+                                    </div>
+                                    <span class="text-xs font-mono">6.0 GB</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-white/5 text-center">
+                                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">بناءً على تحليل حزم البيانات</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
     <script>
-        // Fetch health from Python API to verify connection
-        async function checkConnection() {
-            try {
-                const res = await fetch('/api/health');
-                const data = await res.json();
-                console.log('Kernel Status:', data);
-            } catch (e) {
-                console.error('Kernel Offline');
+        let lastDl = 12.5;
+        let lastUl = 4.8;
+
+        function updateStats() {
+            const dlDelta = (Math.random() - 0.5) * 2;
+            const ulDelta = (Math.random() - 0.5) * 1;
+            lastDl = Math.max(0.5, Math.min(150, lastDl + dlDelta));
+            lastUl = Math.max(0.1, Math.min(40, lastUl + ulDelta));
+
+            const dlRateEl = document.getElementById('dl-rate');
+            if (dlRateEl) dlRateEl.innerText = lastDl.toFixed(1);
+
+            const ulRateEl = document.getElementById('ul-rate');
+            if (ulRateEl) ulRateEl.innerText = lastUl.toFixed(1);
+
+            const dlProgEl = document.getElementById('dl-progress');
+            if (dlProgEl) dlProgEl.style.width = `${(lastDl / 150) * 100}%`;
+
+            const ulProgEl = document.getElementById('ul-progress');
+            if (ulProgEl) ulProgEl.style.width = `${(lastUl / 40) * 100}%`;
+
+            const pingEl = document.getElementById('ping-val');
+            if(pingEl && Math.random() > 0.8) {
+                pingEl.innerText = Math.floor(15 + Math.random() * 10);
             }
         }
-        checkConnection();
+
+        setInterval(updateStats, 2000);
+
+        const logMsgs = [
+            "Network handshake verified",
+            "Firewall rule #42 updated",
+            "Scanning for unauthorized nodes...",
+            "Bandwidth cap check",
+            "Optimizing 5GHz channel"
+        ];
+
+        function addLog() {
+            const list = document.getElementById('log-list');
+            const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const msg = logMsgs[Math.floor(Math.random() * logMsgs.length)];
+            const div = document.createElement('div');
+            div.className = "flex gap-2 text-cyan-400/80 justify-end animate-pulse";
+            div.innerHTML = `<span class="text-white">${msg}</span><span>[${time}]</span>`;
+            list.prepend(div);
+            if(list.children.length > 5) list.removeChild(list.lastChild);
+        }
+
+        function showDeviceDetail(name, mac) {
+            document.getElementById('modal-device-name').innerText = name;
+            document.getElementById('modal-device-mac').innerText = mac;
+            document.getElementById('modal-dl').innerText = (Math.random() * 5 + 0.5).toFixed(1) + " GB";
+            document.getElementById('modal-ul').innerText = (Math.random() * 1 + 0.1).toFixed(1) + " GB";
+            
+            const history = document.getElementById('modal-history');
+            history.innerHTML = '';
+            for(let i = 0; i < 5; i++) {
+                const hour = 20 - i;
+                const dl = (Math.random() * 500).toFixed(0);
+                const ul = (Math.random() * 100).toFixed(0);
+                history.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl text-[10px] font-mono">
+                        <span class="text-slate-500">${hour}:00</span>
+                        <div class="flex gap-4">
+                            <span class="text-cyan-400">↓ ${dl} MB</span>
+                            <span class="text-purple-400">↑ ${ul} MB</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('device-modal').classList.remove('hidden');
+        }
+
+        function hideDeviceDetail() {
+            document.getElementById('device-modal').classList.add('hidden');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function login(isDemo = false) {
+            const overlay = document.getElementById('login-overlay');
+            overlay.style.opacity = '0';
+            overlay.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 500);
+        }
+
+        setInterval(addLog, 4000);
     </script>
 </body>
 </html>

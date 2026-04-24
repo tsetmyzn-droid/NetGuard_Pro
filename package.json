@@ -1,51 +1,12 @@
 {
-  "name": "netguard-pro-enterprise",
-  "private": true,
+  "name": "netguard-pro",
   "version": "1.0.0",
   "type": "module",
-  "workspaces": [
-    "backend/node_server",
-    "mobile"
-  ],
-  "overrides": {
-    "lodash": "4.17.21"
-  },
   "scripts": {
-    "dev": "python3 -m pip install -r backend/python_server/requirements.txt && tsx backend/node_server/server.ts",
-    "build": "echo 'Native System Build Placeholder'",
-    "lint": "echo 'Native System Lint Placeholder'",
-    "start": "python3 -m pip install -r backend/python_server/requirements.txt && tsx backend/node_server/server.ts"
+    "build": "echo 'Build handled by platform'",
+    "start": "node server.js"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.0.0",
-    "axios": "^1.7.9",
-    "clsx": "^2.1.1",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "express-rate-limit": "^7.1.5",
-    "framer-motion": "^12.38.0",
-    "helmet": "^8.1.0",
-    "http-proxy-middleware": "^3.0.5",
-    "lodash": "4.17.21",
-    "lucide-react": "^1.8.0",
-    "path": "latest",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.3",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.0.0",
-    "tsx": "^4.19.2"
-  },
-  "devDependencies": {
-    "@types/crypto-js": "^4.2.2",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.7.0",
-    "@vitejs/plugin-react-swc": "^4.3.0",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.3"
+    "express": "^4.18.2"
   }
 }
