@@ -1,30 +1,21 @@
-# NetGuard Pro 🛡️
-**تطبيق احترافي لمراقبة استهلاك الإنترنت من الراوتر (Desktop Native)**
+# 🛡️ NetGuard Pro (Native Engine)
 
-تطوير شامل يعتمد على لغة **Python** و **PyQt6** لضمان أعلى أداء وأمان.
+**Version:** 5.0.0 (Production Ready)
+**Core:** Flutter (Dart) + Python (Desktop Optional)
 
-## 🚀 المميزات
-- **نظام موحد:** لا تضارب بين لغات الويب، معالجة كاملة عبر Python.
-- **استهلاك RAM منخفض:** اقل من 100MB بفضل PyQt6.
-- **تعرف تلقائي:** يدعم Huawei, ZTE, TP-Link.
-- **نظام أخطاء متقدم:** حفظ السجلات تلقائياً عند حدوث أي خلل.
+## 🚀 Key Features
+- **Direct Router Link:** No cloud needed, works 100% locally.
+- **Smart Plugins:** Support for Huawei, ZTE, and TP-Link.
+- **Usage Engine:** Realistic data tracking with delta calculation.
+- **Modern UI:** Built with Flutter for smooth Windows/Android performance.
 
-## 🛠 المتطلبات التقنية
-- **اللغة:** Python 3.10+
-- **المكتبات:** PyQt6, Requests, Scapy.
-- **نظام التشغيل:** Windows, Linux, macOS.
+## 🛠️ Tech Stack
+- **Frontend:** Flutter & Riverpod.
+- **Backend Logics:** Dart & Optional Python.
+- **Database:** SQLite (Isar).
 
-## 📦 التشغيل والتثبيت
-1. تثبيت الاعتمادات:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. تشغيل التطبيق:
-   ```bash
-   python main.py
-   ```
+## 💡 Status
+The project is now fully migrated to the Production Blueprint. The native UI is located in `/lib`.
 
-## 🛡️ الدعم الفني والأخطاء
-عند حدوث أي مشكلة، يرجى إرفاق ملف السجل الموجود في:
-`logs/netguard_error.log`
-
+---
+*Developed for AI Studio Build - 2026*
