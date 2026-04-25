@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:netguard_pro/core/network/router_client.dart';
 import 'package:netguard_pro/plugins/huawei/huawei_plugin.dart';
+import 'package:netguard_pro/core/plugins/router_factory.dart';
 import 'package:netguard_pro/core/utils/app_logger.dart';
+import 'package:netguard_pro/core/plugins/router_plugin.dart';
 
 void main() {
   runApp(const NetGuardApp());
@@ -51,13 +54,23 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     final isAlive = await _client.probeGateway(ip);
     
     if (isAlive) {
-      final huawei = HuaweiPlugin(ip);
-      final success = await huawei.login("admin", "admin");
+      // استخدام المصنع الذكي بدلاً من الـ Plugin المباشر
+      final plugin = RouterFactory.getPluginFor(ip, "huawei"); 
+      
+      if (plugin != null) {
+        final success = await plugin.login("admin", "admin");
+        
+        if (success && mounted) {
+           Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => DashboardScreen(plugin: plugin)),
+            );
+            return;
+        }
+      }
       
       setState(() {
-        _statusMessage = success 
-            ? "CONNECTED: ${huawei.modelName} active" 
-            : "FAILED: Authentication rejected";
+        _statusMessage = "FAILED: Authentication rejected";
       });
     } else {
       setState(() {
@@ -65,7 +78,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
       });
     }
 
-    setState(() => _isConnecting = false);
+    if (mounted) setState(() => _isConnecting = false);
   }
 
   @override
@@ -121,6 +134,130 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class DashboardScreen extends StatefulWidget {
+  final RouterPlugin plugin;
+  const DashboardScreen({super.key, required this.plugin});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  double _dl = 0.0;
+  double _ul = 0.0;
+  double _totalGB = 0.0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _timer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      final stats = await widget.plugin.fetchTraffic();
+      if (mounted) {
+        setState(() {
+          _dl = stats['download'] ?? 0.0;
+          _ul = stats['upload'] ?? 0.0;
+          // Calculate delta usage (mock logic)
+          _totalGB += (_dl + _ul) * 2 / 8192;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isOverLimit = _totalGB > 0.05; // Alert at 50MB for demo
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.plugin.modelName),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF1E293B),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            _buildStatBox("DOWNLOAD", _dl, "Mbps", Colors.green),
+            const SizedBox(height: 20),
+            _buildStatBox("UPLOAD", _ul, "Mbps", Colors.blue),
+            const SizedBox(height: 20),
+            _buildStatBox(
+              "TOTAL USAGE", 
+              _totalGB, 
+              "GB", 
+              isOverLimit ? Colors.red : Colors.orange,
+              isWarning: isOverLimit
+            ),
+            const Spacer(),
+            if (isOverLimit)
+              const Text(
+                "⚠️ USAGE ALERT: DATA LIMIT EXCEEDED",
+                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+              ),
+            const Text(
+              "Monitoring active via Native Armor v5",
+              style: TextStyle(color: Colors.white24, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String label, double value, String unit, Color color, {bool isWarning = false}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isWarning ? const Color(0xFF450a0a) : const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border(left: BorderSide(color: color, width: 4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white54,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value.toStringAsFixed(2),
+                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                unit,
+                style: const TextStyle(fontSize: 16, color: Colors.white38),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
