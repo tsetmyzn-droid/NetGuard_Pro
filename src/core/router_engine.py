@@ -3,6 +3,7 @@ from src.logger_config import logger
 from src.db.manager import db_manager
 from src.core.plugins.huawei_plugin import HuaweiPlugin
 from src.core.plugins.zte_plugin import ZTEPlugin
+from src.core.plugins.tplink_plugin import TPLinkPlugin
 
 class RouterEngine:
     def __init__(self, ip, username, password):
@@ -27,6 +28,8 @@ class RouterEngine:
                 self.plugin = HuaweiPlugin(self.ip)
             elif "zte" in content:
                 self.plugin = ZTEPlugin(self.ip)
+            elif "tplink" in content or "archer" in content:
+                self.plugin = TPLinkPlugin(self.ip)
             else:
                 # الافتراضي في حال لم يتم التعرف
                 logger.warning("Unknown router detected. User is probably using a potato as a gateway.")

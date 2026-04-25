@@ -62,4 +62,13 @@ class DBManager:
             logger.error(f"Failed to fetch total consumption: {e}")
             return (0, 0)
 
+    def check_usage_cap(self, limit_gb):
+        """Checks if current usage exceeds a specified limit."""
+        dl, ul = self.get_total_consumption()
+        total_gb = (dl + ul) / 1024
+        if total_gb > limit_gb:
+            logger.warning(f"USAGE CRITICAL: Total consumption ({total_gb:.2f} GB) exceeds limit ({limit_gb} GB).")
+            return True
+        return False
+
 db_manager = DBManager()
