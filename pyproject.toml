@@ -5,10 +5,17 @@ description = "Core Network Security Engine for NetGuard Pro"
 authors = ["Admin <admin@netguard.pro>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-fastapi = "^0.110.0"
-uvicorn = "^0.27.1"
-scapy = "^2.5.0"
+python = "3.10.12"
+fastapi = "0.112.2"
+uvicorn = "0.30.6"
+scapy = "2.6.1"
+requests = "2.32.3"
+psutil = "5.9.8"
+python-multipart = "0.0.26"
+pycryptodome = "3.21.0"
+cryptography = "43.0.1"
+aiohttp = "3.10.5"
+certifi = "2024.08.30"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

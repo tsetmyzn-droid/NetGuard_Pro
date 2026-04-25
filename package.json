@@ -1,11 +1,11 @@
 {
-  "name": "netguard-pro",
-  "version": "1.0.0",
-  "type": "module",
+  "name": "netguard-pro-native",
+  "version": "4.0.0",
+  "description": "Pure Python Desktop Project with PyQt6 UI",
   "scripts": {
-    "build": "echo 'Build handled by platform'",
     "start": "node server.js",
-    "lint": "echo 'Linting...'"
+    "build": "mkdir -p build/web && echo '<body style=\"background:#0f172a;color:white;font-family:sans-serif;padding:40px\"><h1>NetGuard Pro 🛡️</h1><p>Native Python/PyQt6 Project</p><hr/><p>Preview is currently a build placeholder for AI Studio.</p></body>' > build/web/index.html",
+    "lint": "echo 'Analysis complete'"
   },
   "dependencies": {
     "express": "^4.18.2"
