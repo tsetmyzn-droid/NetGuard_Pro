@@ -5,9 +5,22 @@ import 'package:netguard_pro/plugins/huawei/huawei_plugin.dart';
 import 'package:netguard_pro/core/plugins/router_factory.dart';
 import 'package:netguard_pro/core/utils/app_logger.dart';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
+import 'package:netguard_pro/core/errors/error_reporter.dart';
 
 void main() {
-  runApp(const NetGuardApp());
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    // Capture Flutter Framework errors
+    FlutterError.onError = (FlutterErrorDetails details) {
+      ErrorReporter.report(details.exception, details.stack ?? StackTrace.current);
+    };
+
+    runApp(const NetGuardApp());
+  }, (error, stack) {
+    // Capture async/background errors
+    ErrorReporter.report(error, stack);
+  });
 }
 
 class NetGuardApp extends StatelessWidget {

@@ -1,6 +1,5 @@
 {
-  "name": "NetGuard Pro ",
-  "description": "النظام السيادي لإدارة وتأمين الراوترات (ZTE, Huawei, TP-Link). واجهة تفاعلية، مراقبة مرور حية، سجلات أمان متطورة، وتحصين كامل من الثغرات الأمنية.",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "name": "NetGuard Pro",
+  "description": "Native Internet Monitoring & Router Security with Flutter Engine.",
+  "requestFramePermissions": []
 }
