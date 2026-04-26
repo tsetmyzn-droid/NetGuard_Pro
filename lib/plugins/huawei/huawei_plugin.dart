@@ -24,4 +24,25 @@ class HuaweiPlugin extends RouterPlugin {
       "upload": double.parse((random.nextDouble() * 5.0).toStringAsFixed(2)),
     };
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchDevices() async {
+    // محاكاة سكريبت جلب الأجهزة من Huawei HG8245H مثلاً
+    return [
+      {"name": "Admin-PC", "mac": "AA:BB:CC:DD:EE:01", "ip": "192.168.1.5", "blocked": false},
+      {"name": "Unknown-Phone", "mac": "11:22:33:44:55:66", "ip": "192.168.1.12", "blocked": true},
+    ];
+  }
+
+  @override
+  Future<bool> setBlockState(String mac, bool block) async {
+    AppLogger.log("CMD: ${block ? 'BLOCK' : 'UNBLOCK'} MAC: $mac");
+    return true; 
+  }
+
+  @override
+  Future<bool> updateWifiSettings(String ssid, String password) async {
+    AppLogger.log("CMD: UPDATE_WIFI SSID: $ssid");
+    return true;
+  }
 }
