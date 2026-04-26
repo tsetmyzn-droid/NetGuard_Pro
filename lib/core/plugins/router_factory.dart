@@ -2,6 +2,7 @@ import 'package:netguard_pro/core/plugins/router_plugin.dart';
 import 'package:netguard_pro/plugins/huawei/huawei_plugin.dart';
 import 'package:netguard_pro/plugins/zte/zte_plugin.dart';
 import 'package:netguard_pro/plugins/tplink/tplink_plugin.dart';
+import 'package:netguard_pro/plugins/openwrt/openwrt_plugin.dart';
 
 class RouterFactory {
   /// يكتشف نوع الراوتر بناءً على رد البوابة الافتراضية
@@ -9,7 +10,9 @@ class RouterFactory {
     // محاكاة منطق الفرز (Fingerprinting)
     final identity = probeResult.toLowerCase();
     
-    if (identity.contains("huawei")) {
+    if (identity.contains("openwrt") || identity.contains("luci")) {
+      return OpenWrtPlugin(ip);
+    } else if (identity.contains("huawei")) {
       return HuaweiPlugin(ip);
     } else if (identity.contains("zte")) {
       return ZTEPlugin(ip);
@@ -17,7 +20,7 @@ class RouterFactory {
       return TPLinkPlugin(ip);
     }
     
-    // إذا لم يتضح النوع، نستخدم Huawei كافتراضي أو نطلب تحديد يدوي
-    return HuaweiPlugin(ip);
+    // إذا لم يتضح النوع، نرجع OpenWrt كونه النظام "الخاص" والأكثر مرونة
+    return OpenWrtPlugin(ip);
   }
 }

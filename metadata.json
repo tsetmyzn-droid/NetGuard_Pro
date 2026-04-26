@@ -1,5 +1,6 @@
 {
   "name": "NetGuard Pro",
-  "description": "Native Internet Monitoring & Router Security with Flutter Engine.",
-  "requestFramePermissions": []
+  "description": "Powerful management tool for OpenWrt devices with LuCI RPC support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

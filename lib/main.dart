@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'package:netguard_pro/core/network/router_client.dart';
 import 'package:netguard_pro/plugins/huawei/huawei_plugin.dart';
@@ -7,6 +8,9 @@ import 'package:netguard_pro/core/utils/app_logger.dart';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
 import 'package:netguard_pro/core/errors/error_reporter.dart';
 import 'package:netguard_pro/features/dashboard/widgets/traffic_graph.dart';
+import 'package:netguard_pro/features/dashboard/widgets/system_status_card.dart';
+import 'package:netguard_pro/core/engine/netguard_engine.dart';
+import 'package:netguard_pro/plugins/openwrt/openwrt_plugin.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 void main() {
@@ -18,7 +22,11 @@ void main() {
       ErrorReporter.report(details.exception, details.stack ?? StackTrace.current);
     };
 
-    runApp(const NetGuardApp());
+    runApp(
+      const ProviderScope(
+        child: NetGuardApp(),
+      ),
+    );
   }, (error, stack) {
     // Capture async/background errors
     ErrorReporter.report(error, stack);
@@ -223,22 +231,18 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
   }
 }
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   final RouterPlugin plugin;
   const DashboardScreen({super.key, required this.plugin});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProviderStateMixin {
-  double _dl = 0.0;
-  double _ul = 0.0;
-  double _totalGB = 0.0;
+class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTickerProviderStateMixin {
   final List<FlSpot> _dlSpots = [];
   final List<FlSpot> _ulSpots = [];
   int _counter = 0;
-  Timer? _timer;
   late AnimationController _pulseController;
 
   @override
@@ -248,41 +252,44 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _startPolling();
-  }
-
-  void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      final stats = await widget.plugin.fetchTraffic();
-      if (mounted) {
-        setState(() {
-          _dl = stats['download'] ?? 0.0;
-          _ul = stats['upload'] ?? 0.0;
-          _totalGB += (_dl + _ul) * 1 / 8192;
-          
-          _counter++;
-          _dlSpots.add(FlSpot(_counter.toDouble(), _dl));
-          _ulSpots.add(FlSpot(_counter.toDouble(), _ul));
-          
-          if (_dlSpots.length > 30) {
-            _dlSpots.removeAt(0);
-            _ulSpots.removeAt(0);
-          }
-        });
-      }
-    });
+    
+    // Initialize NetGuard Engine
+    if (widget.plugin is OpenWrtPlugin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(netGuardProvider.notifier).initialize(widget.plugin as OpenWrtPlugin);
+      });
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isOverLimit = _totalGB > 0.05;
+    final netState = ref.watch(netGuardProvider);
+    
+    // Process speeds for graphing
+    double totalDl = 0;
+    double totalUl = 0;
+    netState.downloadSpeeds.forEach((_, s) => totalDl += s);
+    netState.uploadSpeeds.forEach((_, s) => totalUl += s);
+
+    // Convert B/s to Mbps for the existing graph UI logic if needed, 
+    // but the graph looks better with raw Mbps. Let's convert for consistency.
+    double dlMbps = (totalDl * 8) / (1024 * 1024);
+    double ulMbps = (totalUl * 8) / (1024 * 1024);
+
+    _counter++;
+    _dlSpots.add(FlSpot(_counter.toDouble(), dlMbps));
+    _ulSpots.add(FlSpot(_counter.toDouble(), ulMbps));
+    
+    if (_dlSpots.length > 30) {
+      _dlSpots.removeAt(0);
+      _ulSpots.removeAt(0);
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
@@ -310,20 +317,13 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildGraphBox("NETWORK ACTIVITY (DOWNLOAD)", _dlSpots, Colors.greenAccent, _dl, "Mbps"),
+            const SystemStatusCard(),
+            const SizedBox(height: 24),
+            _buildGraphBox("REAL-TIME DOWNLOAD", _dlSpots, Colors.greenAccent, dlMbps, "Mbps"),
             const SizedBox(height: 16),
-            _buildGraphBox("NETWORK ACTIVITY (UPLOAD)", _ulSpots, const Color(0xFF38BDF8), _ul, "Mbps"),
-            const SizedBox(height: 16),
-            _buildStatBox(
-              "SESSION TRAFFIC", 
-              _totalGB, 
-              "GB", 
-              isOverLimit ? Colors.redAccent : Colors.orangeAccent,
-              Icons.data_usage_rounded,
-              isWarning: isOverLimit
-            ),
+            _buildGraphBox("REAL-TIME UPLOAD", _ulSpots, const Color(0xFF38BDF8), ulMbps, "Mbps"),
             const SizedBox(height: 32),
-            _buildFooter(isOverLimit),
+            _buildFooter(netState.error != null),
             const SizedBox(height: 32),
           ],
         ),
