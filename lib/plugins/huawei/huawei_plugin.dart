@@ -1,48 +1,125 @@
-import 'dart:math';
+import 'package:dio/dio.dart';
+import 'package:xml/xml.dart';
+import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
-import 'package:netguard_pro/core/utils/app_logger.dart';
+import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
+import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+import 'model/huawei_status.dart';
 
 class HuaweiPlugin extends RouterPlugin {
-  HuaweiPlugin(String ip) : super(ip: ip, modelName: "Huawei HG Series");
+  final Dio _dio = Dio();
+  final NetGuardLogger _logger = NetGuardLogger();
+  
+  String? _sessionId;
+  String? _requestToken;
+
+  HuaweiPlugin(String ip) : super(ip: ip, modelName: "Huawei HiLink");
 
   @override
-  bool canHandle(String identity) => identity.toLowerCase().contains("huawei");
+  void setBaseUrl(String url) {
+    // Already handled via ip in constructor/base, but for compatibility:
+  }
+
+  String get _fullBaseUrl => ip.startsWith('http') ? ip : 'http://$ip';
+
+  /// Phase 2: Session & Token Acquisition
+  Future<bool> _refreshTokens() async {
+    try {
+      final response = await _dio.get('$_fullBaseUrl/api/webserver/SesTokInfo');
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.data);
+        _sessionId = document.findAllElements('SesInfo').first.innerText;
+        _requestToken = document.findAllElements('TokInfo').first.innerText;
+        
+        // Update Dio headers for subsequent requests
+        _dio.options.headers['Cookie'] = _sessionId;
+        _dio.options.headers['__RequestVerificationToken'] = _requestToken;
+        
+        return true;
+      }
+    } catch (e) {
+      _logger.error("Huawei Plugin: Failed to get SesTokInfo: $e");
+    }
+    return false;
+  }
 
   @override
   Future<bool> login(String username, String password) async {
-    AppLogger.log("Attempting login to Huawei at $ip");
-    // محاكاة تأخير الشبكة
-    await Future.delayed(const Duration(milliseconds: 800));
-    return true; // نجاح افتراضي للمحاكاة
-  }
-
-  @override
-  Future<Map<String, double>> fetchTraffic() async {
-    final random = Random();
-    return {
-      "download": double.parse((random.nextDouble() * 25.0).toStringAsFixed(2)),
-      "upload": double.parse((random.nextDouble() * 5.0).toStringAsFixed(2)),
-    };
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchDevices() async {
-    // محاكاة سكريبت جلب الأجهزة من Huawei HG8245H مثلاً
-    return [
-      {"name": "Admin-PC", "mac": "AA:BB:CC:DD:EE:01", "ip": "192.168.1.5", "blocked": false},
-      {"name": "Unknown-Phone", "mac": "11:22:33:44:55:66", "ip": "192.168.1.12", "blocked": true},
-    ];
-  }
-
-  @override
-  Future<bool> setBlockState(String mac, bool block) async {
-    AppLogger.log("CMD: ${block ? 'BLOCK' : 'UNBLOCK'} MAC: $mac");
+    await _refreshTokens();
+    _logger.info("Huawei Plugin: Session initialized at $ip");
     return true; 
   }
 
   @override
+  Future<List<InterfaceStatus>> getTrafficStats() async {
+    try {
+      final response = await _dio.get('$_fullBaseUrl/api/monitoring/status');
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.data);
+        
+        int totalDown = int.tryParse(document.findAllElements('TotalDownload').first.innerText) ?? 0;
+        int totalUp = int.tryParse(document.findAllElements('TotalUpload').first.innerText) ?? 0;
+
+        // Map to a single virtual interface called 'wan' for Huawei
+        return [
+          InterfaceStatus(
+            name: "wan",
+            up: true,
+            rxBytes: totalDown,
+            txBytes: totalUp,
+          )
+        ];
+      }
+      
+      if (response.statusCode == 403) {
+        await _refreshTokens();
+      }
+    } catch (e) {
+      _logger.error("Huawei Plugin: Traffic poll failed: $e");
+    }
+    return [];
+  }
+
+  @override
+  Future<List<ConnectedDevice>> getConnectedDevices() async {
+    try {
+      final response = await _dio.get('$_fullBaseUrl/api/host/host-list');
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.data);
+        final hosts = document.findAllElements('Host');
+        
+        return hosts.map((node) {
+          return ConnectedDevice(
+            hostname: node.findElements('HostName').first.innerText,
+            ipAddress: node.findElements('IpAddress').first.innerText,
+            macAddress: node.findElements('MacAddress').first.innerText,
+          );
+        }).toList();
+      }
+    } catch (e) {
+      _logger.error("Huawei Plugin: Device list poll failed: $e");
+    }
+    return [];
+  }
+
+  @override
+  Future<bool> setBlockState(String mac, bool block) async {
+    return false;
+  }
+
+  @override
   Future<bool> updateWifiSettings(String ssid, String password) async {
-    AppLogger.log("CMD: UPDATE_WIFI SSID: $ssid");
-    return true;
+    return false;
+  }
+
+  @override
+  bool canHandle(String identity) {
+    return identity.toLowerCase().contains("huawei") || identity.toLowerCase().contains("hilink");
+  }
+
+  @override
+  Future<void> logout() async {
+    _sessionId = null;
+    _requestToken = null;
   }
 }

@@ -13,32 +13,18 @@ class OpenWrtPlugin extends RouterPlugin {
   }
 
   @override
-  Future<Map<String, double>> fetchTraffic() async {
-    final stats = await _client.getInterfacesStatus();
-    if (stats.isEmpty) return {'download': 0.0, 'upload': 0.0};
-    
-    // Summing all interfaces for a general overview
-    double totalDown = 0;
-    double totalUp = 0;
-    for (var interface in stats) {
-      totalDown += interface.rxBytes;
-      totalUp += interface.txBytes;
-    }
-
-    // We return total bytes here, and main.dart handles the delta if it remains as is.
-    // However, fetchTraffic in other plugins might return Mbps.
-    // Let's return total bytes for now and handle calculation in the engine.
-    return {'download': totalDown, 'upload': totalUp};
+  Future<List<InterfaceStatus>> getTrafficStats() async {
+    return await _client.getInterfacesStatus();
   }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchDevices() async {
-    final devices = await _client.getDevices();
-    return devices.map((d) => {
-      'hostname': d.hostname,
-      'ip': d.ipAddress,
-      'mac': d.macAddress,
-    }).toList();
+  Future<List<ConnectedDevice>> getConnectedDevices() async {
+    return await _client.getDevices();
+  }
+
+  @override
+  Future<void> logout() async {
+    await _client.logout();
   }
 
   @override

@@ -1,3 +1,6 @@
+import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
+import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+
 abstract class RouterPlugin {
   final String ip;
   final String modelName;
@@ -7,11 +10,11 @@ abstract class RouterPlugin {
   /// محاولة تسجيل الدخول للراوتر
   Future<bool> login(String username, String password);
 
-  /// جلب سرعات التحميل والرفع اللحظية
-  Future<Map<String, double>> fetchTraffic();
+  /// جلب إحصائيات المرور لكل واجهة
+  Future<List<InterfaceStatus>> getTrafficStats();
 
-  /// جلب قائمة الأجهزة المتصلة مع بيانات استهلاكها (إن وجد)
-  Future<List<Map<String, dynamic>>> fetchDevices();
+  /// جلب قائمة الأجهزة المتصلة
+  Future<List<ConnectedDevice>> getConnectedDevices();
 
   /// حظر/إلغاء حظر جهاز عبر MAC Address
   Future<bool> setBlockState(String mac, bool block);
@@ -21,4 +24,6 @@ abstract class RouterPlugin {
 
   /// التحقق من توافق الإضافة مع الراوتر المكتشف
   bool canHandle(String identity);
+
+  Future<void> logout();
 }

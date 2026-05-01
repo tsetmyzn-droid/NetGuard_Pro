@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'package:netguard_pro/core/network/router_client.dart';
-import 'package:netguard_pro/plugins/huawei/huawei_plugin.dart';
 import 'package:netguard_pro/core/plugins/router_factory.dart';
 import 'package:netguard_pro/core/utils/app_logger.dart';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
@@ -10,12 +9,31 @@ import 'package:netguard_pro/core/errors/error_reporter.dart';
 import 'package:netguard_pro/features/dashboard/widgets/traffic_graph.dart';
 import 'package:netguard_pro/features/dashboard/widgets/system_status_card.dart';
 import 'package:netguard_pro/core/engine/netguard_engine.dart';
-import 'package:netguard_pro/plugins/openwrt/openwrt_plugin.dart';
+import 'package:netguard_pro/core/diagnostics/crash_loop_protection.dart';
+import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:netguard_pro/core/network/discovery_service.dart';
+import 'package:netguard_pro/core/network/router_types.dart';
+import 'package:netguard_pro/features/speed_test/speed_test_manager.dart';
+import 'package:netguard_pro/features/speed_test/model/speed_test_result.dart';
+
 void main() {
-  runZonedGuarded(() {
+  runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    
+    // Initialize Logger
+    final logger = NetGuardLogger();
+    await logger.init();
+    
+    // Check for Crash Loop
+    if (await CrashLoopProtection.shouldBlockRestart()) {
+      logger.error("CRITICAL: Crash loop detected. Blocking startup.");
+      runApp(const MaterialApp(home: CriticalFailureScreen(isLoop: true)));
+      return;
+    }
+
+    logger.info("APP STARTING: NetGuard Pro Production Engine Initialized");
     
     // Capture Flutter Framework errors
     FlutterError.onError = (FlutterErrorDetails details) {
@@ -27,10 +45,74 @@ void main() {
         child: NetGuardApp(),
       ),
     );
-  }, (error, stack) {
-    // Capture async/background errors
+    
+    // Reset crash count on successful start
+    Timer(const Duration(seconds: 10), () => CrashLoopProtection.reset());
+    
+  }, (error, stack) async {
+    await CrashLoopProtection.recordCrash();
     ErrorReporter.report(error, stack);
+    
+    // Attempt to show error screen if possible
+    runApp(MaterialApp(home: CriticalFailureScreen(error: error.toString())));
   });
+}
+
+class CriticalFailureScreen extends StatelessWidget {
+  final String? error;
+  final bool isLoop;
+  const CriticalFailureScreen({super.key, this.error, this.isLoop = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.emergency_home_rounded, color: Colors.redAccent, size: 80),
+              const SizedBox(height: 24),
+              Text(
+                isLoop ? "CRASH LOOP DETECTED" : "SYSTEM CORE FAILURE",
+                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isLoop 
+                  ? "The app has crashed too many times recently. Please contact support." 
+                  : "An unexpected error occurred and the engine was halted for safety.",
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white38),
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    error!,
+                    style: const TextStyle(color: Colors.redAccent, fontFamily: 'monospace', fontSize: 10),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: () => CrashLoopProtection.reset().then((_) => exit(0)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
+                child: const Text("FORCED RESET & EXIT", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class NetGuardApp extends StatelessWidget {
@@ -62,8 +144,23 @@ class ConnectionScreen extends StatefulWidget {
 class _ConnectionScreenState extends State<ConnectionScreen> {
   final TextEditingController _ipController = TextEditingController(text: '192.168.1.1');
   final RouterClient _client = RouterClient();
+  final DiscoveryService _discoveryService = DiscoveryService();
   String _statusMessage = "READY TO ESTABLISH LINK";
   bool _isConnecting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoDiscover();
+  }
+
+  Future<void> _tryAutoDiscover() async {
+    final result = await _discoveryService.autoDiscover();
+    if (result.type != RouterType.unknown && mounted) {
+      _ipController.text = result.ip;
+      setState(() => _statusMessage = "AUTO-DETECTED: ${result.type.name.toUpperCase()} AT ${result.ip}");
+    }
+  }
 
   Future<void> _connect() async {
     setState(() {
@@ -254,17 +351,53 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     )..repeat(reverse: true);
     
     // Initialize NetGuard Engine
-    if (widget.plugin is OpenWrtPlugin) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(netGuardProvider.notifier).initialize(widget.plugin as OpenWrtPlugin);
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(netGuardProvider.notifier).initialize(widget.plugin);
+    });
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     super.dispose();
+  }
+
+  Future<void> _runSpeedTest() async {
+    final manager = SpeedTestManager();
+    final result = await manager.runIsolatedTest();
+    if (result != null && mounted) {
+      showDialog(
+        context: context,
+        builder: (c) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Text("SPEED TEST COMPLETE"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSimpleStat("DOWNLOAD", "${result.downloadSpeedMbps.toStringAsFixed(2)} Mbps", Colors.greenAccent),
+              _buildSimpleStat("UPLOAD", "${result.uploadSpeedMbps.toStringAsFixed(2)} Mbps", const Color(0xFF38BDF8)),
+              _buildSimpleStat("LATENCY", "${result.pingMs} ms", Colors.amberAccent),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text("CLOSE")),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildSimpleStat(String label, String val, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.white38)),
+          Text(val, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+        ],
+      ),
+    );
   }
 
   @override
@@ -277,8 +410,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     netState.downloadSpeeds.forEach((_, s) => totalDl += s);
     netState.uploadSpeeds.forEach((_, s) => totalUl += s);
 
-    // Convert B/s to Mbps for the existing graph UI logic if needed, 
-    // but the graph looks better with raw Mbps. Let's convert for consistency.
+    // Cumulative Data (Bytes to GB)
+    int accumDl = 0;
+    int accumUl = 0;
+    netState.totalDownloaded.forEach((_, v) => accumDl += v);
+    netState.totalUploaded.forEach((_, v) => accumUl += v);
+    double totalGB = (accumDl + accumUl) / (1024 * 1024 * 1024);
+
+    // Convert B/s to Mbps
     double dlMbps = (totalDl * 8) / (1024 * 1024);
     double ulMbps = (totalUl * 8) / (1024 * 1024);
 
@@ -318,6 +457,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
           children: [
             const SizedBox(height: 20),
             const SystemStatusCard(),
+            const SizedBox(height: 24),
+            _buildStatBox("SESSION DATA USAGE", totalGB, "GB", Colors.amberAccent, Icons.data_usage_rounded),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: _runSpeedTest,
+                icon: const Icon(Icons.speed_rounded, size: 20),
+                label: const Text("RUN ISOLATED SPEED TEST", style: TextStyle(letterSpacing: 1, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  foregroundColor: Colors.white70,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             _buildGraphBox("REAL-TIME DOWNLOAD", _dlSpots, Colors.greenAccent, dlMbps, "Mbps"),
             const SizedBox(height: 16),

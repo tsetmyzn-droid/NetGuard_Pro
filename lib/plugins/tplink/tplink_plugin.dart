@@ -1,6 +1,7 @@
-import 'dart:math';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
-import 'package:netguard_pro/core/utils/app_logger.dart';
+import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
+import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 
 class TPLinkPlugin extends RouterPlugin {
   TPLinkPlugin(String ip) : super(ip: ip, modelName: "TP-Link Archer Series");
@@ -10,35 +11,32 @@ class TPLinkPlugin extends RouterPlugin {
 
   @override
   Future<bool> login(String username, String password) async {
-    AppLogger.log("TPLink: Encrypting credentials at $ip");
-    await Future.delayed(const Duration(milliseconds: 1500));
+    NetGuardLogger().info("TPLink: Authenticating at $ip");
     return true; 
   }
 
   @override
-  Future<Map<String, double>> fetchTraffic() async {
-    final random = Random();
-    return {
-      "download": double.parse((random.nextDouble() * 50.0).toStringAsFixed(2)),
-      "upload": double.parse((random.nextDouble() * 10.0).toStringAsFixed(2)),
-    };
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchDevices() async {
+  Future<List<InterfaceStatus>> getTrafficStats() async {
     return [
-      {"name": "Smart-TV", "mac": "00:11:22:33:44:55", "ip": "192.168.1.50", "blocked": false},
+      InterfaceStatus(name: "internet", up: true, rxBytes: 0, txBytes: 0)
     ];
   }
 
   @override
+  Future<List<ConnectedDevice>> getConnectedDevices() async {
+    return [];
+  }
+
+  @override
   Future<bool> setBlockState(String mac, bool block) async {
-    AppLogger.log("TPLink CMD: Access Control -> $mac");
-    return true;
+    return false;
   }
 
   @override
   Future<bool> updateWifiSettings(String ssid, String password) async {
-    return true;
+    return false;
   }
+
+  @override
+  Future<void> logout() async {}
 }

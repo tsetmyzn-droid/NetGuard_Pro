@@ -1,6 +1,7 @@
-import 'dart:math';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
-import 'package:netguard_pro/core/utils/app_logger.dart';
+import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
+import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 
 class ZTEPlugin extends RouterPlugin {
   ZTEPlugin(String ip) : super(ip: ip, modelName: "ZTE ZXHN Series");
@@ -10,36 +11,32 @@ class ZTEPlugin extends RouterPlugin {
 
   @override
   Future<bool> login(String username, String password) async {
-    AppLogger.log("ZTE Engine: Authenticating at $ip");
-    await Future.delayed(const Duration(milliseconds: 1200));
-    return true; // محاكاة نجاح الدخول
+    NetGuardLogger().info("ZTE Engine: Authenticating at $ip");
+    return true; 
   }
 
   @override
-  Future<Map<String, double>> fetchTraffic() async {
-    final random = Random();
-    return {
-      "download": double.parse((random.nextDouble() * 15.0).toStringAsFixed(2)),
-      "upload": double.parse((random.nextDouble() * 2.0).toStringAsFixed(2)),
-    };
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchDevices() async {
+  Future<List<InterfaceStatus>> getTrafficStats() async {
     return [
-      {"name": "Home-Tab", "mac": "CC:DD:EE:FF:00:11", "ip": "192.168.1.8", "blocked": false},
+      InterfaceStatus(name: "wan", up: true, rxBytes: 0, txBytes: 0)
     ];
   }
 
   @override
+  Future<List<ConnectedDevice>> getConnectedDevices() async {
+    return [];
+  }
+
+  @override
   Future<bool> setBlockState(String mac, bool block) async {
-    AppLogger.log("ZTE CMD: ${block ? 'BLOCK' : 'UNBLOCK'} MAC: $mac");
-    return true;
+    return false;
   }
 
   @override
   Future<bool> updateWifiSettings(String ssid, String password) async {
-    AppLogger.log("ZTE CMD: WIFI_RESTORE_SETTINGS");
-    return true;
+    return false;
   }
+
+  @override
+  Future<void> logout() async {}
 }

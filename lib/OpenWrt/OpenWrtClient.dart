@@ -1,12 +1,45 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'Model/AuthResponse.dart';
 import 'Model/ConnectedDevice.dart';
 import 'Model/InterfaceStatus.dart';
+import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 
 class OpenWrtClient {
-  final Dio _dio = Dio();
+  late Dio _dio;
+  late CookieJar _cookieJar;
   String? _token;
   String? _baseUrl;
+  bool _isInitialized = false;
+  final NetGuardLogger _logger = NetGuardLogger();
+
+  OpenWrtClient() {
+    _dio = Dio();
+    _initDio();
+  }
+
+  Future<void> _initDio() async {
+    if (_isInitialized) return;
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final cookiePath = p.join(appDocDir.path, ".cookies/");
+      final dir = Directory(cookiePath);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      
+      _cookieJar = PersistCookieJar(storage: FileStorage(cookiePath));
+      _dio.interceptors.add(CookieManager(_cookieJar));
+      _isInitialized = true;
+      _logger.info("OpenWrtClient: Session manager (CookieJar) initialized.");
+    } catch (e) {
+      _logger.error("OpenWrtClient Init Error: $e");
+    }
+  }
 
   String? get token => _token;
 
@@ -16,18 +49,17 @@ class OpenWrtClient {
     } else {
       _baseUrl = url;
     }
-    // Remove trailing slash if exists
     if (_baseUrl!.endsWith('/')) {
       _baseUrl = _baseUrl!.substring(0, _baseUrl!.length - 1);
     }
   }
 
-  /// Phase 1: Authentication (التوثيق)
-  /// Authenticates with LuCI RPC returning a token if successful.
   Future<bool> login(String username, String password) async {
+    await _initDio();
     if (_baseUrl == null) return false;
 
     final url = '$_baseUrl/cgi-bin/luci/rpc/auth';
+    _logger.info("OpenWrt: Attempting login for user: $username");
     
     try {
       final response = await _dio.post(
@@ -39,6 +71,7 @@ class OpenWrtClient {
         },
         options: Options(
           headers: {'Content-Type': 'application/json'},
+          validateStatus: (status) => status! < 500,
         ),
       );
 
@@ -46,19 +79,33 @@ class OpenWrtClient {
         final authResponse = AuthResponse.fromJson(response.data);
         if (authResponse.isSuccess) {
           _token = authResponse.result;
+          _logger.info("OpenWrt: Login successful. Session token acquired.");
           return true;
         }
       }
+      _logger.warn("OpenWrt: Login failed. Response: ${response.data}");
       return false;
     } catch (e) {
-      print('OpenWrt Login Error: $e');
+      _logger.error('OpenWrt Login Exception: $e');
       return false;
     }
   }
 
-  /// Phase 2: Device List (قائمة الأجهزة)
-  /// Gets the list of connected devices via DHCP Leases.
+  Future<bool> checkSession() async {
+    await _initDio();
+    if (_baseUrl == null || _token == null) return false;
+    
+    // Attempt a light RPC call to verify session
+    try {
+      final devices = await getDevices();
+      return devices.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<List<ConnectedDevice>> getDevices() async {
+    await _initDio();
     if (_baseUrl == null || _token == null) return [];
 
     final url = '$_baseUrl/cgi-bin/luci/rpc/network?auth=$_token';
@@ -79,14 +126,13 @@ class OpenWrtClient {
       }
       return [];
     } catch (e) {
-      print('OpenWrt Get Devices Error: $e');
+      _logger.error('OpenWrt Get Devices Error: $e');
       return [];
     }
   }
 
-  /// Phase 3: Traffic Stats (إحصائيات المرور)
-  /// Gets statistics for all network interfaces.
   Future<List<InterfaceStatus>> getInterfacesStatus() async {
+    await _initDio();
     if (_baseUrl == null || _token == null) return [];
 
     final url = '$_baseUrl/cgi-bin/luci/rpc/network?auth=$_token';
@@ -111,8 +157,14 @@ class OpenWrtClient {
       }
       return [];
     } catch (e) {
-      print('OpenWrt Traffic Stats Error: $e');
+      _logger.error('OpenWrt Traffic Stats Error: $e');
       return [];
     }
+  }
+
+  Future<void> logout() async {
+    _token = null;
+    await _cookieJar.deleteAll();
+    _logger.info("OpenWrt: Session cleared (Logout).");
   }
 }
