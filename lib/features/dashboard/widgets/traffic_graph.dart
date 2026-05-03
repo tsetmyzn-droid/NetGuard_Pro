@@ -13,7 +13,37 @@ class TrafficGraph extends StatelessWidget {
     return LineChart(
       LineChartData(
         gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(show: false),
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 22,
+              interval: 5,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  '${value.toInt()}s',
+                  style: const TextStyle(color: Colors.white24, fontSize: 10),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              reservedSize: 32,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  '${value.toInt()}M',
+                  style: const TextStyle(color: Colors.white24, fontSize: 10),
+                );
+              },
+            ),
+          ),
+        ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
           LineChartBarData(

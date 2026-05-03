@@ -27,6 +27,7 @@ class DiscoveryService {
       '192.168.1.1',
       '192.168.0.1',
       '192.168.8.1', // Huawei default
+      '10.0.0.1',    // Common corporate fallback
     ];
 
     for (String ip in targets) {
@@ -42,35 +43,71 @@ class DiscoveryService {
   }
 
   Future<DiscoveryResult> _fingerprint(String ip) async {
-    final baseUrl = ip.startsWith('http') ? ip : 'http://$ip';
+    String baseUrl = ip.startsWith('http') ? ip : 'http://$ip';
     
+    // Test for HTTPS redirect (301/302)
+    try {
+      final probe = await _dio.get(baseUrl, options: Options(followRedirects: false, validateStatus: (status) => status != null && status < 400));
+      if (probe.statusCode == 301 || probe.statusCode == 302) {
+        final location = probe.headers.value('location');
+        if (location != null && location.startsWith('https')) {
+          _logger.info("DiscoveryService: Detected HTTPS redirect for $ip, switching to secure connection.", category: LogCategory.network);
+          baseUrl = location;
+        }
+      }
+    } catch (_) {}
+    
+    // Phase 4: Discovery Hardening (Content Verification)
+
     // Test 1: Huawei HiLink API
     try {
       final response = await _dio.get('$baseUrl/api/device/information');
-      if (response.statusCode == 200 && response.data.toString().contains('<DeviceName>')) {
-        return DiscoveryResult(type: RouterType.huawei, ip: ip);
+      if (response.statusCode == 200 && response.data.toString().contains('<DeviceName>') && response.data.toString().contains('<SerialNumber>')) {
+        return DiscoveryResult(type: RouterType.huawei, ip: baseUrl);
       }
     } catch (_) {}
 
     // Test 2: OpenWrt LuCI
     try {
       final response = await _dio.get('$baseUrl/cgi-bin/luci/');
-      if (response.statusCode == 200 && response.data.toString().contains('LuCI')) {
-        return DiscoveryResult(type: RouterType.openwrt, ip: ip);
+      if (response.statusCode == 200 && (response.data.toString().contains('LuCI') || response.data.toString().contains('luci-static'))) {
+        return DiscoveryResult(type: RouterType.openwrt, ip: baseUrl);
       }
     } catch (_) {}
     
-    // Test 3: RPC OpenWrt
+    // Test 3: RPC OpenWrt - JSON verification
     try {
        final response = await _dio.post(
          '$baseUrl/cgi-bin/luci/rpc/auth',
          data: {"id": 0, "method": "login", "params": []}
        );
-       if (response.statusCode == 200) {
-         return DiscoveryResult(type: RouterType.openwrt, ip: ip);
+       if (response.statusCode == 200 && response.data is Map && response.data.containsKey('id')) {
+         return DiscoveryResult(type: RouterType.openwrt, ip: baseUrl);
        }
     } catch (_) {}
 
-    return DiscoveryResult(type: RouterType.unknown, ip: ip);
+    // Test 4: TP-Link
+    try {
+      final response = await _dio.get(baseUrl);
+      if (response.statusCode == 200) {
+        final body = response.data.toString();
+        if (body.contains('TP-LINK') || body.contains('Tether') || body.contains('tplinkwifi')) {
+          return DiscoveryResult(type: RouterType.tplink, ip: baseUrl);
+        }
+      }
+    } catch (_) {}
+
+    // Test 5: ZTE
+    try {
+      final response = await _dio.get(baseUrl);
+      if (response.statusCode == 200) {
+        final body = response.data.toString();
+        if (body.contains('ZTE') || body.contains('ZXHN') || body.contains('zte.com.cn')) {
+          return DiscoveryResult(type: RouterType.zte, ip: baseUrl);
+        }
+      }
+    } catch (_) {}
+
+    return DiscoveryResult(type: RouterType.unknown, ip: baseUrl);
   }
 }

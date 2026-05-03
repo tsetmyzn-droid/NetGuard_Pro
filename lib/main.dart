@@ -17,6 +17,11 @@ import 'package:netguard_pro/core/network/discovery_service.dart';
 import 'package:netguard_pro/core/network/router_types.dart';
 import 'package:netguard_pro/features/speed_test/speed_test_manager.dart';
 import 'package:netguard_pro/features/speed_test/model/speed_test_result.dart';
+import 'package:netguard_pro/features/settings/settings_screen.dart';
+import 'package:netguard_pro/core/diagnostics/performance_monitor.dart';
+import 'package:netguard_pro/core/diagnostics/diagnostics_engine.dart';
+import 'package:netguard_pro/core/diagnostics/health_score.dart';
+import 'package:netguard_pro/core/diagnostics/crash_snapshot.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -46,10 +51,11 @@ void main() {
       ),
     );
     
-    // Reset crash count on successful start
-    Timer(const Duration(seconds: 10), () => CrashLoopProtection.reset());
+    // Reset crash count after 120 seconds of stable operation
+    Timer(const Duration(seconds: 120), () => CrashLoopProtection.reset());
     
   }, (error, stack) async {
+    await CrashSnapshot.save(error, stack);
     await CrashLoopProtection.recordCrash();
     ErrorReporter.report(error, stack);
     
@@ -425,10 +431,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     _dlSpots.add(FlSpot(_counter.toDouble(), dlMbps));
     _ulSpots.add(FlSpot(_counter.toDouble(), ulMbps));
     
-    if (_dlSpots.length > 30) {
+    if (_dlSpots.length > 60) {
       _dlSpots.removeAt(0);
       _ulSpots.removeAt(0);
     }
+
+    final performance = PerformanceMonitor().getSnapshot();
+    final diagnostic = DiagnosticsEngine().analyze(performance, netState);
+    final healthScore = HealthScoreCalculator.calculate(performance);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
@@ -450,6 +460,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_rounded, color: Colors.white30),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -457,6 +479,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
           children: [
             const SizedBox(height: 20),
             const SystemStatusCard(),
+            const SizedBox(height: 16),
+            _buildIntelligenceCard(healthScore, diagnostic),
             const SizedBox(height: 24),
             _buildStatBox("SESSION DATA USAGE", totalGB, "GB", Colors.amberAccent, Icons.data_usage_rounded),
             const SizedBox(height: 24),
@@ -474,6 +498,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+            _buildDeviceList(netState.devices),
             const SizedBox(height: 24),
             _buildGraphBox("REAL-TIME DOWNLOAD", _dlSpots, Colors.greenAccent, dlMbps, "Mbps"),
             const SizedBox(height: 16),
@@ -578,6 +604,150 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildIntelligenceCard(double health, DiagnosticResult diag) {
+    final Color healthColor = health > 80 ? Colors.greenAccent : (health > 50 ? Colors.amberAccent : Colors.redAccent);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 45, height: 45,
+                child: CircularProgressIndicator(
+                  value: health / 100,
+                  strokeWidth: 4,
+                  backgroundColor: Colors.white10,
+                  color: healthColor,
+                ),
+              ),
+              Text("${health.toInt()}%", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: healthColor)),
+            ],
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("NETWORK HEALTH & DIAGNOSTICS", style: TextStyle(fontSize: 8, color: Colors.white24, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(
+                  diag.message.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11, 
+                    fontWeight: FontWeight.bold, 
+                    color: diag.severity == DiagnosticSeverity.healthy ? Colors.white70 : (diag.severity == DiagnosticSeverity.warning ? Colors.amberAccent : Colors.redAccent),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeviceList(List<ConnectedDevice> devices) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("CONNECTED DEVICES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white24, letterSpacing: 1.5)),
+            Icon(Icons.devices_other_rounded, color: Colors.white12, size: 16),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (devices.isEmpty)
+          const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("NO NODES DETECTED", style: TextStyle(color: Colors.white10, fontSize: 10, letterSpacing: 2))))
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: devices.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final device = devices[index];
+              final bool isWifi = device.connectionType == "wireless";
+              
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.03)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isWifi ? Colors.blueAccent.withOpacity(0.1) : Colors.greenAccent.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isWifi ? Icons.wifi_rounded : Icons.lan_rounded,
+                        color: isWifi ? Colors.blueAccent : Colors.greenAccent,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            device.hostname.toUpperCase(),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white70),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(device.ipAddress, style: const TextStyle(fontSize: 10, color: Colors.white24, fontFamily: 'monospace')),
+                        ],
+                      ),
+                    ),
+                    if (isWifi && device.signalStrength != null)
+                      _buildSignalIndicator(device.signalStrength!),
+                  ],
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSignalIndicator(int signal) {
+    int bars = 0;
+    if (signal > -50) bars = 4;
+    else if (signal > -65) bars = 3;
+    else if (signal > -80) bars = 2;
+    else if (signal > -90) bars = 1;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(4, (i) {
+        return Container(
+          width: 3,
+          height: 8 + (i * 3).toDouble(),
+          margin: const EdgeInsets.only(left: 2),
+          decoration: BoxDecoration(
+            color: i < bars ? Colors.blueAccent : Colors.white10,
+            borderRadius: BorderRadius.circular(1),
+          ),
+        );
+      }),
     );
   }
 }

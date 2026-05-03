@@ -12,18 +12,50 @@ class HuaweiPlugin extends RouterPlugin {
   
   String? _sessionId;
   String? _requestToken;
+  late String _baseUrl;
 
-  HuaweiPlugin(String ip) : super(ip: ip, modelName: "Huawei HiLink");
+  HuaweiPlugin(String ip) : super(ip: ip, modelName: "Huawei HiLink") {
+    // Phase 4: Network Hardening
+    _dio.options.connectTimeout = const Duration(seconds: 5);
+    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    _dio.options.validateStatus = (status) => status != null && status < 500;
+    
+    // Phase 4: Retry Interceptor
+    _dio.interceptors.add(InterceptorsWrapper(
+      onError: (DioException e, handler) async {
+        int retryCount = e.requestOptions.extra['retryCount'] ?? 0;
+        if (retryCount < 2 && (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout)) {
+          retryCount++;
+          e.requestOptions.extra['retryCount'] = retryCount;
+          await Future.delayed(Duration(seconds: retryCount * 2));
+          final response = await _dio.fetch(e.requestOptions);
+          return handler.resolve(response);
+        }
+        return handler.next(e);
+      },
+    ));
+
+    // Preference for HTTPS
+    if (ip.startsWith('http')) {
+      _baseUrl = ip;
+    } else {
+      _baseUrl = 'https://$ip';
+    }
+  }
 
   @override
   void setBaseUrl(String url) {
-    // Already handled via ip in constructor/base, but for compatibility:
+    if (url.startsWith('http')) {
+      _baseUrl = url;
+    } else {
+      _baseUrl = 'https://$url';
+    }
   }
 
-  String get _fullBaseUrl => ip.startsWith('http') ? ip : 'http://$ip';
+  String get _fullBaseUrl => _baseUrl;
 
   /// Phase 2: Session & Token Acquisition
-  Future<bool> _refreshTokens() async {
+  Future<bool> _refreshTokens({bool retryWithHttp = true}) async {
     try {
       final response = await _dio.get('$_fullBaseUrl/api/webserver/SesTokInfo');
       if (response.statusCode == 200) {
@@ -38,6 +70,11 @@ class HuaweiPlugin extends RouterPlugin {
         return true;
       }
     } catch (e) {
+      if (retryWithHttp && _fullBaseUrl.startsWith('https://')) {
+        _logger.warn("Huawei Plugin: HTTPS failed, falling back to HTTP...");
+        _baseUrl = _baseUrl.replaceFirst('https://', 'http://');
+        return _refreshTokens(retryWithHttp: false);
+      }
       _logger.error("Huawei Plugin: Failed to get SesTokInfo: $e");
     }
     return false;

@@ -3,13 +3,31 @@ class ConnectedDevice {
   final String ipAddress;
   final String macAddress;
   final String expire;
+  final String connectionType; // "wired", "wireless", "unknown"
+  final int? signalStrength; // dBm
 
   ConnectedDevice({
     required this.hostname,
     required this.ipAddress,
     required this.macAddress,
     required this.expire,
+    this.connectionType = "unknown",
+    this.signalStrength,
   });
+
+  ConnectedDevice copyWith({
+    String? connectionType,
+    int? signalStrength,
+  }) {
+    return ConnectedDevice(
+      hostname: hostname,
+      ipAddress: ipAddress,
+      macAddress: macAddress,
+      expire: expire,
+      connectionType: connectionType ?? this.connectionType,
+      signalStrength: signalStrength ?? this.signalStrength,
+    );
+  }
 
   factory ConnectedDevice.fromList(List<dynamic> list) {
     return ConnectedDevice(

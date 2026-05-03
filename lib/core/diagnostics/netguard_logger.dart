@@ -1,20 +1,28 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:intl/intl.dart';
 
+import 'package:encrypt/encrypt.dart' as enc;
+import 'package:crypto/crypto.dart';
+import 'package:netguard_pro/core/security/encryption_key_manager.dart';
+
 enum LogLevel { info, warn, error }
+enum LogCategory { system, network, security, engine, ui }
 
 class LogEntry {
   final DateTime timestamp;
   final LogLevel level;
+  final LogCategory category;
   final String message;
 
   LogEntry({
     required this.timestamp,
     required this.level,
+    required this.category,
     required this.message,
   });
 
@@ -22,7 +30,8 @@ class LogEntry {
   String toString() {
     final timeStr = DateFormat('yyyy-MM-dd HH:mm:ss.SSS').format(timestamp);
     final levelStr = level.toString().split('.').last.toUpperCase().padRight(5);
-    return '[$timeStr] $levelStr: $message';
+    final catStr = category.toString().split('.').last.toUpperCase().padRight(8);
+    return '[$timeStr] $levelStr [$catStr]: $message';
   }
 }
 
@@ -38,13 +47,21 @@ class NetGuardLogger {
   static const int _maxMemoryEntries = 500;
 
   final List<String> _writeBuffer = [];
+  static const int _maxWriteBufferSize = 1000;
   Timer? _bufferTimer;
   bool _isInitializing = false;
+  bool _isFlushing = false;
   File? _logFile;
+  final _keyManager = EncryptionKeyManager();
+
+  // Deduplication state
+  String? _lastLogMessage;
+  int _repeatCount = 0;
+  DateTime? _lastLogTime;
 
   // Configuration
-  static const int _maxFileSize = 5 * 1024 * 1024; // 5MB
-  static const int _maxRotationFiles = 3;
+  static const int _maxFileSize = 2 * 1024 * 1024; // Lowered to 2MB for encryption efficiency
+  static const int _maxRotationFiles = 2;
 
   Future<void> init() async {
     if (_isInitializing) return;
@@ -56,25 +73,70 @@ class NetGuardLogger {
       if (!await logsDir.exists()) {
         await logsDir.create(recursive: true);
       }
-      _logFile = File(p.join(logsDir.path, 'netguard.log'));
+      // Security: use .nglog extension
+      _logFile = File(p.join(logsDir.path, 'netguard.nglog'));
       await _checkRotation();
-      _log('Logger initialized at ${_logFile?.path}', LogLevel.info, internal: true);
+      _log('Logger initialized with encryption at ${_logFile?.path}', LogLevel.info, internal: true);
     } catch (e) {
-      print('Failed to initialize logger: $e');
+      if (kDebugMode) print('Failed to initialize logger: $e');
     } finally {
       _isInitializing = false;
     }
   }
 
-  void info(String message) => _log(message, LogLevel.info);
-  void warn(String message) => _log(message, LogLevel.warn);
-  void error(String message) => _log(message, LogLevel.error);
+  void info(String message, {LogCategory category = LogCategory.system}) => _log(message, LogLevel.info, category: category);
+  void warn(String message, {LogCategory category = LogCategory.system}) => _log(message, LogLevel.warn, category: category);
+  void error(String message, {LogCategory category = LogCategory.system}) => _log(message, LogLevel.error, category: category);
 
-  void _log(String message, LogLevel level, {bool internal = false}) {
+  String _sanitize(String input) {
+    // Phase 5: Enhanced Sensitive Data Protection
+    final patterns = [
+      RegExp(r'(password|pass|passwd|secret|key|cookie)=([^&\s]+)', caseSensitive: false),
+      RegExp(r'(token|auth|sessionId|sysauth)=([^&\s]+)', caseSensitive: false),
+      RegExp(r'"(password|token|auth|session|secret|key|cookie)"\s*:\s*"([^"]+)"', caseSensitive: false),
+      RegExp(r'Bearer\s+([a-zA-Z0-9\.\-_]+)', caseSensitive: false), 
+    ];
+    
+    String sanitized = input;
+    for (var pattern in patterns) {
+      sanitized = sanitized.replaceAllMapped(pattern, (match) {
+        final keyPart = match.groupCount >= 1 ? match.group(1) : "data";
+        return '$keyPart=***';
+      });
+    }
+    return sanitized;
+  }
+
+  void _log(String message, LogLevel level, {LogCategory category = LogCategory.system, bool internal = false}) {
+    final now = DateTime.now();
+
+    // Deduplication logic
+    if (message == _lastLogMessage && _lastLogTime != null && now.difference(_lastLogTime!).inSeconds < 5) {
+      _repeatCount++;
+      return;
+    }
+
+    if (_lastLogMessage != null && _repeatCount > 0) {
+      final summaryEntry = LogEntry(
+        timestamp: now,
+        level: LogLevel.info,
+        category: LogCategory.system,
+        message: "Previous message [$_lastLogMessage] repeated $_repeatCount times",
+      );
+      _memoryBuffer.addLast(summaryEntry);
+      _writeBuffer.add(summaryEntry.toString());
+    }
+
+    _lastLogMessage = message;
+    _lastLogTime = now;
+    _repeatCount = 0;
+
+    final sanitizedMessage = _sanitize(message);
     final entry = LogEntry(
-      timestamp: DateTime.now(),
+      timestamp: now,
       level: level,
-      message: message,
+      category: category,
+      message: sanitizedMessage,
     );
 
     // Add to memory buffer
@@ -84,10 +146,14 @@ class NetGuardLogger {
     }
 
     // Add to write buffer for file persistence
-    _writeBuffer.add(entry.toString());
+    if (_writeBuffer.length < _maxWriteBufferSize) {
+      _writeBuffer.add(entry.toString());
+    }
 
-    // Print to console for development
-    debugPrint(entry.toString());
+    // Print to console for development ONLY in Debug mode
+    if (kDebugMode) {
+      print(entry.toString());
+    }
   }
 
   void _startBufferTimer() {
@@ -98,20 +164,42 @@ class NetGuardLogger {
   }
 
   Future<void> _flushBuffer() async {
-    if (_writeBuffer.isEmpty || _logFile == null) return;
+    if (_writeBuffer.isEmpty || _logFile == null || _isFlushing) return;
+    _isFlushing = true;
 
     final linesToWrite = List<String>.from(_writeBuffer);
     _writeBuffer.clear();
 
     try {
       await _checkRotation();
-      await _logFile!.writeAsString(
-        '${linesToWrite.join('\n')}\n',
+      final content = '${linesToWrite.join('\n')}\n';
+      
+      // Phase 5: Log Encryption & Integrity (SHA256)
+      final key = await _keyManager.getKey();
+      final iv = enc.IV.fromSecureRandom(16);
+      final encrypter = enc.Encrypter(enc.AES(key));
+      final encrypted = encrypter.encrypt(content, iv: iv);
+      
+      final chunkBytes = encrypted.bytes;
+      final checksum = sha256.convert(chunkBytes).bytes;
+      
+      // [ChunkSize (4 bytes)] + [Checksum (32 bytes)] + [IV (16 bytes)] + [Ciphertext]
+      final header = ByteData(52);
+      header.setUint32(0, chunkBytes.length);
+      for(int r=0; r<32; r++) header.setUint8(4 + r, checksum[r]);
+      for(int r=0; r<16; r++) header.setUint8(36 + r, iv.bytes[r]);
+      
+      final fullChunk = Uint8List.fromList(header.buffer.asUint8List() + chunkBytes);
+
+      await _logFile!.writeAsBytes(
+        fullChunk,
         mode: FileMode.append,
         flush: true,
       );
     } catch (e) {
-      print('Failed to write logs to file: $e');
+      if (kDebugMode) print('Failed to write encrypted logs to file: $e');
+    } finally {
+      _isFlushing = false;
     }
   }
 
@@ -127,33 +215,35 @@ class NetGuardLogger {
   Future<void> _rotateFiles() async {
     try {
       final logsDir = _logFile!.parent.path;
+      final baseName = p.basenameWithoutExtension(_logFile!.path);
+      final ext = p.extension(_logFile!.path);
       
-      // Delete the oldest file if it exists
-      final oldestFile = File(p.join(logsDir, 'netguard.log.$_maxRotationFiles'));
-      if (await oldestFile.exists()) {
-        await oldestFile.delete();
-      }
-
-      // Shift existing rotation files
       for (int i = _maxRotationFiles - 1; i >= 1; i--) {
-        final currentFile = File(p.join(logsDir, 'netguard.log.$i'));
+        final currentFile = File(p.join(logsDir, '$baseName.$i$ext'));
         if (await currentFile.exists()) {
-          await currentFile.rename(p.join(logsDir, 'netguard.log.${i + 1}'));
+          await currentFile.rename(p.join(logsDir, '$baseName.${i + 1}$ext'));
         }
       }
 
-      // Rename current file to .1
-      await _logFile!.rename(p.join(logsDir, 'netguard.log.1'));
-      
-      // Create new empty log file
-      _logFile = File(p.join(logsDir, 'netguard.log'));
+      await _logFile!.rename(p.join(logsDir, '$baseName.1$ext'));
+      _logFile = File(p.join(logsDir, '$baseName$ext'));
       await _logFile!.create();
     } catch (e) {
-      print('Error during log rotation: $e');
+      if (kDebugMode) print('Error during log rotation: $e');
     }
   }
 
   List<LogEntry> getEntries() => _memoryBuffer.toList();
+
+  // Phase 5: Query System
+  List<LogEntry> getLogsByCategory(LogCategory category) => 
+      _memoryBuffer.where((e) => e.category == category).toList();
+
+  List<LogEntry> getLogsByLevel(LogLevel level) => 
+      _memoryBuffer.where((e) => e.level == level).toList();
+
+  List<LogEntry> getLogsByTimeRange(DateTime start, DateTime end) => 
+      _memoryBuffer.where((e) => e.timestamp.isAfter(start) && e.timestamp.isBefore(end)).toList();
 
   Future<void> dispose() async {
     _bufferTimer?.cancel();
@@ -161,9 +251,4 @@ class NetGuardLogger {
   }
 }
 
-// Simple debugPrint fallback
-void debugPrint(String message) {
-  // In a real app we might use foundation's debugPrint, 
-  // but for simplicity in core we just use print or stdout.
-  print(message);
-}
+// Removed custom debugPrint fallback in favor of foundation kDebugMode

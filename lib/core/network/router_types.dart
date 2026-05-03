@@ -1,4 +1,4 @@
-enum RouterType { openwrt, huawei, unknown }
+enum RouterType { openwrt, huawei, zte, tplink, unknown }
 
 class DiscoveryResult {
   final RouterType type;
