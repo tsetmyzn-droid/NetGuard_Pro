@@ -1,1 +1,0 @@
-OpenWRT-Geräte vom Telefon aus verwalten

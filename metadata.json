@@ -1,6 +1,0 @@
-{
-  "name": "NetGuard Pro",
-  "description": "Powerful management tool for OpenWrt devices with LuCI RPC support.",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
-}

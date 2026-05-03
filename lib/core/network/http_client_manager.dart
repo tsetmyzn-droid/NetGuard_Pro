@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 
@@ -26,7 +27,7 @@ class HttpClientManager {
     (dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate = (client) {
       client.badCertificateCallback = (X509Certificate cert, String host, int port) {
         // Phase 7: SSL Hardening - Check if we already trust this cert fingerprint
-        final fingerprint = cert.sha256.map((e) => e.toRadixString(16).padLeft(2, '0')).join(':');
+        final fingerprint = sha256.convert(cert.der).bytes.map((e) => e.toRadixString(16).padLeft(2, '0')).join(':');
         
         if (_trustedFingerprints[host] == fingerprint) {
           return true;

@@ -10,7 +10,7 @@ class ConnectedDevice {
     required this.hostname,
     required this.ipAddress,
     required this.macAddress,
-    required this.expire,
+    this.expire = "0",
     this.connectionType = "unknown",
     this.signalStrength,
   });

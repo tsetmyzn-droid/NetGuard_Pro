@@ -1,5 +1,7 @@
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
 import 'package:netguard_pro/OpenWrt/OpenWrtClient.dart';
+import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
 
 class OpenWrtPlugin extends RouterPlugin {
   final OpenWrtClient _client = OpenWrtClient();

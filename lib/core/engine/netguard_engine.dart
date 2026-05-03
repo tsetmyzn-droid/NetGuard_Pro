@@ -201,7 +201,6 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
       final stats = await _currentPlugin!.getTrafficStats();
       
       _isPollRetry = false; // Success, reset retry flag
-      final now = DateTime.now();
       double timeDiff = 1.0;
       if (_lastPollTime != null) {
         timeDiff = now.difference(_lastPollTime!).inMilliseconds / 1000.0;

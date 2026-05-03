@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:netguard_pro/core/network/router_client.dart';
 import 'package:netguard_pro/core/plugins/router_factory.dart';
 import 'package:netguard_pro/core/utils/app_logger.dart';
@@ -11,6 +12,7 @@ import 'package:netguard_pro/features/dashboard/widgets/system_status_card.dart'
 import 'package:netguard_pro/core/engine/netguard_engine.dart';
 import 'package:netguard_pro/core/diagnostics/crash_loop_protection.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
+import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import 'package:netguard_pro/core/network/discovery_service.dart';
@@ -79,7 +81,7 @@ class CriticalFailureScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.emergency_home_rounded, color: Colors.redAccent, size: 80),
+              const Icon(Icons.emergency_rounded, color: Colors.redAccent, size: 80),
               const SizedBox(height: 24),
               Text(
                 isLoop ? "CRASH LOOP DETECTED" : "SYSTEM CORE FAILURE",

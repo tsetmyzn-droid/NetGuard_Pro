@@ -37,6 +37,12 @@ class RouterFactory {
       return createByTypes(RouterType.tplink, ip);
     }
     
-    return null;
+  /// إنشاء إضافة راوتر جديدة (يدوي)
+  static Future<RouterPlugin> create(String ip, String username, String password) async {
+    // Phase 10: Build a generic plugin or detect
+    // For now we default to OpenWrt if it looks like one, or try to discovery
+    final plugin = OpenWrtPlugin(ip);
+    await plugin.login(username, password);
+    return plugin;
   }
 }

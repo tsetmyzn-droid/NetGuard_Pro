@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:netguard_pro/core/security/encryption_key_manager.dart';
+import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 
 class PersistenceManager {
   static const String _fileName = 'engine_state.enc';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:netguard_pro/core/engine/persistence_manager.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
+import 'package:netguard_pro/core/diagnostics/crash_loop_protection.dart';
 import 'package:netguard_pro/core/engine/netguard_engine.dart';
 import 'package:netguard_pro/features/diagnostics/log_viewer_screen.dart';
 import 'package:netguard_pro/features/settings/profiles_screen.dart';
@@ -30,7 +31,7 @@ class SettingsScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.04),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white05),
+              border: Border.all(color: Colors.white10),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

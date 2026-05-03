@@ -1,12 +1,20 @@
 {
-  "name": "netguard_pro",
-  "version": "5.0.0",
-  "description": "Native Flutter Router Manager",
+  "name": "netguard-pro",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "build": "mkdir -p dist && echo '<h1>NetGuard Pro Native Engine</h1><p>Environment: Production Blueprint v5.0.0</p><p>Status: Native Flutter Code Active in /lib</p><p>Preview: Native platform simulation active.</p>' > dist/index.html",
-    "lint": "echo 'Linting native Dart code...'"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "path": "^0.12.7"
+
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
   }
 }
