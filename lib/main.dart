@@ -343,9 +343,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTickerProviderStateMixin {
-  final List<FlSpot> _dlSpots = [];
-  final List<FlSpot> _ulSpots = [];
-  int _counter = 0;
   late AnimationController _pulseController;
 
   @override
@@ -416,6 +413,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     netState.downloadSpeeds.forEach((_, s) => totalDl += s);
     netState.uploadSpeeds.forEach((_, s) => totalUl += s);
 
+    // Filter by selected interface if applicable
+    if (netState.selectedInterface != "all") {
+      totalDl = netState.downloadSpeeds[netState.selectedInterface] ?? 0;
+      totalUl = netState.uploadSpeeds[netState.selectedInterface] ?? 0;
+    }
+
+    // Convert to spots for graphing (O(n) but n=60 is small)
+    final dlSpots = netState.dlHistory.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value * 8) / (1024 * 1024))).toList();
+    final ulSpots = netState.ulHistory.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value * 8) / (1024 * 1024))).toList();
+
     // Cumulative Data (Bytes to GB)
     int accumDl = 0;
     int accumUl = 0;
@@ -423,18 +430,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     netState.totalUploaded.forEach((_, v) => accumUl += v);
     double totalGB = (accumDl + accumUl) / (1024 * 1024 * 1024);
 
-    // Convert B/s to Mbps
+    // Convert B/s to Mbps for real-time display
     double dlMbps = (totalDl * 8) / (1024 * 1024);
     double ulMbps = (totalUl * 8) / (1024 * 1024);
-
-    _counter++;
-    _dlSpots.add(FlSpot(_counter.toDouble(), dlMbps));
-    _ulSpots.add(FlSpot(_counter.toDouble(), ulMbps));
-    
-    if (_dlSpots.length > 60) {
-      _dlSpots.removeAt(0);
-      _ulSpots.removeAt(0);
-    }
 
     final performance = PerformanceMonitor().getSnapshot();
     final diagnostic = DiagnosticsEngine().analyze(performance, netState);
@@ -501,9 +499,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
             const SizedBox(height: 24),
             _buildDeviceList(netState.devices),
             const SizedBox(height: 24),
-            _buildGraphBox("REAL-TIME DOWNLOAD", _dlSpots, Colors.greenAccent, dlMbps, "Mbps"),
+            _buildGraphBox("REAL-TIME DOWNLOAD", dlSpots, Colors.greenAccent, dlMbps, "Mbps"),
             const SizedBox(height: 16),
-            _buildGraphBox("REAL-TIME UPLOAD", _ulSpots, const Color(0xFF38BDF8), ulMbps, "Mbps"),
+            _buildGraphBox("REAL-TIME UPLOAD", ulSpots, const Color(0xFF38BDF8), ulMbps, "Mbps"),
             const SizedBox(height: 32),
             _buildFooter(netState.error != null),
             const SizedBox(height: 32),

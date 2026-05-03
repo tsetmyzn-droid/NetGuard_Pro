@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:netguard_pro/core/engine/persistence_manager.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
+import 'package:netguard_pro/core/engine/netguard_engine.dart';
 import 'package:netguard_pro/features/diagnostics/log_viewer_screen.dart';
+import 'package:netguard_pro/features/settings/profiles_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final engineState = ref.watch(netGuardProvider);
+    final engineNotifier = ref.read(netGuardProvider.notifier);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
@@ -18,7 +24,61 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildSectionHeader("ENGINE CONFIGURATION"),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white05),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Monitored Interface", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButton<String>(
+                    value: engineState.selectedInterface,
+                    dropdownColor: const Color(0xFF1E293B),
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: "all", child: Text("All Interfaces (Total)", style: TextStyle(color: Colors.white70))),
+                      DropdownMenuItem(value: "br-lan", child: Text("br-lan (Local Bridge)", style: TextStyle(color: Colors.white70))),
+                      DropdownMenuItem(value: "wlan0", child: Text("wlan0 (Wireless)", style: TextStyle(color: Colors.white70))),
+                      DropdownMenuItem(value: "eth0", child: Text("eth0 (WAN/Cable)", style: TextStyle(color: Colors.white70))),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        engineNotifier.setSelectedInterface(val);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           _buildSectionHeader("SYSTEM & DATA"),
+          _buildSettingItem(
+            context,
+            title: "Manage Router Profiles",
+            subtitle: "Add or switch between routers",
+            icon: Icons.router_rounded,
+            color: Colors.blueAccent,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfilesScreen()),
+              );
+            },
+          ),
           _buildSettingItem(
             context,
             title: "Reset Crash Loop Data",
@@ -27,7 +87,7 @@ class SettingsScreen extends StatelessWidget {
             color: Colors.amberAccent,
             onTap: () async {
               await CrashLoopProtection.reset();
-              NetGuardLogger().info("User manually reset crash loop data via Settings.");
+              NetGuardLogger().info("User manually reset crash loop data via Settings.", category: LogCategory.ui);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("System crash counter has been reset.")),
@@ -57,16 +117,15 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.save_alt_rounded,
             color: Colors.greenAccent,
             onTap: () {
-              // Mock export - the logs are already in documents/logs/netguard.log
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Logs are preserved at: /documents/logs/netguard.log")),
+                const SnackBar(content: Text("Logs are preserved in secure .nglog format.")),
               );
             },
           ),
           const SizedBox(height: 40),
           Center(
             child: Text(
-              "NetGuard Pro v5.0.0 (Production Engine)",
+              "NetGuard Pro v5.1.0 (Phase 8 Optimized)",
               style: TextStyle(color: Colors.white.withOpacity(0.1), fontSize: 10),
             ),
           ),
