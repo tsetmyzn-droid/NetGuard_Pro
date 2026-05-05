@@ -95,13 +95,19 @@ class NetGuardLogger {
       RegExp(r'(token|auth|sessionId|sysauth)=([^&\s]+)', caseSensitive: false),
       RegExp(r'"(password|token|auth|session|secret|key|cookie)"\s*:\s*"([^"]+)"', caseSensitive: false),
       RegExp(r'Bearer\s+([a-zA-Z0-9\.\-_]+)', caseSensitive: false), 
+      // Phase 12 Security: PII Masking
+      RegExp(r'([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}'), // MAC
+      RegExp(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'), // IP
     ];
     
     String sanitized = input;
     for (var pattern in patterns) {
       sanitized = sanitized.replaceAllMapped(pattern, (match) {
-        final keyPart = match.groupCount >= 1 ? match.group(1) : "data";
-        return '$keyPart=***';
+        if (match.groupCount >= 1 && match.group(1) != null) {
+          final keyPart = match.group(1)!;
+          return '$keyPart=***';
+        }
+        return '***';
       });
     }
     return sanitized;

@@ -1,12 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
-import 'package:path/path.dart' as p;
-import 'Model/AuthResponse.dart';
-import 'Model/ConnectedDevice.dart';
-import 'Model/InterfaceStatus.dart';
+import 'package:netguard_pro/core/network/secure_cookie_storage.dart';
+import 'model/auth_response.dart';
+import 'package:netguard_pro/core/plugins/model/connected_device.dart';
+import 'package:netguard_pro/core/plugins/model/interface_status.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:netguard_pro/core/network/http_client_manager.dart';
 
@@ -38,14 +36,8 @@ class OpenWrtClient {
         _dio = await _httpManager.createDioWithOptionalSSL(_baseUrl!);
       }
 
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final cookiePath = p.join(appDocDir.path, ".cookies/");
-      final dir = Directory(cookiePath);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      
-      _cookieJar = PersistCookieJar(storage: FileStorage(cookiePath));
+      // Phase 12 Security: Use SecureCookieStorage instead of file-based PersistCookieJar
+      _cookieJar = PersistCookieJar(storage: SecureCookieStorage());
       _dio.interceptors.add(CookieManager(_cookieJar));
 
       // Phase 4: Network Hardening

@@ -20,6 +20,12 @@ build_logs/
 *.db
 secret.key
 
+# Isolated Environment
+.isolated-env/
+archive/
+OpenWrtManager-1.40/
+luci-mobile-1.1.8/
+
 # OS
 .DS_Store
 Thumbs.db

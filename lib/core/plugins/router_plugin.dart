@@ -1,11 +1,16 @@
-import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
-import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+import 'package:netguard_pro/core/plugins/model/connected_device.dart';
+import 'package:netguard_pro/core/plugins/model/interface_status.dart';
 
 abstract class RouterPlugin {
   final String ip;
   final String modelName;
 
   RouterPlugin({required this.ip, required this.modelName});
+
+  /// القدرات (Capabilities) - يتم استبدالها في الإضافات التي تدعم هذه الميزات
+  bool get supportsWifiManagement => false;
+  bool get supportsDeviceBlocking => false;
+  bool get supportsTrafficStats => true;
 
   /// محاولة تسجيل الدخول للراوتر
   Future<bool> login(String username, String password);

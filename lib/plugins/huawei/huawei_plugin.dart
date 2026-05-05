@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:xml/xml.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
-import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
-import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+import 'package:netguard_pro/core/plugins/model/connected_device.dart';
+import 'package:netguard_pro/core/plugins/model/interface_status.dart';
 import 'model/huawei_status.dart';
 
 class HuaweiPlugin extends RouterPlugin {

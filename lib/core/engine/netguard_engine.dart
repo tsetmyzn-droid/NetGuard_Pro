@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
-import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
-import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
+import 'package:netguard_pro/core/plugins/model/interface_status.dart';
+import 'package:netguard_pro/core/plugins/model/connected_device.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:netguard_pro/core/engine/persistence_manager.dart';
 import 'package:netguard_pro/core/diagnostics/performance_monitor.dart';
@@ -282,8 +282,10 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
         error: null,
       );
 
-      // Persist state periodically (every poll or every few polls)
-      _persistence.saveState(state.toJson());
+      // Phase 12 Security/Efficiency: Throttled persistence (Every 30 seconds or on major manual update)
+      if (now.second % 30 == 0) {
+        _persistence.saveState(state.toJson());
+      }
       
       sw.stop();
       _perfMonitor.recordPollDuration(sw.elapsed);

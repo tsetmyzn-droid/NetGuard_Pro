@@ -1,12 +1,18 @@
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
-import 'package:netguard_pro/OpenWrt/OpenWrtClient.dart';
-import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
-import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
+import 'openwrt_client.dart';
+import 'package:netguard_pro/core/plugins/model/interface_status.dart';
+import 'package:netguard_pro/core/plugins/model/connected_device.dart';
 
 class OpenWrtPlugin extends RouterPlugin {
   final OpenWrtClient _client = OpenWrtClient();
 
   OpenWrtPlugin(String ip) : super(ip: ip, modelName: "OpenWrt (LuCI)");
+
+  @override
+  bool get supportsWifiManagement => true;
+
+  @override
+  bool get supportsDeviceBlocking => true;
 
   @override
   Future<bool> login(String username, String password) async {

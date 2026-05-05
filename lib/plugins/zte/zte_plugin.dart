@@ -1,6 +1,6 @@
 import 'package:netguard_pro/core/plugins/router_plugin.dart';
-import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
-import 'package:netguard_pro/OpenWrt/Model/InterfaceStatus.dart';
+import 'package:netguard_pro/core/plugins/model/connected_device.dart';
+import 'package:netguard_pro/core/plugins/model/interface_status.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 
 class ZTEPlugin extends RouterPlugin {

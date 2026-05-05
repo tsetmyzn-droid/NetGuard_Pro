@@ -12,7 +12,7 @@ import 'package:netguard_pro/features/dashboard/widgets/system_status_card.dart'
 import 'package:netguard_pro/core/engine/netguard_engine.dart';
 import 'package:netguard_pro/core/diagnostics/crash_loop_protection.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
-import 'package:netguard_pro/OpenWrt/Model/ConnectedDevice.dart';
+import 'package:netguard_pro/core/plugins/model/connected_device.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import 'package:netguard_pro/core/network/discovery_service.dart';
