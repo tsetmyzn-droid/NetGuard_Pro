@@ -32,10 +32,14 @@
 
 ## 🏢 المرحلة الاحترافية (Enterprise Phase)
 1. **SBOM Generation**: توليد قائمة المكونات البرمجية (`sbom.json`) باستخدام معيار CycloneDX.
-2. **Vulnerability Scanning**: فحص الـ Dependencies بحثاً عن ثغرات CVE المعروفة.
-3. **Advanced Log Sanitization**: فحص المسودات والـ logs بحثاً عن أي تسريب للرموز السرية (Tokens) واستبدالها بـ `[REDACTED]`.
-4. **Final Integrity Verification**: إعادة فحص الـ Hashes في مرحلة منفصلة للتأكد من عدم حدوث تلاعب أثناء الرفع.
-5. **Conditional Secure Release**: النشر التلقائي للنسخ النهائية فقط عند اكتمال جميع فحوصات الأمان بنجاح.
+2. **Native Security Enforcement (Grep-based)**: تنفيذ فحص آلي باستخدام `grep` لاكتشاف:
+   - الأنماط الخطرة: `badCertificateCallback`, `allowBadCertificates`, `http://`.
+   - تسريب البيانات: `print(token)`, `debugPrint(password)`.
+   - التخزين غير الآمن: استخدام `SharedPreferences` للبيانات الحساسة.
+3. **Build Kill-Switches**: إيقاف عملية بناء الإنتاج (Production) فوراً في حال اكتشاف أي من الأنماط أعلاه.
+4. **Runtime Hardening Validation**: التأكد من أن جميع النسخ النهائية مبنية بـ `--obfuscate` و `--split-debug-info`.
+5. **Artifact Integrity System**: توليد ملف `manifest.json` يحتوي على بصمة `SHA256` واسم الملف وتوقيت البناء لكل منتج نهائي.
+6. **Advanced Log Sanitization**: فحص الـ logs بحثاً عن أي تسريب للرموز السرية واستبدالها بـ `[REDACTED]`.
 
 ## 🚀 مرحلة التأكد والاستقرار (Verification & Stabilization Phase)
 1. **PHASE 1-5: Structure & Security**: مراجعة شاملة وإصلاح الهيكلية والأمان العام (اكتملت).

@@ -1,0 +1,45 @@
+name: Optional Python Security Scan
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-scan:
+    name: "Python Compliance & Security"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Python
+        uses: actions/setup-python@39585653287db0910e547285f096ae258b389ee2 # v4.7.1
+        with:
+          python-version: '3.10'
+
+      - name: Security Scan (Python Dependencies)
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install safety
+            safety check -r requirements.txt || echo "::warning:: Vulnerable dependencies detected in requirements.txt"
+          else
+            echo "No requirements.txt found. Skipping scan."
+          fi
+
+      - name: Python Syntax Check
+        run: |
+          PY_FILES=$(find . -name "*.py" -not -path "*/.*")
+          if [ -n "$PY_FILES" ]; then
+            python3 -m py_compile $PY_FILES
+          else
+            echo "No python files found. Skipping syntax check."
+          fi

@@ -1,0 +1,42 @@
+# Snyk Security Workflow Template
+
+```yaml
+name: Snyk Security
+
+on:
+  push:
+    branches: ["main" ]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  snyk:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@806182742461562b67788a64410098c9d9b96adb
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Snyk Code test
+        run: snyk code test --sarif > snyk-code.sarif
+
+      - name: Snyk Open Source monitor
+        run: snyk monitor --all-projects
+
+      - name: Snyk IaC test and report
+        run: snyk iac test --report
+
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-code.sarif
+```

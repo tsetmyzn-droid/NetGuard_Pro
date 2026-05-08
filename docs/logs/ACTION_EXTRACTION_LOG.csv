@@ -1,0 +1,4 @@
+Configuration,Language,File Path,Successfully Extracted,Failure Reason
+/language:actions,GitHub Actions,.github/workflows/build.yml,true,""
+/language:actions,GitHub Actions,.github/workflows/guard.yml,true,""
+/language:actions,GitHub Actions,.github/workflows/ultra_secure_build.yml,true,""

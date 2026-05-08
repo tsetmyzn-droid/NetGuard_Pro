@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
 
       - name: "Setup Flutter SDK (Pin SHA)"
-        uses: subosito/flutter-action@44c06581ca4ca3705cdcfc446522f8f66835de38 # v2.16.0
+        uses: subosito/flutter-action@e8b7d90367e91404c0bc60bf977ef2751480c59e # pinned (v2.23.0)
         with:
           flutter-version: '3.19.0'
           cache: true
@@ -90,7 +90,7 @@ jobs:
           java-version: '17'
 
       - name: "Setup Flutter SDK"
-        uses: subosito/flutter-action@44c06581ca4ca3705cdcfc446522f8f66835de38 # v2.16.0
+        uses: subosito/flutter-action@e8b7d90367e91404c0bc60bf977ef2751480c59e # pinned (v2.23.0)
         with:
           flutter-version: '3.19.0'
           cache: false # Disable cache for primary build to ensure determinism
@@ -158,7 +158,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: "Setup Flutter"
-        uses: subosito/flutter-action@44c06581ca4ca3705cdcfc446522f8f66835de38 # v2.16.0
+        uses: subosito/flutter-action@e8b7d90367e91404c0bc60bf977ef2751480c59e # pinned (v2.23.0)
         with:
           flutter-version: '3.19.0'
 
@@ -169,7 +169,7 @@ jobs:
         shell: powershell
         run: |
           Start-Transcript -Path "build_exe.log"
-          flutter build windows --release
+          flutter build windows --release --obfuscate --split-debug-info=build/windows/debug-info
           Stop-Transcript
           if ($LASTEXITCODE -ne 0) { throw "Build Failed" }
 
