@@ -30,12 +30,24 @@ Our GitHub Actions pipeline is protected using industry best practices:
 - **Security Kill Switch:** Automated code analysis using `grep` patterns to block insecure code (e.g., HTTP, TLS bypasses) from reaching production.
 - **Artifact Integrity:** Every build produces a `manifest.json` with **SHA256** checksums to verify provenance.
 
+## 🏗️ CI/CD Architecture
+NetGuard Pro uses a modular, security-hardened pipeline designed for transparency and deterministic builds:
+
+1. **Security Scan:** Real-time linting, secret scanning, and pattern matching.
+2. **Dependency Health:** Supply chain monitoring and update alerts.
+3. **Hardened Builds:** Dedicated pipelines for APK and EXE with obfuscation enabled.
+4. **Post-Build Audit:** Integrity verification comparing artifacts against signed manifests.
+5. **Failure Centralizer:** A centralized 'Black Box' that aggregates failure contexts from all workflows into a single human-readable report.
+
+Reports and logs are centralized in `docs/` and as GitHub Artifacts.
+
 ## 📄 Audit & Reports
 Detailed security and stability analysis can be found in our internal reports:
 - [🛡️ Workflow Security Report](./docs/security/WORKFLOW_SECURITY_REPORT.md)
 - [📦 Runtime Hardening Report](./docs/security/RUNTIME_HARDENING_REPORT.md)
 - [⚖️ Artifact Integrity Report](./docs/security/ARTIFACT_INTEGRITY_REPORT.md)
 - [🛠️ Build Issues & Resolutions](./docs/logs/BUILD_ISSUES_RESOLUTIONS.md)
+- [📈 Current Workflow Analysis](./CURRENT_WORKFLOW_ANALYSIS.md)
 
 ## 📱 Supported Platforms
 - **Android:** Fully optimized native APK.

@@ -1,0 +1,83 @@
+name: "Build APK"
+
+on:
+  push:
+    branches: [ "main", "release/*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: "Hardened Android Build"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: "Clone Repository"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Setup Java"
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: "Setup Flutter"
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: ${{ runner.os }}-flutter-apk-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: "Build Obfuscated APK"
+        run: |
+          flutter pub get
+          flutter build apk --release --obfuscate --split-debug-info=build/debug-info > build.log 2>&1 || {
+            echo '{"workflow": "build-apk", "job": "build", "step": "flutter-build", "error": "Android build failed. See build.log artifact.", "severity": "critical"}' > failure-context.json
+            exit 1
+          }
+
+      - name: "Generate Integrity Manifest"
+        run: |
+          mkdir -p output
+          mv build/app/outputs/flutter-apk/app-release.apk output/netguard-pro-release.apk
+          SHA256=$(sha256sum output/netguard-pro-release.apk | awk '{print $1}')
+          echo "{" > output/manifest.json
+          echo "  \"filename\": \"netguard-pro-release.apk\"," >> output/manifest.json
+          echo "  \"sha256\": \"$SHA256\"," >> output/manifest.json
+          echo "  \"build_timestamp\": \"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\"," >> output/manifest.json
+          echo "  \"commit_sha\": \"${{ github.sha }}\"," >> output/manifest.json
+          echo "  \"run_id\": \"${{ github.run_id }}\"" >> output/manifest.json
+          echo "}" >> output/manifest.json
+
+      - name: "Log Sanitization"
+        run: |
+          # Redact potential secrets from build logs if any leak
+          sed -i 's/password=[^ ]*/password=[REDACTED]/g' build.log
+          sed -i 's/key=[^ ]*/key=[REDACTED]/g' build.log
+
+      - name: "Upload Hardened Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: hardened-apk-bundle
+          path: output/
+          retention-days: 3
+
+      - name: "Handle Failure Context"
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-context-build-apk
+          path: |
+            failure-context.json
+            build.log
+          retention-days: 1

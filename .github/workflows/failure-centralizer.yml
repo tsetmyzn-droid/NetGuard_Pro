@@ -1,0 +1,75 @@
+name: "Failure Centralizer"
+
+# This workflow acts as the 'Black Box' for the entire CI/CD pipeline.
+# It listens for any failing workflow and aggregates human-readable logs into a single report.
+
+on:
+  workflow_run:
+    workflows: ["Security Scan", "Dependency Health", "Build APK", "Build EXE", "Post Build Audit", "Simulate Pentest"]
+    types: [completed]
+
+permissions:
+  contents: write # To allow appending logs if needed, but primarily for artifact management
+  actions: read
+  checks: read
+
+jobs:
+  centralize:
+    name: "Aggregate Failure Logs"
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4 # TODO: pin to SHA after validation
+
+      - name: "Download Failure Context Artifacts"
+        uses: actions/download-artifact@v4 # TODO: pin to SHA after validation
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          pattern: failure-context-*
+          path: failure_logs/
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: "Generate Centralized Failure Log"
+        shell: bash
+        run: |
+          LOG_FILE="CENTRALIZED_FAILURE_LOG.md"
+          echo "<!-- ========================================================= -->" > $LOG_FILE
+          echo "<!-- WORKFLOW: ${{ github.event.workflow_run.name }} -->" >> $LOG_FILE
+          echo "<!-- TRIGGERED AT: $(date -u +'%Y-%m-%dT%H:%M:%SZ') -->" >> $LOG_FILE
+          echo "<!-- RUN ID: ${{ github.event.workflow_run.id }} -->" >> $LOG_FILE
+          echo "<!-- ========================================================= -->" >> $LOG_FILE
+          echo "" >> $LOG_FILE
+          
+          if [ -d "failure_logs" ] && [ "$(ls -A failure_logs)" ]; then
+            for f in failure_logs/*.json; do
+              echo "## ❌ Failure Details (from $(basename $f))" >> $LOG_FILE
+              echo '```json' >> $LOG_FILE
+              cat "$f" >> $LOG_FILE
+              echo '```' >> $LOG_FILE
+              echo "" >> $LOG_FILE
+            done
+          else
+            echo "## ⚠️ No specific failure context artifact found." >> $LOG_FILE
+            echo "Directly fetch logs using: \`gh run view ${{ github.event.workflow_run.id }} --log\`" >> $LOG_FILE
+          fi
+          
+          echo "=========================================================" >> $LOG_FILE
+          
+          # Reverse the file so newer logs appear at the top if we were appending, 
+          # but here we generate a per-run report. To make it truly centralized across runs, 
+          # we would need to fetch the existing artifact first.
+          
+      - name: "Update Job Summary"
+        run: |
+          cat CENTRALIZED_FAILURE_LOG.md >> $GITHUB_STEP_SUMMARY
+
+      - name: "Upload Centralized Failure Log"
+        uses: actions/upload-artifact@v4 # TODO: pin to SHA after validation
+        with:
+          name: centralized-failure-log
+          path: CENTRALIZED_FAILURE_LOG.md
+          retention-days: 7

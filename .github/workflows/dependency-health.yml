@@ -1,0 +1,45 @@
+name: "Dependency Health"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * 1' # Weekly on Monday
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: "Supply Chain Audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: "Clone Repository"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Setup Flutter"
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: 'stable'
+
+      - name: "Outdated Dependencies Check"
+        run: |
+          flutter pub get
+          flutter pub outdated --no-dev-dependencies > outdated.log
+          if grep -q "have newer versions" outdated.log; then
+            echo "::warning:: Some dependencies are outdated. Review outdated.log artifact."
+          fi
+
+      - name: "Upload Audit Logs"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-log
+          path: outdated.log
+          retention-days: 7

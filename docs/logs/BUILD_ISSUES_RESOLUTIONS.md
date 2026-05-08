@@ -16,6 +16,7 @@
 | 2026-05-08 | **Runtime Security Weakness** | Hardening | تفعيل `--obfuscate` و `--split-debug-info` لجميع بناءات الإنتاج (APK/EXE). | ✅ تم الحل |
 | 2026-05-08 | **Dangerous Code Patterns** | Security | إضافة `Security Kill Switch` آلي يعتمد على `grep` لاكتشاف تجاوزات TLS وتسريبات الـ Tokens. | ✅ تم الحل |
 | 2026-05-08 | **Artifact Provenance Gap** | Integrity | تنفيذ نظام `Integrity Manifest (manifest.json)` مع SHA256 عابر للمنصات. | ✅ تم الحل |
+| 2026-05-08 | **CI/CD Fragmentation** | Architecture | إعادة هيكلة شاملة لـ Workflows بنظام "الموديولات" مع تجميع مركزي للأخطاء في `failure-centralizer.yml`. | ✅ تم الحل |
 
 ---
 **ملاحظة**: يتم تحديث هذا السجل دورياً مع كل عملية بناء ناجحة أو فشل يتم تجاوزه.

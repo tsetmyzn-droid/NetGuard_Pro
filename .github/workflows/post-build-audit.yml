@@ -1,0 +1,55 @@
+name: "Post Build Audit"
+
+on:
+  workflow_run:
+    workflows: ["Build APK", "Build EXE"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    name: "Forensic Integrity Audit"
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: "Clone Repository"
+        uses: actions/checkout@v4
+
+      - name: "Download Artifacts for Audit"
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          path: audit_temp/
+
+      - name: "Verify Manifest Integrity"
+        run: |
+          cd audit_temp/
+          # Check for manifest existence
+          if [ ! -f "hardened-apk-bundle/manifest.json" ] && [ ! -f "hardened-windows-bundle/manifest.json" ]; then
+            echo '{"workflow": "post-build-audit", "job": "audit", "step": "verify-manifest", "error": "Integrity manifest missing in artifacts!", "severity": "critical"}' > ../failure-context.json
+            exit 1
+          fi
+          
+          # Verify SHA256 against actual file
+          if [ -d "hardened-apk-bundle" ]; then
+             EXPECTED_SHA=$(grep "sha256" hardened-apk-bundle/manifest.json | cut -d'"' -f4)
+             ACTUAL_SHA=$(sha256sum hardened-apk-bundle/netguard-pro-release.apk | awk '{print $1}')
+             if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+               echo "❌ APK SHA mismatch!"
+               echo '{"workflow": "post-build-audit", "job": "audit", "step": "verify-sha", "error": "APK Integrity poisoned! SHA mismatch detected.", "severity": "critical"}' > ../failure-context.json
+               exit 1
+             fi
+          fi
+
+      - name: "Handle Failure Context"
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-context-post-build-audit
+          path: failure-context.json
+          retention-days: 1

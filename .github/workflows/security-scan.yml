@@ -1,0 +1,73 @@
+name: "Security Scan"
+
+on:
+  push:
+    branches: [ "main", "dev", "develop" ]
+  pull_request:
+    branches: [ "main", "dev", "develop" ]
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: "Core Security Hardening Scan"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: "Clone Repository"
+        uses: actions/checkout@v4 # TODO: pin to SHA after validation
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "Setup Flutter"
+        uses: subosito/flutter-action@v2.23.0 # TODO: pin to SHA (verified version)
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-${{ github.ref_name }}
+
+      - name: "Analyze Code Quality"
+        id: analyze
+        run: |
+          flutter pub get
+          flutter analyze --fatal-warnings > analyze_report.txt 2>&1 || {
+            echo '{"workflow": "security-scan", "job": "scan", "step": "analyze", "error": "Flutter analysis failed with fatal warnings.", "severity": "critical"}' > failure-context.json
+            exit 1
+          }
+
+      - name: "Sensitive Pattern Check (Grep)"
+        run: |
+          # 1. Check for unsafe TLS
+          if grep -rE "badCertificateCallback|allowBadCertificates.*true" lib/; then
+            echo '{"workflow": "security-scan", "job": "scan", "step": "grep-patterns", "error": "Unsafe TLS certificate bypass detected!", "severity": "critical"}' > failure-context.json
+            exit 1
+          fi
+          
+          # 2. Check for secret leakage in logs
+          if grep -rE "print\(.*token|print\(.*password|debugPrint\(.*token|debugPrint\(.*password" lib/; then
+             echo '{"workflow": "security-scan", "job": "scan", "step": "grep-patterns", "error": "Potential secret leakage in logs detected!", "severity": "high"}' > failure-context.json
+             exit 1
+          fi
+
+      - name: "Secret Scanning (Gitleaks)"
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Handle Failure Context"
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-context-security-scan
+          path: failure-context.json
+          retention-days: 1
