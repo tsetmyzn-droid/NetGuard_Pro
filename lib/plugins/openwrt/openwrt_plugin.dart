@@ -2,11 +2,24 @@ import 'package:netguard_pro/core/plugins/router_plugin.dart';
 import 'openwrt_client.dart';
 import 'package:netguard_pro/core/plugins/model/interface_status.dart';
 import 'package:netguard_pro/core/plugins/model/connected_device.dart';
+import 'package:netguard_pro/core/network/agent_client.dart';
+import 'openwrt_agent_client.dart';
 
 class OpenWrtPlugin extends RouterPlugin {
   final OpenWrtClient _client = OpenWrtClient();
+  AgentClient? _agent;
 
-  OpenWrtPlugin(String ip) : super(ip: ip, modelName: "OpenWrt (LuCI)");
+  OpenWrtPlugin(String ip, {String? agentKey}) : super(ip: ip, modelName: "OpenWrt (LuCI)") {
+    if (agentKey != null) {
+      _agent = OpenWrtAgentClient(ip: ip, sharedKey: agentKey);
+    }
+  }
+
+  @override
+  bool get hasAgentSupport => _agent != null;
+
+  @override
+  AgentClient? get agent => _agent;
 
   @override
   bool get supportsWifiManagement => true;

@@ -10,6 +10,7 @@ import 'package:netguard_pro/core/diagnostics/performance_monitor.dart';
 import 'package:netguard_pro/core/profiles/profile_manager.dart';
 import 'package:netguard_pro/core/profiles/router_profile.dart';
 import 'package:netguard_pro/core/plugins/router_factory.dart';
+import 'package:netguard_pro/features/dashboard/repositories/agent_stats_repository.dart';
 
 class NetGuardSystemState {
   final bool isActive;
@@ -21,10 +22,13 @@ class NetGuardSystemState {
   final List<double> dlHistory; // Phase 8: Speed history
   final List<double> ulHistory; // Phase 8: Speed history
   final String selectedInterface; // Phase 8: Interface selection
+  final bool hasAgentSupport;
+  final String routerIp;
   final String? error;
 
   NetGuardSystemState({
     this.isActive = false,
+    this.routerIp = "",
     this.devices = const [],
     this.downloadSpeeds = const {},
     this.uploadSpeeds = const {},
@@ -33,6 +37,7 @@ class NetGuardSystemState {
     this.dlHistory = const [],
     this.ulHistory = const [],
     this.selectedInterface = "all",
+    this.hasAgentSupport = false,
     this.error,
   });
 
@@ -46,10 +51,13 @@ class NetGuardSystemState {
     List<double>? dlHistory,
     List<double>? ulHistory,
     String? selectedInterface,
+    bool? hasAgentSupport,
+    String? routerIp,
     String? error,
   }) {
     return NetGuardSystemState(
       isActive: isActive ?? this.isActive,
+      routerIp: routerIp ?? this.routerIp,
       devices: devices ?? this.devices,
       downloadSpeeds: downloadSpeeds ?? this.downloadSpeeds,
       uploadSpeeds: uploadSpeeds ?? this.uploadSpeeds,
@@ -58,6 +66,7 @@ class NetGuardSystemState {
       dlHistory: dlHistory ?? this.dlHistory,
       ulHistory: ulHistory ?? this.ulHistory,
       selectedInterface: selectedInterface ?? this.selectedInterface,
+      hasAgentSupport: hasAgentSupport ?? this.hasAgentSupport,
       error: error,
     );
   }
@@ -87,6 +96,7 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
   final PersistenceManager _persistence = PersistenceManager();
   final NetGuardLogger _logger = NetGuardLogger();
   final PerformanceMonitor _perfMonitor = PerformanceMonitor();
+  final AgentStatsRepository _agentRepo = AgentStatsRepository();
   
   Map<String, int> _prevRx = {};
   Map<String, int> _prevTx = {};
@@ -142,7 +152,11 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
     _lastPollTime = null;
     _dlQueue.clear();
     _ulQueue.clear();
-    state = state.copyWith(isActive: true);
+    state = state.copyWith(
+      isActive: true,
+      hasAgentSupport: plugin.hasAgentSupport,
+      routerIp: plugin.ip,
+    );
     _logger.info("NetGuardEngine: Initializing monitoring session for ${plugin.modelName}...", category: LogCategory.engine);
     _startMonitoring();
   }
@@ -281,6 +295,11 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
         ulHistory: _ulQueue.toList(),
         error: null,
       );
+
+      // Sync with Agent every 60 seconds
+      if (now.second == 0 && _currentPlugin != null) {
+        _agentRepo.syncFromAgent(_currentPlugin!);
+      }
 
       // Phase 12 Security/Efficiency: Throttled persistence (Every 30 seconds or on major manual update)
       if (now.second % 30 == 0) {

@@ -4,13 +4,15 @@ import 'package:netguard_pro/plugins/zte/zte_plugin.dart';
 import 'package:netguard_pro/plugins/tplink/tplink_plugin.dart';
 import 'package:netguard_pro/plugins/openwrt/openwrt_plugin.dart';
 import 'package:netguard_pro/core/network/router_types.dart';
+import 'package:netguard_pro/core/engine/persistence_manager.dart';
 
 class RouterFactory {
   /// جلب الإضافة بناءً على النوع (Enum)
-  static RouterPlugin? createByTypes(RouterType type, String ip) {
+  static Future<RouterPlugin?> createByTypes(RouterType type, String ip) async {
+    final agentKey = await PersistenceManager().getAgentKey(ip);
     switch (type) {
       case RouterType.openwrt:
-        return OpenWrtPlugin(ip);
+        return OpenWrtPlugin(ip, agentKey: agentKey);
       case RouterType.huawei:
         return HuaweiPlugin(ip);
       case RouterType.zte:
@@ -24,26 +26,25 @@ class RouterFactory {
   }
 
   /// يكتشف نوع الراوتر بناءً على الهوية النصية (Identity String)
-  static RouterPlugin? getPluginFor(String ip, String probeResult) {
+  static Future<RouterPlugin?> getPluginFor(String ip, String probeResult) async {
     final identity = probeResult.toLowerCase();
     
     if (identity.contains("openwrt") || identity.contains("luci")) {
-      return createByTypes(RouterType.openwrt, ip);
+      return await createByTypes(RouterType.openwrt, ip);
     } else if (identity.contains("huawei") || identity.contains("hilink")) {
-      return createByTypes(RouterType.huawei, ip);
+      return await createByTypes(RouterType.huawei, ip);
     } else if (identity.contains("zte")) {
-      return createByTypes(RouterType.zte, ip);
+      return await createByTypes(RouterType.zte, ip);
     } else if (identity.contains("tp-link") || identity.contains("tplink")) {
-      return createByTypes(RouterType.tplink, ip);
+      return await createByTypes(RouterType.tplink, ip);
     }
     return null;
   }
 
   /// إنشاء إضافة راوتر جديدة (يدوي)
   static Future<RouterPlugin> create(String ip, String username, String password) async {
-    // Phase 10: Build a generic plugin or detect
-    // For now we default to OpenWrt if it looks like one, or try to discovery
-    final plugin = OpenWrtPlugin(ip);
+    final agentKey = await PersistenceManager().getAgentKey(ip);
+    final plugin = OpenWrtPlugin(ip, agentKey: agentKey);
     await plugin.login(username, password);
     return plugin;
   }

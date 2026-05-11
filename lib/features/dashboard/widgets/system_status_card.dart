@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:netguard_pro/core/engine/netguard_engine.dart';
+import 'package:netguard_pro/features/dashboard/screens/agent_setup_wizard.dart';
 
 class SystemStatusCard extends ConsumerWidget {
   const SystemStatusCard({super.key});
@@ -112,6 +113,57 @@ class SystemStatusCard extends ConsumerWidget {
               const Icon(Icons.hub_outlined, color: Colors.white24, size: 16),
             ],
           ),
+          if (state.hasAgentSupport) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.bolt_rounded, color: Colors.amberAccent, size: 14),
+                const SizedBox(width: 8),
+                Text(
+                  "ADVANCED AGENT ACTIVE",
+                  style: TextStyle(
+                    color: Colors.amberAccent.withOpacity(0.8),
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AgentSetupWizard(routerIp: state.routerIp),
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.add_moderator_outlined, color: Colors.white38, size: 14),
+                  const SizedBox(width: 8),
+                  Text(
+                    "ACTIVATE ADVANCED MONITORING",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.4),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right, color: Colors.white10, size: 14),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

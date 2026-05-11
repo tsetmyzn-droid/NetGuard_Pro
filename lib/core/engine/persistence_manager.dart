@@ -121,4 +121,64 @@ class PersistenceManager {
       NetGuardLogger().error("Failed to clear engine state: $e");
     }
   }
+
+  // MARK: - Agent Keys Storage
+
+  static const String _agentKeysFile = 'agent_keys.enc';
+
+  /// حفظ مفتاح العميل لراوتر محدد بشكل مشفر
+  Future<void> saveAgentKey(String routerId, String key) async {
+    try {
+      final keys = await loadAllAgentKeys();
+      keys[routerId] = key;
+      
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File(p.join(directory.path, _agentKeysFile));
+      
+      final encryptionKey = await _keyManager.getKey();
+      final jsonString = jsonEncode(keys);
+      final iv = enc.IV.fromSecureRandom(16);
+      final encrypter = enc.Encrypter(enc.AES(encryptionKey));
+      final encrypted = encrypter.encrypt(jsonString, iv: iv);
+      
+      final combined = Uint8List.fromList(iv.bytes + encrypted.bytes);
+      await file.writeAsBytes(combined);
+      
+      NetGuardLogger().info("Agent key for $routerId saved securely.");
+    } catch (e) {
+      NetGuardLogger().error("Failed to save agent key: $e");
+    }
+  }
+
+  /// جلب جميع مفاتيح العملاء
+  Future<Map<String, String>> loadAllAgentKeys() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File(p.join(directory.path, _agentKeysFile));
+
+      if (!await file.exists()) return {};
+
+      final combinedBytes = await file.readAsBytes();
+      if (combinedBytes.length <= 16) return {};
+
+      final encryptionKey = await _keyManager.getKey();
+      final iv = enc.IV(combinedBytes.sublist(0, 16));
+      final ciphertext = combinedBytes.sublist(16);
+      
+      final encrypter = enc.Encrypter(enc.AES(encryptionKey));
+      final decrypted = encrypter.decrypt(enc.Encrypted(ciphertext), iv: iv);
+      
+      final Map<String, dynamic> decoded = jsonDecode(decrypted);
+      return decoded.map((key, value) => MapEntry(key, value.toString()));
+    } catch (e) {
+      NetGuardLogger().error("Failed to load agent keys: $e");
+      return {};
+    }
+  }
+
+  /// جلب مفتاح العميل لراوتر محدد
+  Future<String?> getAgentKey(String routerId) async {
+    final keys = await loadAllAgentKeys();
+    return keys[routerId];
+  }
 }

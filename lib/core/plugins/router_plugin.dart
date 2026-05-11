@@ -1,5 +1,6 @@
 import 'package:netguard_pro/core/plugins/model/connected_device.dart';
 import 'package:netguard_pro/core/plugins/model/interface_status.dart';
+import 'package:netguard_pro/core/network/agent_client.dart';
 
 abstract class RouterPlugin {
   final String ip;
@@ -11,6 +12,12 @@ abstract class RouterPlugin {
   bool get supportsWifiManagement => false;
   bool get supportsDeviceBlocking => false;
   bool get supportsTrafficStats => true;
+  
+  /// هل الراوتر يدعم نظام الـ Agent المتقدم
+  bool get hasAgentSupport => false;
+
+  /// الوكيل (Agent) المرتبط بالراوتر إن وجد
+  AgentClient? get agent => null;
 
   /// محاولة تسجيل الدخول للراوتر
   Future<bool> login(String username, String password);

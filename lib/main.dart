@@ -15,6 +15,8 @@ import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:netguard_pro/core/plugins/model/connected_device.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:netguard_pro/features/dashboard/screens/device_analytics_screen.dart';
+
 import 'package:netguard_pro/core/network/discovery_service.dart';
 import 'package:netguard_pro/core/network/router_types.dart';
 import 'package:netguard_pro/features/speed_test/speed_test_manager.dart';
@@ -25,9 +27,12 @@ import 'package:netguard_pro/core/diagnostics/diagnostics_engine.dart';
 import 'package:netguard_pro/core/diagnostics/health_score.dart';
 import 'package:netguard_pro/core/diagnostics/crash_snapshot.dart';
 
+import 'package:netguard_pro/core/diagnostics/notification_manager.dart';
+
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    await NotificationManager().init();
     
     // Initialize Logger
     final logger = NetGuardLogger();
@@ -182,7 +187,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     final identity = await _client.getGatewayIdentity(ip);
     
     if (identity != null) {
-      final plugin = RouterFactory.getPluginFor(ip, identity); 
+      final plugin = await RouterFactory.getPluginFor(ip, identity); 
       
       if (plugin != null) {
         final success = await plugin.login("admin", "admin");
@@ -680,9 +685,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
             itemBuilder: (context, index) {
               final device = devices[index];
               final bool isWifi = device.connectionType == "wireless";
+              final hasAgent = ref.watch(netGuardProvider).hasAgentSupport;
               
-              return Container(
-                padding: const EdgeInsets.all(16),
+              return InkWell(
+                onTap: hasAgent ? () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DeviceAnalyticsScreen(
+                        mac: device.macAddress,
+                        hostname: device.hostname,
+                      ),
+                    ),
+                  );
+                } : null,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B).withOpacity(0.3),
                   borderRadius: BorderRadius.circular(16),
