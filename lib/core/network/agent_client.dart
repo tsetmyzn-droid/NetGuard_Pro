@@ -33,6 +33,9 @@ abstract class AgentClient {
 
   /// تأكيد استلام وحذف ملف التحليل الجنائي
   Future<bool> acknowledgeForensicChunk(String id);
+  
+  /// جلب تقرير صحة الراوتر (Enterprise Phase 8)
+  Future<Map<String, dynamic>> getRouterHealth();
 
   /// الحصول على حالة نظام التعافي والتحذيرات
   Future<Map<String, dynamic>> getDiagnostics();

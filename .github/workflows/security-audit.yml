@@ -1,0 +1,35 @@
+name: 🛡️ NetGuard Pro Security Audit
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lua-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install LuaCheck
+        run: sudo apt-get install -y luacheck
+        
+      - name: Run LuaCheck on Agent Modules
+        run: luacheck lib/plugins/openwrt/agent/modules/ --globals nixio fs uci os io json
+        
+  dart-security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Run Dart Code Metrics (Security Focus)
+        run: |
+          flutter pub add --dev dart_code_metrics
+          flutter pub run dart_code_metrics:metrics analyze lib --set-exit-on-violation-level warning

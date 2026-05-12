@@ -117,6 +117,19 @@ if path == "/capabilities" then
             respond("500 Internal Server Error", {error = "Capability module not found"})
         end
     end
+elseif path == "/health" then
+    local success, health_mod = pcall(require, "health_monitor")
+    if success then
+        respond("200 OK", health_mod.get_health_report())
+    else
+        local health_reg = dofile("/www/cgi-bin/netguard/modules/health_monitor.lua")
+        if health_reg then
+            respond("200 OK", health_reg.get_health_report())
+        else
+            respond("500 Internal Server Error", {error = "Health module not found"})
+        end
+    end
+
 elseif path == "/stats" then
     -- Get system info
     local uptime_f = io.popen("uptime")

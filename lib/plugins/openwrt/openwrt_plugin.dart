@@ -128,6 +128,11 @@ class OpenWrtPlugin extends RouterPlugin {
   }
 
   @override
+  Future<Map<String, dynamic>> getRouterHealth() async {
+    return await _agent?.getRouterHealth() ?? {};
+  }
+
+  @override
   Future<void> logout() async {
     await _client.logout();
   }

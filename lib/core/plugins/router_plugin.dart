@@ -45,6 +45,9 @@ abstract class RouterPlugin {
   
   /// تأكيد الاستلام
   Future<bool> acknowledgeForensicChunk(String id);
+  
+  /// جلب تقرير صحة الراوتر الشامل (Enterprise Phase 8)
+  Future<Map<String, dynamic>> getRouterHealth();
 
   /// جلب قائمة الأجهزة المتصلة
   Future<List<ConnectedDevice>> getConnectedDevices();

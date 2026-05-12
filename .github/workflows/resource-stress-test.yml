@@ -1,0 +1,21 @@
+name: 📉 Resource Stress Test
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  stress-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Monitor Binary Sizes
+        run: |
+          echo "Checking Agent Module sizes..."
+          du -sh lib/plugins/openwrt/agent/
+          
+      - name: Performance Regression Check
+        run: |
+          # Check if any lua module exceeds 50KB (Plan constraint)
+          find lib/plugins/openwrt/agent/modules/ -name "*.lua" -size +50k -exec echo "WARNING: {} exceeds resource limit!" \;

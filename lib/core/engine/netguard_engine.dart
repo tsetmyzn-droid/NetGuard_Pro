@@ -6,6 +6,7 @@ import 'package:netguard_pro/core/plugins/model/interface_status.dart';
 import 'package:netguard_pro/core/plugins/model/connected_device.dart';
 import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:netguard_pro/core/engine/persistence_manager.dart';
+import 'package:netguard_pro/core/engine/health_profiler.dart';
 import 'package:netguard_pro/core/diagnostics/performance_monitor.dart';
 import 'package:netguard_pro/core/profiles/profile_manager.dart';
 import 'package:netguard_pro/core/profiles/router_profile.dart';
@@ -106,6 +107,7 @@ final netGuardProvider = StateNotifierProvider<NetGuardEngine, NetGuardSystemSta
 
 class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
   Timer? _pollingTimer;
+  Timer? _healthTimer;
   RouterPlugin? _currentPlugin;
   final PersistenceManager _persistence = PersistenceManager();
   final NetGuardLogger _logger = NetGuardLogger();
@@ -185,6 +187,20 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
     );
     _logger.info("NetGuardEngine: Initializing monitoring session for ${plugin.modelName}...", category: LogCategory.engine);
     _startMonitoring();
+    _startHealthMonitoring();
+  }
+  
+  void _startHealthMonitoring() {
+    _healthTimer?.cancel();
+    _healthTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
+      if (!state.isActive || _currentPlugin == null || !state.hasAgentSupport) return;
+      
+      final health = await _currentPlugin!.getRouterHealth();
+      state = state.copyWith(routerMetrics: {
+        ...state.routerMetrics,
+        'health': health,
+      });
+    });
   }
 
   void setSelectedInterface(String interface) {
@@ -334,6 +350,7 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
       
       sw.stop();
       _perfMonitor.recordPollDuration(sw.elapsed);
+      HealthProfiler().recordLatency(sw.elapsed);
 
     } catch (e) {
       _logger.error("Data Polling Error: $e");

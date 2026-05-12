@@ -213,6 +213,22 @@ class OpenWrtAgentClient extends AgentClient {
   }
 
   @override
+  Future<Map<String, dynamic>> getRouterHealth() async {
+    try {
+      const path = '/health';
+      final headers = await _getSecurityHeaders('GET', path);
+      final response = await _dio.get("$_baseUrl$path", options: Options(headers: headers));
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {};
+    } catch (e) {
+      NetGuardLogger().error("Failed to get router health: $e");
+      return {};
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> getDiagnostics() async {
     try {
       final headers = await _getSecurityHeaders('GET', '/stats');
