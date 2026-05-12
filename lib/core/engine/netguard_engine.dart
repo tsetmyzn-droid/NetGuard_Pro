@@ -371,6 +371,7 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _healthTimer?.cancel();
     _persistence.saveState(state.toJson());
     super.dispose();
   }

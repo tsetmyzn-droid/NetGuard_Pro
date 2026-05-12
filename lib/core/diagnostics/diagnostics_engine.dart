@@ -38,7 +38,30 @@ class DiagnosticsEngine {
       );
     }
 
-    // 3. Performance Degradation (Latency)
+    // 3. Hardware Health Check (Phase 8)
+    final health = state.routerMetrics['health'];
+    if (health != null && health is Map) {
+      final temp = health['temp'];
+      if (temp != null && temp is num && temp > 80) {
+        return DiagnosticResult(
+          message: "Critical Overheat: Router temperature is ${temp.toStringAsFixed(1)}°C!",
+          severity: DiagnosticSeverity.critical,
+        );
+      }
+      
+      final load = health['load_avg'];
+      if (load != null && load is String) {
+        final loadVal = double.tryParse(load.split(' ')[0]);
+        if (loadVal != null && loadVal > 5.0) {
+          return DiagnosticResult(
+            message: "CPU Overload: Router performance is degraded.",
+            severity: DiagnosticSeverity.warning,
+          );
+        }
+      }
+    }
+
+    // 4. Performance Degradation (Latency)
     if (snapshot.avgPollMs > 1800) {
        return DiagnosticResult(
         message: "Laggy Connection: Router is responding slowly.",

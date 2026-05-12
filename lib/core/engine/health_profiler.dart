@@ -23,7 +23,7 @@ class HealthProfiler {
     if (_latencyHistory.length > 5) {
       final avg = _latencyHistory.reduce((a, b) => a + b) / _latencyHistory.length;
       if (duration.inMilliseconds > avg * 3) {
-        _logger.warning("Performance Degradation Detected: Latency spiked to ${duration.inMilliseconds}ms (Avg: ${avg.toStringAsFixed(2)}ms)");
+        _logger.warn("Performance Degradation Detected: Latency spiked to ${duration.inMilliseconds}ms (Avg: ${avg.toStringAsFixed(2)}ms)");
       }
     }
   }
