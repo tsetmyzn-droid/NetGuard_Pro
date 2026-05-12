@@ -9,28 +9,6 @@ local fs = require "nixio.fs"
 
 -- Configuration
 local SHARED_KEY_FILE = "/etc/config/netguard_agent.key"
-local NONCE_CACHE_DIR = "/tmp/netguard_nonces"
-
--- Helper: Nonce Tracking (Replay Protection)
-local function check_and_track_nonce(nonce)
-    if not nixio.fs.access(NONCE_CACHE_DIR) then
-        nixio.fs.mkdir(NONCE_CACHE_DIR)
-    end
-    
-    local path = NONCE_CACHE_DIR .. "/" .. nonce
-    if nixio.fs.access(path) then
-        return false -- Nonce already used
-    end
-    
-    local f = io.open(path, "w")
-    if f then
-        f:write(os.time())
-        f:close()
-    end
-    
-    -- Cleanup old nonces (optional: periodically via cron)
-    return true
-end
 
 -- Helper: Read Shared Key
 local function get_shared_key()
@@ -83,13 +61,21 @@ if not auth_header or not nonce or timestamp == 0 then
     respond("401 Unauthorized", {error = "Missing security headers"})
 end
 
--- 2. Replay Protection & Nonce Tracking
+-- 2. Replay Protection & Security State
+local sm = dofile("/www/cgi-bin/netguard/modules/session_manager.lua")
+local tm = dofile("/www/cgi-bin/netguard/modules/threat_monitor.lua")
+
+local client_ip = os.getenv("REMOTE_ADDR") or "unknown"
+if tm.is_ip_blocked(client_ip) then
+    respond("403 Forbidden", {error = "IP blocked due to suspicious activity", threat_level = sm.get_threat_level()})
+end
+
 local now = os.time()
 if math.abs(now - timestamp) > 30 then
     respond("403 Forbidden", {error = "Request expired (Timestamp delta too large)"})
 end
 
-if not check_and_track_nonce(nonce) then
+if not sm.verify_nonce(nonce) then
     respond("403 Forbidden", {error = "Nonce reused (Replay attack detected)"})
 end
 
@@ -103,11 +89,35 @@ local payload = table.concat({method, path, tostring(timestamp), nonce, body}, "
 local expected_sig = hmac_sha256(shared_key, payload)
 
 if auth_header ~= expected_sig then
+    tm.report_auth_failure(client_ip)
     respond("403 Forbidden", {error = "Invalid signature"})
 end
 
--- 4. Logic Handling
-if path == "/stats" then
+-- 4. Logic Handling (Filtering by Threat Level)
+-- Apply risk based on path: 2 for admin-like actions, 1 for monitoring
+local risk_level = 1
+if path == "/apply" or path == "/commit" or path == "/rollback" then
+    risk_level = 2
+end
+
+if not sm.can_execute(risk_level) then
+    respond("403 Forbidden", {error = "Operation blocked by security policy", threat_level = sm.get_threat_level()})
+end
+
+if path == "/capabilities" then
+    local success, caps_mod = pcall(require, "capability_registry")
+    if success then
+        respond("200 OK", caps_mod.get_all_capabilities())
+    else
+        -- Try relative path if global require fails
+        local cap_reg = dofile("/www/cgi-bin/netguard/modules/capability_registry.lua")
+        if cap_reg then
+            respond("200 OK", cap_reg.get_all_capabilities())
+        else
+            respond("500 Internal Server Error", {error = "Capability module not found"})
+        end
+    end
+elseif path == "/stats" then
     -- Get system info
     local uptime_f = io.popen("uptime")
     local uptime = uptime_f:read("*all"):gsub("\n", "")
@@ -134,6 +144,106 @@ elseif path == "/traffic" then
     else
         respond("500 Internal Server Error", {error = "Failed to parse nlbw data"})
     end
+elseif path == "/apply" then
+    local data = json.decode(body)
+    local scope = data.scope
+    if not scope then respond("400 Bad Request", {error = "Scope missing"}) end
+
+    local rb = dofile("/www/cgi-bin/netguard/modules/rollback_manager.lua")
+    local ok, err = rb.create_snapshot(scope)
+    if not ok then respond("500 Internal Server Error", {error = err}) end
+
+    -- Create lock for watchdog
+    local f = io.open("/tmp/netguard_apply.lock", "w")
+    if f then 
+        f:write(scope)
+        f:close()
+    end
+
+    -- External command to start watchdog in background
+    -- We use 'start-stop-daemon' or just '&' if the shell supports it
+    os.execute("/www/cgi-bin/netguard/watchdog_recovery.sh " .. scope .. " &")
+
+    respond("200 OK", {status = "applied", scope = scope, timeout = 90})
+
+elseif path == "/commit" then
+    os.remove("/tmp/netguard_apply.lock")
+    local data = json.decode(body)
+    if data and data.scope then
+        local rb = dofile("/www/cgi-bin/netguard/modules/rollback_manager.lua")
+        rb.cleanup(data.scope)
+    end
+    respond("200 OK", {status = "committed"})
+
+elseif path == "/rollback" then
+    local data = json.decode(body)
+    local scope = data.scope
+    if not scope then respond("400 Bad Request", {error = "Scope missing"}) end
+
+    local rb = dofile("/www/cgi-bin/netguard/modules/rollback_manager.lua")
+    local ok = rb.restore_snapshot(scope)
+    os.remove("/tmp/netguard_apply.lock")
+    
+    if ok then
+        respond("200 OK", {status = "rolled_back"})
+    else
+        respond("500 Internal Server Error", {error = "Rollback failed"})
+    end
+elseif path == "/forensics/list" then
+    local fm = dofile("/www/cgi-bin/netguard/modules/forensics_manager.lua")
+    respond("200 OK", fm.get_sync_manifest())
+
+elseif path == "/forensics/pull" then
+    local data = json.decode(body)
+    if not data or not data.id then respond("400 Bad Request", {error = "Chunk ID missing"}) end
+    
+    local fm = dofile("/www/cgi-bin/netguard/modules/forensics_manager.lua")
+    local content = fm.read_chunk(data.id)
+    if content then
+        respond("200 OK", {id = data.id, content = content})
+    else
+        respond("404 Not Found", {error = "Chunk not found"})
+    end
+
+elseif path == "/forensics/ack" then
+    local data = json.decode(body)
+    if not data or not data.id then respond("400 Bad Request", {error = "Chunk ID missing"}) end
+    
+    local fm = dofile("/www/cgi-bin/netguard/modules/forensics_manager.lua")
+    if fm.acknowledge_chunk(data.id) then
+        respond("200 OK", {status = "acknowledged", id = data.id})
+    else
+        respond("500 Internal Server Error", {error = "Failed to delete chunk"})
+    end
+
+elseif path == "/firewall/block" then
+    local data = json.decode(body)
+    if not data or not data.mac then respond("400 Bad Request", {error = "MAC missing"}) end
+    
+    local fc = dofile("/www/cgi-bin/netguard/modules/firewall_control.lua")
+    fc.block_device(data.mac, data.hostname)
+    respond("200 OK", {status = "blocked", mac = data.mac})
+
+elseif path == "/firewall/unblock" then
+    local data = json.decode(body)
+    if not data or not data.mac then respond("400 Bad Request", {error = "MAC missing"}) end
+    
+    local fc = dofile("/www/cgi-bin/netguard/modules/firewall_control.lua")
+    fc.unblock_device(data.mac)
+    respond("200 OK", {status = "unblocked", mac = data.mac})
+
+elseif path == "/wifi/update" then
+    local data = json.decode(body)
+    if not data or not data.ssid then respond("400 Bad Request", {error = "SSID missing"}) end
+    
+    local wc = dofile("/www/cgi-bin/netguard/modules/wifi_control.lua")
+    local ok, err = wc.update_wifi(data.device or "radio0", data.ssid, data.password)
+    if ok then
+        respond("200 OK", {status = "updated", ssid = data.ssid})
+    else
+        respond("500 Internal Server Error", {error = err})
+    end
+
 elseif path == "/ping" then
     respond("200 OK", {pong = true})
 else

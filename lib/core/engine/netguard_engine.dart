@@ -24,6 +24,8 @@ class NetGuardSystemState {
   final String selectedInterface; // Phase 8: Interface selection
   final bool hasAgentSupport;
   final String routerIp;
+  final List<String> capabilityFlags;
+  final Map<String, dynamic> routerMetrics;
   final String? error;
 
   NetGuardSystemState({
@@ -38,6 +40,8 @@ class NetGuardSystemState {
     this.ulHistory = const [],
     this.selectedInterface = "all",
     this.hasAgentSupport = false,
+    this.capabilityFlags = const [],
+    this.routerMetrics = const {},
     this.error,
   });
 
@@ -53,6 +57,8 @@ class NetGuardSystemState {
     String? selectedInterface,
     bool? hasAgentSupport,
     String? routerIp,
+    List<String>? capabilityFlags,
+    Map<String, dynamic>? routerMetrics,
     String? error,
   }) {
     return NetGuardSystemState(
@@ -67,6 +73,8 @@ class NetGuardSystemState {
       ulHistory: ulHistory ?? this.ulHistory,
       selectedInterface: selectedInterface ?? this.selectedInterface,
       hasAgentSupport: hasAgentSupport ?? this.hasAgentSupport,
+      capabilityFlags: capabilityFlags ?? this.capabilityFlags,
+      routerMetrics: routerMetrics ?? this.routerMetrics,
       error: error,
     );
   }
@@ -75,6 +83,9 @@ class NetGuardSystemState {
     'totalDownloaded': totalDownloaded,
     'totalUploaded': totalUploaded,
     'selectedInterface': selectedInterface,
+    'routerIp': routerIp,
+    'capabilityFlags': capabilityFlags,
+    'routerMetrics': routerMetrics,
   };
 
   static NetGuardSystemState fromJson(Map<String, dynamic> json) {
@@ -82,6 +93,9 @@ class NetGuardSystemState {
       totalDownloaded: Map<String, int>.from(json['totalDownloaded'] ?? {}),
       totalUploaded: Map<String, int>.from(json['totalUploaded'] ?? {}),
       selectedInterface: json['selectedInterface'] ?? "all",
+      routerIp: json['routerIp'] ?? "",
+      capabilityFlags: List<String>.from(json['capabilityFlags'] ?? []),
+      routerMetrics: Map<String, dynamic>.from(json['routerMetrics'] ?? {}),
     );
   }
 }
@@ -145,17 +159,29 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
     }
   }
 
-  void initialize(RouterPlugin plugin) {
+  void initialize(RouterPlugin plugin) async {
     _currentPlugin = plugin;
     _prevRx.clear();
     _prevTx.clear();
     _lastPollTime = null;
     _dlQueue.clear();
     _ulQueue.clear();
+    
+    List<String> flags = [];
+    Map<String, dynamic> metrics = {};
+    
+    if (plugin.hasAgentSupport) {
+      final caps = await plugin.getCapabilities();
+      flags = List<String>.from(caps['flags'] ?? []);
+      metrics = caps; // Store full payload as metrics
+    }
+
     state = state.copyWith(
       isActive: true,
       hasAgentSupport: plugin.hasAgentSupport,
       routerIp: plugin.ip,
+      capabilityFlags: flags,
+      routerMetrics: metrics,
     );
     _logger.info("NetGuardEngine: Initializing monitoring session for ${plugin.modelName}...", category: LogCategory.engine);
     _startMonitoring();

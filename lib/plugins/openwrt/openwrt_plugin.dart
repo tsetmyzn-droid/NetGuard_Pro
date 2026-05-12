@@ -39,8 +39,92 @@ class OpenWrtPlugin extends RouterPlugin {
   }
 
   @override
+  Future<Map<String, dynamic>> getCapabilities() async {
+    if (_agent != null) {
+      return await _agent!.getCapabilities();
+    }
+    return {};
+  }
+
+  @override
+  Future<bool> applyConfig(String scope) async {
+    return await _agent?.applyConfig(scope) ?? false;
+  }
+
+  @override
+  Future<bool> commitConfig(String scope) async {
+    return await _agent?.commitConfig(scope) ?? false;
+  }
+
+  @override
+  Future<bool> rollbackConfig(String scope) async {
+    return await _agent?.rollbackConfig(scope) ?? false;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getForensicManifest() async {
+    return await _agent?.getForensicManifest() ?? [];
+  }
+
+  @override
+  Future<String?> pullForensicChunk(String id) async {
+    return await _agent?.pullForensicChunk(id);
+  }
+
+  @override
+  Future<bool> acknowledgeForensicChunk(String id) async {
+    return await _agent?.acknowledgeForensicChunk(id) ?? false;
+  }
+
+  @override
   Future<List<ConnectedDevice>> getConnectedDevices() async {
     return await _client.getDevices();
+  }
+
+  @override
+  Future<bool> blockDevice(String mac, {String? hostname}) async {
+    if (_agent == null) return false;
+    // Transactional flow: Apply -> Commit
+    final ok = await _agent!.applyConfig('firewall');
+    if (!ok) return false;
+    
+    final result = await _agent!.blockDevice(mac, hostname: hostname);
+    if (!result) {
+      await _agent!.rollbackConfig('firewall');
+      return false;
+    }
+    
+    return await _agent!.commitConfig('firewall');
+  }
+
+  @override
+  Future<bool> unblockDevice(String mac) async {
+    if (_agent == null) return false;
+    final ok = await _agent!.applyConfig('firewall');
+    if (!ok) return false;
+    
+    final result = await _agent!.unblockDevice(mac);
+    if (!result) {
+      await _agent!.rollbackConfig('firewall');
+      return false;
+    }
+    
+    return await _agent!.commitConfig('firewall');
+  }
+
+  @override
+  Future<bool> updateWifi(String ssid, {String? password}) async {
+    if (_agent == null) return false;
+    final ok = await _agent!.applyConfig('wireless');
+    if (!ok) return false;
+    
+    final result = await _agent!.updateWifi(ssid, password: password);
+    if (!result) {
+      await _agent!.rollbackConfig('wireless');
+      return false;
+    }
+    
+    return await _agent!.commitConfig('wireless');
   }
 
   @override

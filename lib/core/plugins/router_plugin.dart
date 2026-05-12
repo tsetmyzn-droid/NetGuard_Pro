@@ -24,9 +24,35 @@ abstract class RouterPlugin {
 
   /// جلب إحصائيات المرور لكل واجهة
   Future<List<InterfaceStatus>> getTrafficStats();
+  
+  /// جلب قدرات الراوتر (Enterprise Phase 1)
+  Future<Map<String, dynamic>> getCapabilities();
+  
+  /// تطبيق إعدادات آمن مع مؤقت (Enterprise Phase 2)
+  Future<bool> applyConfig(String scope);
+  
+  /// تأكيد الإعدادات
+  Future<bool> commitConfig(String scope);
+  
+  /// التراجع عن الإعدادات
+  Future<bool> rollbackConfig(String scope);
+
+  /// جلب قائمة ملفات التحليل الجنائي
+  Future<List<Map<String, dynamic>>> getForensicManifest();
+  
+  /// جلب محتوى ملف تحليل جنائي
+  Future<String?> pullForensicChunk(String id);
+  
+  /// تأكيد الاستلام
+  Future<bool> acknowledgeForensicChunk(String id);
 
   /// جلب قائمة الأجهزة المتصلة
   Future<List<ConnectedDevice>> getConnectedDevices();
+
+  /// التحكم في جدار الحماية والواي فاي (Enterprise Phase 5)
+  Future<bool> blockDevice(String mac, {String? hostname});
+  Future<bool> unblockDevice(String mac);
+  Future<bool> updateWifi(String ssid, {String? password});
 
   /// حظر/إلغاء حظر جهاز عبر MAC Address
   Future<bool> setBlockState(String mac, bool block);
