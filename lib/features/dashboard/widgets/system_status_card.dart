@@ -118,6 +118,30 @@ class SystemStatusCard extends ConsumerWidget {
             const Divider(color: Colors.white10),
             const SizedBox(height: 16),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSmallMetric(
+                  "CPU LOAD", 
+                  "${state.routerMetrics['health']?['load_avg']?.toString().split(' ')[0] ?? '0.00'}", 
+                  Icons.memory_rounded, 
+                  Colors.blueAccent
+                ),
+                _buildSmallMetric(
+                  "TEMP", 
+                  "${state.routerMetrics['health']?['temp']?.toStringAsFixed(1) ?? '--'}°C", 
+                  Icons.thermostat_rounded, 
+                  Colors.orangeAccent
+                ),
+                _buildSmallMetric(
+                  "THREAT", 
+                  "LEVEL ${state.routerMetrics['threat_level'] ?? '1'}", 
+                  Icons.gpp_maybe_rounded, 
+                  Colors.redAccent
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
               children: [
                 const Icon(Icons.bolt_rounded, color: Colors.amberAccent, size: 14),
                 const SizedBox(width: 8),
@@ -166,6 +190,26 @@ class SystemStatusCard extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildSmallMetric(String label, String value, IconData icon, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 10),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 1)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+        ),
+      ],
     );
   }
 

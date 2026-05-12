@@ -133,6 +133,8 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
   static const double _smoothingFactor = 0.7; 
   static const double _maxSpikeThreshold = 5.0; 
 
+  RouterPlugin? get currentPlugin => _currentPlugin;
+
   NetGuardEngine() : super(NetGuardSystemState()) {
     _loadStoredState().then((_) => _checkActiveProfile());
   }
@@ -201,6 +203,53 @@ class NetGuardEngine extends StateNotifier<NetGuardSystemState> {
         'health': health,
       });
     });
+  }
+
+  void updateRouterMetrics(String key, dynamic value) {
+    state = state.copyWith(routerMetrics: {
+      ...state.routerMetrics,
+      key: value,
+    });
+  }
+
+  Future<bool> blockDevice(String mac, {String? hostname}) async {
+    return _performSafeAction(
+      () => _currentPlugin!.blockDevice(mac, hostname: hostname),
+      'firewall',
+    );
+  }
+
+  Future<bool> unblockDevice(String mac) async {
+    return _performSafeAction(
+      () => _currentPlugin!.unblockDevice(mac),
+      'firewall',
+    );
+  }
+
+  Future<bool> updateWifi(String ssid, {String? password}) async {
+    return _performSafeAction(
+      () => _currentPlugin!.updateWifi(ssid, password: password),
+      'wireless',
+    );
+  }
+
+  Future<bool> _performSafeAction(Future<bool> Function() action, String scope) async {
+    if (_currentPlugin == null) return false;
+    
+    // 1. Start transaction
+    final ok = await _currentPlugin!.applyConfig(scope);
+    if (!ok) return false;
+    
+    // 2. Perform action
+    final success = await action();
+    if (!success) {
+      await _currentPlugin!.rollbackConfig(scope);
+      return false;
+    }
+    
+    // 3. Mark for manual commit
+    updateRouterMetrics('pending_sync', true);
+    return true;
   }
 
   void setSelectedInterface(String interface) {

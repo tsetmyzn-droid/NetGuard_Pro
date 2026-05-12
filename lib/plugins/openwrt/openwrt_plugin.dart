@@ -84,47 +84,19 @@ class OpenWrtPlugin extends RouterPlugin {
   @override
   Future<bool> blockDevice(String mac, {String? hostname}) async {
     if (_agent == null) return false;
-    // Transactional flow: Apply -> Commit
-    final ok = await _agent!.applyConfig('firewall');
-    if (!ok) return false;
-    
-    final result = await _agent!.blockDevice(mac, hostname: hostname);
-    if (!result) {
-      await _agent!.rollbackConfig('firewall');
-      return false;
-    }
-    
-    return await _agent!.commitConfig('firewall');
+    return await _agent!.blockDevice(mac, hostname: hostname);
   }
 
   @override
   Future<bool> unblockDevice(String mac) async {
     if (_agent == null) return false;
-    final ok = await _agent!.applyConfig('firewall');
-    if (!ok) return false;
-    
-    final result = await _agent!.unblockDevice(mac);
-    if (!result) {
-      await _agent!.rollbackConfig('firewall');
-      return false;
-    }
-    
-    return await _agent!.commitConfig('firewall');
+    return await _agent!.unblockDevice(mac);
   }
 
   @override
   Future<bool> updateWifi(String ssid, {String? password}) async {
     if (_agent == null) return false;
-    final ok = await _agent!.applyConfig('wireless');
-    if (!ok) return false;
-    
-    final result = await _agent!.updateWifi(ssid, password: password);
-    if (!result) {
-      await _agent!.rollbackConfig('wireless');
-      return false;
-    }
-    
-    return await _agent!.commitConfig('wireless');
+    return await _agent!.updateWifi(ssid, password: password);
   }
 
   @override

@@ -15,6 +15,7 @@ import 'package:netguard_pro/core/diagnostics/netguard_logger.dart';
 import 'package:netguard_pro/core/plugins/model/connected_device.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:netguard_pro/features/diagnostics/forensics_screen.dart';
 import 'package:netguard_pro/features/dashboard/screens/device_analytics_screen.dart';
 
 import 'package:netguard_pro/core/network/discovery_service.dart';
@@ -445,6 +446,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     final diagnostic = DiagnosticsEngine().analyze(performance, netState);
     final healthScore = HealthScoreCalculator.calculate(performance);
 
+    final bool hasPendingSync = netState.routerMetrics['pending_sync'] == true;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
@@ -482,10 +485,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           children: [
+            if (hasPendingSync) ...[
+              const SizedBox(height: 16),
+              _buildTransactionBanner(),
+            ],
             const SizedBox(height: 20),
             const SystemStatusCard(),
             const SizedBox(height: 16),
             _buildIntelligenceCard(healthScore, diagnostic),
+            if (netState.hasAgentSupport) ...[
+              const SizedBox(height: 16),
+              _buildForensicsButton(),
+            ],
             const SizedBox(height: 24),
             _buildStatBox("SESSION DATA USAGE", totalGB, "GB", Colors.amberAccent, Icons.data_usage_rounded),
             const SizedBox(height: 24),
@@ -566,6 +577,70 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
           style: TextStyle(color: Colors.white10, fontSize: 9, letterSpacing: 1.5),
         ),
       ],
+    );
+  }
+
+  Widget _buildTransactionBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amberAccent.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amberAccent.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.sync_problem_rounded, color: Colors.amberAccent, size: 20),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("UNCOMMITTED CHANGES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+                Text("Connectivity check pending. Auto-rollback in < 90s", style: TextStyle(fontSize: 9, color: Colors.white54)),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final ok = await ref.read(netGuardProvider.notifier).currentPlugin?.commitConfig("all") ?? false;
+              if (ok) {
+                 ref.read(netGuardProvider.notifier).updateRouterMetrics('pending_sync', false);
+              }
+            },
+            child: const Text("COMMIT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForensicsButton() {
+     return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ForensicsScreen()),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B).withOpacity(0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.query_stats_rounded, color: Colors.amberAccent, size: 20),
+            SizedBox(width: 16),
+            Text("OPEN FORENSICS CENTER", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            Spacer(),
+            Icon(Icons.chevron_right, color: Colors.white24, size: 20),
+          ],
+        ),
+      ),
     );
   }
 

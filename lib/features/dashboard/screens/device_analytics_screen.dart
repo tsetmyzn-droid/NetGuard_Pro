@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:netguard_pro/core/engine/netguard_engine.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:netguard_pro/core/plugins/model/agent_traffic_stats.dart';
 import 'package:netguard_pro/features/dashboard/repositories/agent_stats_repository.dart';
 import 'package:intl/intl.dart';
 
-class DeviceAnalyticsScreen extends StatefulWidget {
+class DeviceAnalyticsScreen extends ConsumerStatefulWidget {
   final String mac;
   final String hostname;
 
@@ -14,7 +16,7 @@ class DeviceAnalyticsScreen extends StatefulWidget {
   State<DeviceAnalyticsScreen> createState() => _DeviceAnalyticsScreenState();
 }
 
-class _DeviceAnalyticsScreenState extends State<DeviceAnalyticsScreen> {
+class _DeviceAnalyticsScreenState extends ConsumerState<DeviceAnalyticsScreen> {
   final _repository = AgentStatsRepository();
   List<AgentTrafficStats> _history = [];
   bool _isLoading = true;
@@ -48,6 +50,8 @@ class _DeviceAnalyticsScreenState extends State<DeviceAnalyticsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildSummaryCards(),
+                const SizedBox(height: 24),
+                _buildActionButtons(),
                 const SizedBox(height: 32),
                 const Text("CONSUMPTION HISTORY (MB)", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white24)),
                 const SizedBox(height: 24),
@@ -60,7 +64,69 @@ class _DeviceAnalyticsScreenState extends State<DeviceAnalyticsScreen> {
     );
   }
 
-  Widget _buildSummaryCards() {
+  Widget _buildActionButtons() {
+    final netState = ref.watch(netGuardProvider);
+    final bool isBlocked = netState.routerMetrics['blocked_macs']?[widget.mac] == true;
+    final bool hasAgent = netState.hasAgentSupport;
+
+    if (!hasAgent) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isBlocked ? Icons.block_flipped : Icons.check_circle_outline_rounded,
+            color: isBlocked ? Colors.redAccent : Colors.greenAccent,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isBlocked ? "DEVICE BLOCKED" : "DEVICE ACTIVE",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isBlocked ? Colors.redAccent : Colors.greenAccent,
+                  ),
+                ),
+                Text(
+                  isBlocked ? "No internet access allowed" : "Standard firewall rules applied",
+                  style: const TextStyle(fontSize: 10, color: Colors.white38),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: !isBlocked,
+            activeColor: Colors.greenAccent,
+            onChanged: (val) async {
+              final engine = ref.read(netGuardProvider.notifier);
+              bool ok;
+              if (!val) {
+                 ok = await engine.blockDevice(widget.mac, hostname: widget.hostname);
+              } else {
+                 ok = await engine.unblockDevice(widget.mac);
+              }
+
+              if (ok) {
+                final currentBlocks = Map<String, bool>.from(netState.routerMetrics['blocked_macs'] ?? {});
+                currentBlocks[widget.mac] = !val;
+                engine.updateRouterMetrics('blocked_macs', currentBlocks);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
     int totalDl = 0;
     int totalUl = 0;
     if (_history.isNotEmpty) {
