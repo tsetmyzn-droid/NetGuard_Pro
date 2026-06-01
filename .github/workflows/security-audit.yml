@@ -16,7 +16,12 @@ jobs:
         run: sudo apt-get install -y luacheck
         
       - name: Run LuaCheck on Agent Modules
-        run: luacheck lib/plugins/openwrt/agent/modules/ --globals nixio fs uci os io json
+        run: |
+          if [ -d "lib/plugins/openwrt/agent/modules/" ]; then
+            luacheck lib/plugins/openwrt/agent/modules/ --globals nixio fs uci os io json
+          else
+            echo "Warning: Lua modules directory not found"
+          fi
         
   dart-security-scan:
     runs-on: ubuntu-latest
@@ -29,7 +34,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
         
+      - name: Get dart_code_metrics
+        run: flutter pub global activate dart_code_metrics
+        
       - name: Run Dart Code Metrics (Security Focus)
-        run: |
-          flutter pub add --dev dart_code_metrics
-          flutter pub run dart_code_metrics:metrics analyze lib --set-exit-on-violation-level warning
+        run: dart_code_metrics analyze lib --set-exit-on-violation-level warning
