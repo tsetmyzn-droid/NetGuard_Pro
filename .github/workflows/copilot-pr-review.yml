@@ -1,0 +1,26 @@
+name: Copilot PR Review
+
+on:
+  pull_request:
+
+permissions:
+  copilot-requests: write
+  pull-requests: write
+
+jobs:
+  copilot-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Copilot CLI to review PR
+        uses: austenstone/copilot-cli@v3
+        with:
+          prompt: |
+            Review the changes in this pull request for:
+            - Security vulnerabilities
+            - Code quality and best practices
+            - Performance and efficiency
+            - Missing or incorrect tests
+          output: comments
